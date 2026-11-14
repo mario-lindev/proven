@@ -1,26 +1,14 @@
 // OWNER: Aarav. Telem + Tavily search layer (AGENTS.md §7).
 // Keep the signatures exactly as they are; the brain calls them.
 import type { Engine, Source, TrailRecorder, WatchUpdate } from "../types";
-import type { Hit } from "./http";
-import { parseTelemPoll, parseTelemSearch, telemCreateMonitor, telemFetch, telemPollMonitor, telemSearch } from "./telem";
+import { normalizeUrl, type Hit } from "./http";
+import { parseTelemPoll, parseTelemSearch, telemCreateMonitor, telemFetch, telemPollMonitor, telemSearch, type TelemQuery, type TelemSearchOptions } from "./telem";
 import { parseTavilyExtract, parseTavilySearch, tavilyExtract, tavilySearch } from "./tavily";
+
+export { normalizeUrl };
 
 const MAX_SOURCES = 20;
 const MAX_PAGE_CHARS = 8000;
-
-// Same page, different spelling: lower-case host, no www., no #hash, no utm_* params, no trailing slash.
-export function normalizeUrl(raw: string): string {
-  try {
-    const u = new URL(raw.trim());
-    u.hash = "";
-    u.hostname = u.hostname.toLowerCase().replace(/^www\./, "");
-    for (const k of [...u.searchParams.keys()]) if (/^utm_|^(ref|fbclid|gclid)$/i.test(k)) u.searchParams.delete(k);
-    const path = u.pathname.replace(/\/+$/, "");
-    return `${u.protocol}//${u.host}${path}${u.search}`;
-  } catch {
-    return raw.trim().replace(/\/+$/, "").toLowerCase();
-  }
-}
 
 function interleave<T>(lists: T[][]): T[] {
   const out: T[] = [];
@@ -44,15 +32,56 @@ export function mergeHits(perQuery: Hit[][], cap = MAX_SOURCES): Source[] {
   return out;
 }
 
+// Platform search providers (docs: hack.telem.ai/doc/resources/supported-platforms). They are pinnable only:
+// auto-routing and the default set never choose them, so they run only when named in providers.include.
+// With auto_routing on, Telem's router still picks the best of these for each query.
+export const PLATFORM_PROVIDERS = [
+  "apify_linkedin",
+  "socialdatax_x",
+  "fetchlayer_tiktok",
+  "socialdatax_youtube",
+  "fetchlayer_trustpilot",
+  "fetchlayer_producthunt",
+  "apify_quora",
+  "socialdatax_wechat",
+];
+const MAX_PLATFORM_QUERIES = 4;
+export const wantsPlatforms = (q: string) =>
+  /\b(hiring|hires?|jobs?|employees?|headcount|linkedin|talent|layoffs?|reviews?|customers?|sentiment|complain\w*|users?|reddit|tiktok|twitter|youtube|social|community|wechat|china|chinese|overseas)\b/i.test(q);
+
+// Recency: news-style queries get Telem's published_after filter (undated results are still kept).
+export const RECENT_DAYS = 365;
+export const wantsRecent = (q: string) => /\b(news|latest|recent(ly)?|this (week|month|year)|past (week|month|year)|last (week|month))\b/i.test(q);
+export const recentSince = (now = new Date()) => new Date(now.getTime() - RECENT_DAYS * 86_400_000).toISOString().slice(0, 10);
+
+// One Telem session per trail, so a whole memo (both search rounds and the fetches) is one trajectory in the console.
+const g = globalThis as unknown as { __provenTelemSessions?: Map<string, string> };
+const telemSessions = (g.__provenTelemSessions ??= new Map<string, string>());
+
+type Group = { name: "main" | "recent" | "platforms"; idx: number[]; opts: TelemSearchOptions };
+
 export async function searchAll(
   queries: string[],
   trail: TrailRecorder,
   opts?: { platforms?: boolean },
 ): Promise<Source[]> {
-  // opts.platforms: Telem auto-routing already picks platform engines (LinkedIn, TikTok...) per query.
-  void opts;
   const qs = queries.map((q) => q.trim()).filter(Boolean);
   if (qs.length === 0) return [];
+  const session_id = telemSessions.get(trail.id);
+
+  // Telem search options apply to a whole batch, so queries are split into at most three batch calls:
+  // general (auto-routed), recent (auto-routed + published_after) and platforms (auto-routed within the pinned
+  // platform providers, only with opts.platforms). Each query is in exactly one of main/recent.
+  const all = qs.map((_, i) => i);
+  const recentIdx = all.filter((i) => wantsRecent(qs[i]));
+  const mainIdx = all.filter((i) => !wantsRecent(qs[i]));
+  const platformIdx = opts?.platforms ? all.filter((i) => wantsPlatforms(qs[i])).slice(0, MAX_PLATFORM_QUERIES) : [];
+  const since = recentSince();
+  const groups: Group[] = [
+    { name: "main" as const, idx: mainIdx, opts: { session_id } },
+    { name: "recent" as const, idx: recentIdx, opts: { session_id, published_after: since } },
+    { name: "platforms" as const, idx: platformIdx, opts: { session_id, providers: PLATFORM_PROVIDERS } },
+  ].filter((gr) => gr.idx.length > 0);
 
   const t0 = Date.now();
   const timed = async <T>(p: () => Promise<T>) => {
@@ -63,9 +92,9 @@ export async function searchAll(
       throw Object.assign(err instanceof Error ? err : new Error(String(err)), { ms: Date.now() - s });
     }
   };
-  // Telem (one batch call) and Tavily (one call per query) all run concurrently.
-  const [[telemS], tavilyS] = await Promise.all([
-    Promise.allSettled([timed(() => telemSearch(qs))]),
+  // All Telem batches and Tavily (one call per query) run concurrently.
+  const [telemS, tavilyS] = await Promise.all([
+    Promise.allSettled(groups.map((gr) => timed(() => telemSearch(gr.idx.map((i) => qs[i]), gr.opts)))),
     Promise.allSettled(qs.map((q) => timed(() => tavilySearch(q)))),
   ]);
 
@@ -73,24 +102,47 @@ export async function searchAll(
     s.status === "fulfilled" ? s.value.ms : ((s.reason as { ms?: number })?.ms ?? Date.now() - t0);
   const errOf = (s: PromiseSettledResult<unknown>) => (s.status === "rejected" ? (s.reason as Error).message : "");
 
-  const telem = telemS.status === "fulfilled" ? parseTelemSearch(telemS.value.value, qs.length) : null;
-  const telemErr = errOf(telemS);
-  const tavilyErrs = tavilyS.map(errOf);
+  // Per group: parsed per-query results (indexed like gr.idx), the session it ran in, and its error.
+  const parsed = groups.map((gr, k) => {
+    const s = telemS[k];
+    if (s.status !== "fulfilled") return { gr, ms: msOf(s), err: errOf(s), perQuery: null as TelemQuery[] | null };
+    const p = parseTelemSearch(s.value.value, gr.idx.length);
+    return { gr, ms: s.value.ms, err: "", perQuery: p.perQuery, session_id: p.session_id, fallback: s.value.value.fallback };
+  });
+  const firstSession = parsed.find((p) => p.session_id)?.session_id;
+  if (!session_id && firstSession) telemSessions.set(trail.id, firstSession);
 
-  if (!telem && tavilyErrs.every(Boolean)) {
-    throw new Error(`All search providers failed. Telem: ${telemErr}. Tavily: ${[...new Set(tavilyErrs)].join("; ")}`);
+  const tavilyErrs = tavilyS.map(errOf);
+  const generalFailed = parsed.filter((p) => p.gr.name !== "platforms").every((p) => !p.perQuery);
+  if (generalFailed && tavilyErrs.every(Boolean)) {
+    const telemErrs = [...new Set(parsed.filter((p) => p.gr.name !== "platforms").map((p) => p.err))].join("; ");
+    throw new Error(`All search providers failed. Telem: ${telemErrs}. Tavily: ${[...new Set(tavilyErrs)].join("; ")}`);
   }
 
   const perQueryHits: Hit[][] = [];
   qs.forEach((q, i) => {
     const engines: Engine[] = [];
-    let telemHits: Hit[] = [];
-    if (telem) {
-      engines.push(...telem.perQuery[i].engines);
-      telemHits = telem.perQuery[i].hits;
-      if (telem.perQuery[i].engines.length === 0) engines.push({ name: "telem", latency_ms: msOf(telemS), n_results: 0, error: "no engine runs returned for this query" });
-    } else {
-      engines.push({ name: "telem", latency_ms: msOf(telemS), n_results: 0, error: telemErr });
+    const routing: string[] = [];
+    const lists: Hit[][] = [];
+    let ms = 0;
+    let stepSession: string | undefined;
+    let publishedAfter: string | undefined;
+    for (const p of parsed) {
+      const j = p.gr.idx.indexOf(i);
+      if (j < 0) continue;
+      ms = Math.max(ms, p.ms);
+      const label = p.gr.name === "platforms" ? "telem_platforms" : "telem";
+      if (!p.perQuery) {
+        engines.push({ name: label, latency_ms: p.ms, n_results: 0, error: p.err });
+        continue;
+      }
+      const r = p.perQuery[j];
+      engines.push(...r.engines);
+      if (r.engines.length === 0) engines.push({ name: label, latency_ms: p.ms, n_results: 0, error: "no engine runs returned for this query" });
+      for (const name of r.routing ?? []) if (!routing.includes(name)) routing.push(name);
+      lists.push(r.hits);
+      stepSession ??= p.session_id;
+      if (p.gr.opts.published_after && !p.fallback) publishedAfter = p.gr.opts.published_after;
     }
 
     const tv = tavilyS[i];
@@ -101,23 +153,28 @@ export async function searchAll(
       n_results: tavilyHits.length,
       ...(tavilyErrs[i] ? { error: tavilyErrs[i] } : {}),
     });
+    lists.push(tavilyHits);
+    ms = Math.max(ms, msOf(tv));
 
-    const hits = interleave([telemHits, tavilyHits]);
+    // Telem's ordered list first, then platform hits, then Tavily, round-robin so each is represented.
+    const hits = interleave(lists);
     perQueryHits.push(hits);
     trail.step({
       kind: "search",
       label: `Search: ${q}`,
       query: q,
       engines,
+      ...(routing.length ? { routing } : {}),
+      ...(publishedAfter ? { published_after: publishedAfter } : {}),
       urls: [...new Map(hits.map((h) => [normalizeUrl(h.url), h.url])).values()],
-      ...(telem?.session_id ? { telem_session_id: telem.session_id } : {}),
-      ms: Math.max(msOf(telemS), msOf(tv)),
+      ...(stepSession ? { telem_session_id: stepSession } : {}),
+      ms,
     });
   });
 
   const sources = mergeHits(perQueryHits);
   if (sources.length === 0) {
-    const errs = [telemErr, ...tavilyErrs].filter(Boolean);
+    const errs = [...parsed.map((p) => p.err), ...tavilyErrs].filter(Boolean);
     if (errs.length) throw new Error(`Search returned no results. Errors: ${[...new Set(errs)].join("; ")}`);
   }
   return sources;
@@ -148,10 +205,15 @@ export async function extract(urls: string[], trail: TrailRecorder): Promise<{ u
   const missing = list.filter((u) => !gotNorm.has(normalizeUrl(u)));
 
   // 2. Telem fetch for whatever Tavily missed
+  let fetchSession: string | undefined;
   if (missing.length) {
     const s2 = Date.now();
     try {
-      const p = await telemFetch(missing);
+      const p = await telemFetch(missing, telemSessions.get(trail.id));
+      if (p.session_id) {
+        fetchSession = p.session_id;
+        if (!telemSessions.has(trail.id)) telemSessions.set(trail.id, p.session_id);
+      }
       for (const r of p.ok) gotNorm.set(normalizeUrl(r.url), r.text);
       for (const f of p.failed) errors.set(f.url, `${errors.get(f.url) ?? ""}; telem: ${f.error}`.replace(/^; /, ""));
       engines.push({ name: "telem_fetch", latency_ms: Date.now() - s2, n_results: p.ok.length, ...(p.failed.length ? { error: `${p.failed.length} URL(s) failed` } : {}) });
@@ -169,6 +231,7 @@ export async function extract(urls: string[], trail: TrailRecorder): Promise<{ u
     label: `Extract ${out.length} of ${list.length} pages`,
     engines,
     urls: out.map((o) => o.url),
+    ...(fetchSession ? { telem_session_id: fetchSession } : {}),
     ms: Date.now() - t0,
   });
 

@@ -1,6 +1,9 @@
 // The contract. Only Rishith edits this file; post [CONTRACT] in chat on every change.
 
-export type Engine = { name: string; latency_ms: number; n_results: number; error?: string };
+export type Engine = {
+  name: string; latency_ms: number; n_results: number; error?: string;
+  warnings?: string[];   // Telem run warning codes, e.g. "routing_unavailable", "count_clamped" (capability_gap left out)
+};
 
 export type Source = {
   id: string;            // "s1", "s2"...
@@ -42,6 +45,7 @@ export type TrailStep = {
   query?: string;
   engines?: Engine[];    // which engines answered, how fast
   routing?: string[];    // search steps: the engines Telem's router chose for this query (may be absent)
+  published_after?: string; // search steps: Telem kept only results published on or after this date (recency filter)
   urls?: string[];
   telem_session_id?: string;
   at: string;            // ISO time

@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Proven caption test</title>
+  <style>
+    body { font: 14px/1.4 system-ui, sans-serif; margin: 16px; color: #111; background: #fff; }
+    #verdict { font-size: 20px; font-weight: 700; }
+    .pass { color: #15803d; } .fail { color: #b91c1c; }
+    pre { background: #f6f6f6; padding: 8px; white-space: pre-wrap; }
+    /* Meet-like caption bar, fixed at the bottom of the page */
+    #bar { position: fixed; left: 0; right: 0; bottom: 0; height: 160px; background: #202124; color: #fff; padding: 8px 16px; overflow: hidden; }
+    .blk { margin-bottom: 6px; } .nm { font-weight: 600; font-size: 12px; } .tx { font-size: 16px; }
+    .cc { position: fixed; right: 16px; bottom: 170px; }
+  </style>
+</head>
+<body>
+  <h1>Proven caption test</h1>
+  <p>Simulates Meet captions (growing words, a rewrite, two speakers, a scrolled-away line) and runs them through <code>captions.js</code>.
+     Mode: <a href="?">aria region</a> · <a href="?mode=fallback">fallback (no aria-label)</a> · <a href="?mode=zoom">Zoom "Name: text"</a></p>
+  <div id="verdict">Running…</div>
+  <h3>Unit checks</h3><pre id="units"></pre>
+  <h3>Emitted sentences</h3><pre id="out"></pre>
+  <h3>Expected</h3><pre id="exp"></pre>
+
+  <button class="cc" aria-label="Turn on captions">closed_caption</button>
+  <div id="bar"></div>
+
+  <script src="captions.js"></script>
+  <script>
+    "use strict";
+    const P = window.ProvenCaptions;
+    const mode = new URLSearchParams(location.search).get("mode") || "aria";
+
+    // ---- unit checks on the pure functions ----
+    const units = [];
+    const eq = (name, got, want) => {
+      const ok = JSON.stringify(got) === JSON.stringify(want);
+      units.push((ok ? "ok   " : "FAIL ") + name + (ok ? "" : "\n     got  " + JSON.stringify(got) + "\n     want " + JSON.stringify(want)));
+      return ok;
+    };
+    eq("split keeps $4.5M", P.splitSentences("Revenue is $4.5M. We grew 3.5x! Next"), ["Revenue is $4.5M.", "We grew 3.5x!", "Next"]);
+    eq("meet layout", P.parseLines(["Alice Chen", "We have no competitors.", "Bob", "Really?"]),
+      [{ speaker: "Alice Chen", text: "We have no competitors." }, { speaker: "Bob", text: "Really?" }]);
+    eq("zoom layout", P.parseLines(["Alice: We grew 3x.", "Bob: Since when?"]),
+      [{ speaker: "Alice", text: "We grew 3x." }, { speaker: "Bob", text: "Since when?" }]);
+    eq("noise dropped", P.parseLines(["arrow_downward", "Jump to bottom", "You", "hello there"]), [{ speaker: "You", text: "hello there" }]);
+    {
+      const t = P.createTracker({});
+      const a = t.update([{ speaker: "A", text: "we have to" }], 0);
+      const b = t.update([{ speaker: "A", text: "We have no competitors." }], 300);
+      const c = t.tick(1100);
+      const d = t.update([{ speaker: "A", text: "We have no competitors. And" }], 1200);
+      const e = t.tick(5000);
+      eq("tracker rewrite+dedupe", [a, b, c, d, e], [[], [], [{ speaker: "A", text: "We have no competitors." }], [], [{ speaker: "A", text: "And" }]]);
+    }
+    document.getElementById("units").textContent = units.join("\n");
+    const unitsOk = units.every((u) => u.startsWith("ok"));
+
+    // ---- live DOM simulation ----
+    const bar = document.getElementById("bar");
+    let region;
+    if (mode === "aria") {
+      region = document.createElement("div");
+      region.setAttribute("role", "region");
+      region.setAttribute("aria-label", "Captions");
+      bar.append(region);
+    } else {
+      region = bar; // no aria hints: exercises the fallback finder
+    }
+    const list = document.createElement("div");
+    region.append(list);
+
+    function block(name) {
+      const b = document.createElement("div");
+      b.className = "blk";
+      const tx = document.createElement("div");
+      tx.className = "tx";
+      if (mode !== "zoom") {
+        const nm = document.createElement("div");
+        nm.className = "nm";
+        nm.textContent = name;
+        b.append(nm);
+      }
+      b.append(tx);
+      list.append(b);
+      return { el: b, set: (t) => (tx.textContent = mode === "zoom" ? name + ": " + t : t) };
+    }
+
+    const emitted = [];
+    P.attach({
+      doc: document,
+      onSentence: (s) => {
+        emitted.push(s.speaker + ": " + s.text);
+        document.getElementById("out").textContent = emitted.join("\n");
+      },
+    });
+
+    const expected = [
+      "Alice Chen: So we have no competitors.",
+      "Alice Chen: Our revenue grew 3x last year to $4.5M.",
+      "Bob: Really?",
+      "Bob: Who are your customers",
+      "Alice Chen: Mostly banks.",
+    ];
+    document.getElementById("exp").textContent = expected.join("\n");
+
+    const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+    async function say(b, start, words, gap) {
+      let text = start;
+      for (const w of words) {
+        text = text ? text + " " + w : w;
+        b.set(text);
+        await sleep(gap);
+      }
+      return text;
+    }
+
+    (async () => {
+      await sleep(300);
+      const a = block("Alice Chen");
+      await say(a, "", ["So", "we", "have", "to", "competitors"], 150);
+      a.set("So we have no competitors."); // Meet refines the line
+      await sleep(250);
+      await say(a, "So we have no competitors.", ["Our", "revenue", "grew", "3x", "last", "year", "to", "$4.5M."], 150);
+      await sleep(2000);
+      const b = block("Bob");
+      const bt = await say(b, "", ["Really?", "Who", "are", "your", "customers"], 150);
+      await sleep(2200);
+      const a2 = block("Alice Chen");
+      await say(a2, "", ["Mostly", "banks."], 150);
+      await sleep(1500);
+      a.el.remove(); // oldest line scrolls away
+      await sleep(1500);
+
+      const ok = unitsOk && JSON.stringify(emitted) === JSON.stringify(expected);
+      const v = document.getElementById("verdict");
+      v.textContent = (ok ? "PASS" : "FAIL") + " (" + mode + ")";
+      v.className = ok ? "pass" : "fail";
+      document.title = v.textContent;
+    })();
+  </script>
+</body>
+</html>

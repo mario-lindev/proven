@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Proven · Live</title>
+  <link rel="stylesheet" href="panel.css">
+</head>
+<body>
+  <header>
+    <h1>Proven <span>· Live</span></h1>
+    <button id="copy" class="ghost" title="Copy every check as text">Copy all</button>
+  </header>
+
+  <div id="status" class="status">Starting…</div>
+  <div id="error" class="error" hidden></div>
+
+  <section class="controls">
+    <label class="row">
+      <span>Only check this speaker</span>
+      <select id="speaker"><option value="">Everyone</option></select>
+    </label>
+    <div class="row">
+      <button id="mic" class="ghost">Use microphone</button>
+      <span id="busy" class="busy" hidden>Checking…</span>
+    </div>
+    <div id="micHelp" class="help" hidden></div>
+    <form id="typed" class="typed">
+      <input id="claim" type="text" placeholder="Type a claim, e.g. “We have no competitors”" autocomplete="off">
+      <button type="submit">Check</button>
+    </form>
+  </section>
+
+  <section>
+    <h2>Claims <span id="count" class="count"></span></h2>
+    <div id="cards"><p class="empty">Claims the founder makes will appear here, newest first.</p></div>
+  </section>
+
+  <section>
+    <h2>Transcript</h2>
+    <div id="transcript" class="transcript"><p class="empty">Nothing heard yet.</p></div>
+  </section>
+
+  <details id="settings">
+    <summary>Settings</summary>
+    <label class="field">
+      <span>Proven server URL</span>
+      <input id="base" type="url" placeholder="http://localhost:3000">
+    </label>
+    <div class="row">
+      <button id="save">Save</button>
+      <button id="test" class="ghost">Test connection</button>
+      <span id="saved" class="muted"></span>
+    </div>
+    <p class="muted small">Only the caption text of the last two sentences is sent to this server. No audio leaves your browser, except through Chrome's own speech service when you use the microphone.</p>
+  </details>
+
+  <script src="panel.js"></script>
+</body>
+</html>

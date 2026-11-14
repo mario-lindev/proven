@@ -1,139 +1,135 @@
 # Demo script: Proven, 3 minutes
 
-Rishith talks. Mario drives the laptop. Aarav sits by the laptop with the backup video open and watches the clock.
+Rishith talks. Mario drives the laptop. Aarav holds the timer and the backup video.
 
-Total: 3:00. If we are behind at a checkpoint, skip to the next step. Never run over.
+Total 3:00. If we are behind at a checkpoint, skip ahead. Never run over. Button names below are the exact labels on screen.
 
 ---
+
+## Prep (by 3:45)
+
+**Warm the cache.** With real keys and `MOCK=0`, run deep memos for the demo companies so they show under **Recent memos** on the home page:
+
+```
+npx tsx --env-file=.env.local scripts/warm-cache.ts deep [FILL: demo company 1] [FILL: demo company 2] [FILL: demo company 3]
+```
+
+Each line prints the verdict, counts, the time it took and `/memo/<id>`. Memos and their trails are saved in `.data/`, so they survive a server restart. Note the times: they are the real memo times for the slides.
+
+**Start the watch early.** Open the memo for [FILL: watched company], press **Watch this company**, then **Check now** once. Leave that tab open and never reload it: the watch lives in the page and in server memory, so a reload or a server restart loses it from the screen (the Telem monitor itself keeps running).
 
 ## Before we go on (15 minutes before)
 
 Mario:
-- [ ] Chrome, not Safari. Live Room needs Chrome's Web Speech API.
-- [ ] Laptop on the phone hotspot, not venue Wi-Fi. Chrome speech recognition also needs the network.
-- [ ] Tab 1: slides, on slide 1. Tab 2: Proven home page. Tab 3: Proven Live Room, mic permission already granted (click Start once, allow, then Stop). Tab 4: a cached memo for [FILL: demo company 1], trail drawer closed. Tab 5: the Watch panel for [FILL: watched company]. Tab 6: the backup video, paused at 0:00.
-- [ ] Browser zoom high enough to read from the back of the room. Turn off notifications (Do Not Disturb).
-- [ ] `MOCK=0`. Check the app shows real URLs, not `example.com`. Never present mock fixtures as real results.
-- [ ] Run one live claim with a different phrasing ("our market is $10B") to warm up the server.
-- [ ] Do not say "we have no competitors" into Live Room after the last server restart. `lib/brain/live.ts` remembers every claim it has checked while the server runs and skips repeats, so a rehearsal can block the live demo. If it was said, restart the server and re-run the cached memos (the store is in memory and a restart clears it).
-- [ ] Check the 3 cached memos still open: [FILL: demo company 1], [FILL: demo company 2], [FILL: demo company 3].
+- [ ] Chrome, not Safari. Live Room needs Chrome speech recognition.
+- [ ] Phone hotspot, not venue Wi-Fi.
+- [ ] **No "Demo data" badge** next to the Proven logo. If it is there, the server runs with `MOCK=1` and every result is a fixture: restart with `MOCK=0`. Never present mock data as real.
+- [ ] Tabs: 1 slides on slide 1. 2 Proven home, idle, with **Recent memos** visible. 3 Live Room, mic already allowed (press **Start listening**, allow, **Stop listening**). 4 a warmed deep memo for [FILL: demo company 1], drawer closed. 5 the memo tab with the watch running (see Prep). 6 backup video paused at 0:00.
+- [ ] Browser zoom up so the back row can read it. Do Not Disturb on.
+- [ ] Warm the server: type one claim in Live Room ("Our market is $10B"), press **Check**.
+- [ ] Do not say "we have no competitors" within 90 seconds of going on. Live Room skips a claim it checked in the last 90 seconds.
+- [ ] Optional extension beat: Proven loaded in Chrome, a Meet call open with Aarav joined from his laptop, captions on (**CC**), the Proven side panel showing **Listening to Google Meet captions** with a green dot.
 
 Rishith:
-- [ ] Know the measured numbers by heart: quick memo [MEASURE: seconds per quick memo], deep memo [MEASURE: seconds per deep memo], claim check [MEASURE: seconds per live claim check].
-- [ ] Have one judge-proof company ready in case no judge names one: [FILL: demo company 1].
+- [ ] Know the warm-cache times for a deep memo: [MEASURE: seconds per deep memo]. Know one live check time: [MEASURE: seconds per live claim check].
+- [ ] Fallback company if no judge names one: [FILL: demo company 1].
 
 ---
 
 ## Run sheet
 
-### 0:00 to 0:10. Title (slide 1)
+### 0:00 to 0:15. Title and problem (slides 1 and 2)
 
-**On screen:** slide 1.
+**Rishith:** "We're Proven. Investors hear dozens of pitches a week. Founders say 'we have no competitors' or 'we grew 3x'. Someone checks that by hand, days later, or nobody does. A chatbot is fast, but you can't show your partners where each sentence came from."
 
-**Rishith:** "We're Proven. We tell investors whether a startup is worth pursuing, and we show the source for every line we write."
+**Mario:** slide 2 at "dozens of pitches". At "where each sentence came from", go to tab 3 and press **Start listening**.
 
-**Mario:** switch to slide 2 at "every line we write".
+### 0:15 to 1:00. Live Room (slide 3 is the backdrop if the app fails)
 
-**If it fails:** nothing can fail here. Keep going.
+**On screen:** the transcript fills in; claim cards appear newest on top.
 
-### 0:10 to 0:25. Problem (slide 2)
-
-**On screen:** slide 2.
-
-**Rishith:** "Investors hear dozens of pitches a week. Founders say 'we have no competitors' or 'we grew 3x'. Someone checks that by hand, days later, or nobody does. And a chatbot answer is fast, but you can't show your partners where each sentence came from."
-
-**Mario:** at "where each sentence came from", switch to tab 3 (Live Room) and click **Start listening**. Check the transcript box shows words.
-
-**If it fails:** if the slide does not advance, Rishith keeps talking; the words carry this step.
-
-### 0:25 to 1:25. Live Room (the main moment)
-
-**On screen:** Live Room. The transcript fills in as Rishith talks. Claim cards appear on the right, newest on top.
-
-**Rishith** (speak slowly, finish each sentence clearly, pause after each one):
+**Rishith** (slow, clear sentences, pause after each):
 - "Let me pitch you Proven while Proven listens."
 - "Investors spend hours checking pitch claims by hand."
 - "And the best part: we have no competitors."
-- (Stop. Wait for the card. Do not fill the silence for up to [MEASURE: seconds per live claim check] seconds.)
-- When the red card appears: "Red. It searched while I was talking and found real competitors. Here they are, each with a source." Mario hovers the sources on the card.
-- "That's not a guess. Every card links to the pages it used."
+- Stop. Wait for the card. The blue "Searching the web for the latest claim" bar shows it is working.
+- On the red **Contradicted** card: "Red. While I talked it searched and found real competitors. Each one has a source." Mario points at the sources.
 
-**Mario:** click **Stop listening** after the red card is up, so later talk does not add cards.
-
-**What should appear:** the transcript, then a red card: the claim "we have no competitors", a one-line note naming competitors, and source chips.
+**Mario:** press **Stop listening** once the card is up.
 
 **If it fails:**
-- Mic picks up nothing within 5 seconds: Mario clicks into the text box, types `We have no competitors`, presses Enter. Rishith says "The room is loud, so I'll type it" and carries on.
-- No card after 15 seconds: Mario switches to the backup video at the Live Room part (timestamp [FILL: Live Room timestamp in backup video]) and plays it muted. Rishith narrates the same lines over the video.
-- Card comes back amber instead of red: Rishith says "Amber means it didn't find enough evidence to call it either way. It won't guess." Then move on. Do not argue with the result.
-- Card comes back as an error message: same as no card, go to the video.
+- No words in the transcript after 5 s: type `We have no competitors` in the "Type a claim to check" box, press **Check**. Rishith: "Loud room, I'll type it."
+- No card after 15 s, or an error: tab 6, play the Live Room part muted ([FILL: Live Room timestamp in backup video]). Rishith narrates.
+- Amber **Unclear**: "Amber means not enough evidence either way. It won't guess." Move on.
 
-### 1:25 to 2:10. Memo
+### Optional 20 s. Extension on a Meet call (only if prep showed the green dot)
 
-**On screen:** Proven home page (tab 2), then the memo building, then the memo.
+Take these 20 s from the Memo beat below (start the memo on a warmed tab instead of a live run).
 
-**Rishith:** "Now a full memo. Can one of you name a company? A startup or a vendor you've looked at."
-- If no judge answers in 3 seconds: "Let's do [FILL: demo company 1]."
+**Mario:** switch to the Meet tab. Aarav, as the founder, says: "We already have every top-ten bank as a customer."
 
-**Mario:** set depth to **quick** [VERIFY: how the UI picks quick depth], type the name, click **Check**. The loading state lists the research steps. Do not run a deep memo live: deep is the default and takes 60 to 120 seconds, which does not fit this slot. The cached memos in tab 4 should be deep ones.
+**Rishith:** "Same check, on a real video call. It reads Meet's captions, no audio leaves the browser." Point at the card in the side panel. "And **Research this company** opens a full memo."
 
-**Rishith** (while it builds): "Claude is planning about eight searches: funding, competitors, hiring, customer complaints, lawsuits, recent news. Telem runs them all in one batch call and routes each query to the engines that fit it, including platforms like LinkedIn that normal search APIs miss. Tavily searches in parallel and reads the top pages in full."
+**If it fails:** say nothing about it and go to the memo.
 
-When the memo appears: "Verdict: [read it out]. Here are the risks. Every line has numbered sources. If the model writes a line without a source, our code deletes it before you see it."
+### 1:00 to 1:45. Memo, with Telem routing live
 
-**What should appear:** verdict badge (green pursue, amber dig deeper or red pass) with confidence, summary, facts, risks, open questions, source chips on every fact and risk.
+**On screen:** tab 2, Proven home.
 
-**If it fails:**
-- Memo is not back by 2:00: Mario switches to tab 4 (cached memo). Rishith: "This one is still running. Here's a deep memo we ran earlier today. Deep searches twice: the second round goes after what the first round couldn't answer." Keep going from the cached memo.
-- Memo returns an error: same, switch to tab 4.
-- Judge names a person, not a company: Rishith: "We only check companies and public information, so let's do their company" or use [FILL: demo company 1].
+**Rishith:** "Name a company. A startup or a vendor you've looked at." No answer in 3 s: "Let's do [FILL: demo company 1]."
 
-### 2:10 to 2:35. Trail
+**Mario:** type the name, choose **Quick** (1 round), press **Research**.
 
-**On screen:** the memo, then the trail drawer on the right.
+**Rishith** (over the research feed): "Claude planned the searches: funding, competitors, hiring, reviews, lawsuits, news. Each one goes to Telem. Watch this line: 'Router chose' is Telem picking different engines for each query. Hiring and review queries also go to Telem's platform engines: LinkedIn, TikTok, X, Trustpilot. News queries only keep the last year. The whole memo is one Telem session, that id at the bottom, which you can open in the Telem console."
 
-**Mario:** click the first risk's source chip. The trail drawer opens.
+When the memo appears: "Verdict: [read it]. Every fact and risk has numbered sources. If Claude writes a line without a real source, our code deletes it."
 
-**Rishith:** "This is the trail. Here's the query that found this risk. Here are the engines Telem picked for it, how fast each one answered, and how many results each gave. And here's the page itself." Mario clicks the URL so it opens in a new tab, then comes back. "Every line is provable. That's the name."
+**If it fails or is still running at 1:40:** switch to tab 4. Rishith: "That one is still searching. Here's a deep memo we ran earlier. Deep searches twice: round two goes after what round one couldn't answer." If tab 4 is lost: tab 2, press **New research**, click the company under **Recent memos**.
 
-**What should appear:** trail steps: plan, one search step per query with engine names and latency in ms, the read pages step, the write step.
+Judge names a person: "We only research companies and public information, so let's do their company."
 
-**If it fails:**
-- Drawer is empty or errors: switch to tab 4 (cached memo) and open its trail.
-- Both fail: show the trail screenshot on slide 4.
+### 1:45 to 2:15. Trail
 
-### 2:35 to 2:52. Watch and business (slide 5)
+**Mario:** click a source chip on the first risk. The drawer **How Proven reached this** opens at "This search found the cited source".
 
-**On screen:** Watch panel (tab 5) for 5 seconds, then slide 5.
+**Rishith:** "This risk came from this page. Here's the query that found it, the engines Telem's router chose, every engine that answered and how fast, and the Telem session. Every line is provable. That's the name."
 
-**Mario:** switch to tab 5. If there is a real update, hover it. Then switch to slide 5.
+**Mario:** click the page link (opens a new tab), come back, **Close**.
 
-**Rishith:** "And Proven keeps watching. We set a Telem monitor on [FILL: watched company] at 1 PM, and this update came in on its own." (Only say this if there is a real update on screen.) "Funds pay per seat. Companies pay per report for vendor checks. Analysts are slow, chat tools can't be audited, data platforms don't check a pitch live. Proven does all three."
+**If it fails:** use tab 4 and press **How Proven reached this**. If that fails too, show the trail screenshot on slide 4.
 
-**If it fails:**
-- No Watch update yet: skip tab 5. Rishith says: "Watch uses Telem monitors. They run every hour, so it will report changes to this company from now on." Do not show an empty panel for long.
-- Watch panel errors: skip it, go straight to slide 5.
+### 2:15 to 2:35. Watch
 
-### 2:52 to 3:00. Ask (slide 6)
+**Mario:** tab 5. Press **Check now** (it shows "Telem agent is checking" for a few seconds).
 
-**On screen:** slide 6.
+**Rishith:** "And Proven keeps watching. This is a Telem monitor with an agent. Check now runs the agent this second instead of waiting an hour. Each change comes with its source."
 
-**Rishith:** "We built this today. [FILL: the ask, same as slide 6]. Thank you."
+Only claim an update if one is on screen. If the panel says "No changes yet": "Nothing new since we started it. When something changes, it lands here with its source."
 
-**Mario:** stay on slide 6 for questions. Keep tab 4 (cached memo) one click away for questions about the trail.
+**If it fails:** skip to slide 5.
+
+### 2:35 to 2:50. Business (slide 5)
+
+**Rishith:** "Funds pay per seat. Companies pay per report for vendor checks. Analysts are slow, chat tools can't be audited, data platforms don't check a pitch live. Proven does all three."
+
+### 2:50 to 3:00. Team and ask (slide 6)
+
+**Rishith:** "Rishith, Aarav, Mario. We built this today. [FILL: the ask, same as slide 6]. Thank you."
+
+**Mario:** stay on the slide. Keep tab 4 one click away for trail questions.
 
 ---
 
 ## If everything fails
 
-Mario plays the backup video from the start, muted. Rishith narrates the same script over it, skipping the "name a company" step. Say once: "The network is down, so here's the run we recorded at [FILL: time the video was recorded] today." Don't apologize more than once.
+Play the backup video from the start, muted. Rishith narrates the same script and skips "name a company". Say once: "The network is down, so here's the run we recorded at [FILL: time the video was recorded] today." Apologize once only.
 
-## Timing checkpoints (Aarav watches)
+## Timing checkpoints (Aarav)
 
 | Time | Should be at | If behind |
 |---|---|---|
-| 0:25 | Live Room listening | Skip the rest of the problem slide |
-| 1:25 | Typing a company for the memo | Cut the "name a company" ask, use the cached memo |
-| 2:10 | Opening the trail | Skip the URL click |
-| 2:35 | Watch or slide 5 | Skip Watch, go to slide 5 |
-| 2:52 | Slide 6 | Say only "Thank you" |
+| 0:15 | Live Room listening | Cut the problem lines |
+| 1:00 | Typing a company | Skip the judge ask, use tab 4 |
+| 1:45 | Opening the trail | Skip the page link |
+| 2:15 | Watch | Skip Watch, go to slide 5 |
+| 2:50 | Slide 6 | Say only "Thank you" |

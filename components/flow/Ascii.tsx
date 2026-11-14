@@ -3,9 +3,9 @@
 import { useCallback } from "react";
 import AsciiCanvas, { type AsciiLayer } from "@/components/AsciiCanvas";
 
-export const INK = "#14202b";
-export const COBALT = "#2c46c9";
-export const RUST = "#b4532a";
+export const INK = "#263c59";
+export const COBALT = "#2d4faa";
+export const RUST = "#c4622d";
 
 export type Phase = "idle" | "running" | "done";
 const DEFAULT_COLORS = [COBALT, INK, RUST];

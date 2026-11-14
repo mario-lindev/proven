@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { ClaimCheck } from "@/lib/types";
 import ErrorBox from "@/components/ErrorBox";
 import TrailDrawer from "@/components/TrailDrawer";
+import { EngineDot, engineLabel } from "@/components/engines";
 import { api, domain, errMsg } from "@/components/http";
 
 // Minimal Web Speech API types (not in TypeScript's DOM lib).
@@ -21,18 +22,40 @@ type Recognition = {
 };
 type RecognitionCtor = new () => Recognition;
 
-const VERDICT: Record<ClaimCheck["verdict"], { label: string; card: string; text: string }> = {
-  supported: { label: "Checks out", card: "border-green-700 bg-green-50", text: "text-green-800" },
-  contradicted: { label: "Contradicted", card: "border-red-700 bg-red-50", text: "text-red-800" },
-  unclear: { label: "Unclear", card: "border-amber-500 bg-amber-50", text: "text-amber-800" },
+const VERDICT: Record<ClaimCheck["verdict"], { label: string; text: string; bg: string; line: string; mark: string }> = {
+  supported: { label: "Checks out", text: "text-pursue", bg: "bg-pursue-soft", line: "border-pursue", mark: "bg-pursue-soft decoration-pursue" },
+  contradicted: { label: "Contradicted", text: "text-pass", bg: "bg-pass-soft", line: "border-pass", mark: "bg-pass-soft decoration-pass" },
+  unclear: { label: "Unclear", text: "text-dig", bg: "bg-dig-soft", line: "border-dig", mark: "bg-dig-soft decoration-dig" },
 };
 
 const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9 ]/g, "").trim();
+const words = (s: string) => new Set(norm(s).split(/\s+/).filter((w) => w.length > 2));
+
+// The check whose claim best matches this transcript line, if most of the claim's words are in it.
+function matchCheck(line: string, checks: ClaimCheck[]) {
+  const lw = words(line);
+  let best: ClaimCheck | null = null;
+  let bestScore = 0;
+  for (const c of checks) {
+    const cw = words(c.claim);
+    if (cw.size === 0) continue;
+    let hit = 0;
+    for (const w of cw) if (lw.has(w)) hit++;
+    const score = hit / cw.size;
+    if (score > bestScore) {
+      bestScore = score;
+      best = c;
+    }
+  }
+  return bestScore >= 0.6 ? best : null;
+}
+
+type LogLine = { text: string; typed: boolean };
 
 export default function LiveRoom() {
   const [supported, setSupported] = useState<boolean | null>(null);
   const [listening, setListening] = useState(false);
-  const [finals, setFinals] = useState<string[]>([]);
+  const [log, setLog] = useState<LogLine[]>([]);
   const [interim, setInterim] = useState("");
   const [checks, setChecks] = useState<ClaimCheck[]>([]);
   const [pending, setPending] = useState(0);
@@ -44,6 +67,7 @@ export default function LiveRoom() {
   const listeningRef = useRef(false);
   const finalsRef = useRef<string[]>([]);
   const inFlight = useRef(new Set<string>());
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   const closeTrail = useCallback(() => setTrailId(null), []);
 
@@ -79,6 +103,11 @@ export default function LiveRoom() {
     };
   }, []);
 
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [log, interim]);
+
   function start() {
     const w = window as unknown as { SpeechRecognition?: RecognitionCtor; webkitSpeechRecognition?: RecognitionCtor };
     const Ctor = w.webkitSpeechRecognition || w.SpeechRecognition;
@@ -90,12 +119,14 @@ export default function LiveRoom() {
     rec.onresult = (e) => {
       let live = "";
       let gotFinal = false;
+      const newFinals: string[] = [];
       for (let i = e.resultIndex; i < e.results.length; i++) {
         const r = e.results[i];
         const txt = r[0].transcript.trim();
         if (r.isFinal) {
           if (txt) {
             finalsRef.current = [...finalsRef.current, txt];
+            newFinals.push(txt);
             gotFinal = true;
           }
         } else {
@@ -104,7 +135,7 @@ export default function LiveRoom() {
       }
       setInterim(live);
       if (gotFinal) {
-        setFinals(finalsRef.current);
+        setLog((l) => [...l, ...newFinals.map((text) => ({ text, typed: false }))]);
         send(finalsRef.current.slice(-2).join(" "));
       }
     };
@@ -148,112 +179,182 @@ export default function LiveRoom() {
   function submitTyped(e: React.FormEvent) {
     e.preventDefault();
     if (!typed.trim()) return;
+    setLog((l) => [...l, { text: typed.trim(), typed: true }]);
     send(typed);
     setTyped("");
   }
 
+  const counts = {
+    contradicted: checks.filter((c) => c.verdict === "contradicted").length,
+    unclear: checks.filter((c) => c.verdict === "unclear").length,
+    supported: checks.filter((c) => c.verdict === "supported").length,
+  };
+
   return (
-    <div className="space-y-10">
+    <div className="space-y-8">
       <header className="flex flex-wrap items-end justify-between gap-6">
         <div>
-          <h1 className="text-5xl font-semibold tracking-tight">Live Room</h1>
-          <p className="mt-3 max-w-2xl text-xl text-muted">
-            Proven listens to the pitch and checks each factual claim as it is spoken.
+          <h1 className="serif text-[3.4rem] font-semibold leading-none tracking-tight">Live Room</h1>
+          <p className="mt-3 max-w-[38rem] text-[1.15rem] text-graphite">
+            Proven listens to the pitch and checks each factual claim against the web while the founder is still talking.
           </p>
         </div>
-        {supported !== false && (
-          <button
-            type="button"
-            onClick={listening ? stop : start}
-            disabled={supported === null}
-            className={`flex items-center gap-3 rounded-xl px-8 py-4 text-xl font-semibold text-white disabled:opacity-50 ${
-              listening ? "bg-red-700 hover:bg-red-800" : "bg-accent hover:bg-accent-hover"
-            }`}
-          >
-            {listening && <span className="h-3 w-3 animate-pulse rounded-full bg-white" />}
-            {listening ? "Stop" : "Start listening"}
-          </button>
-        )}
+        <div className="flex items-center gap-5">
+          {listening && (
+            <span className="flex items-center gap-3 text-lg font-medium text-pass" role="status">
+              <span className="flex h-6 items-end gap-[3px]" aria-hidden>
+                {[0, 1, 2, 3, 4].map((i) => (
+                  <span key={i} className="level-bar w-[4px] bg-pass" style={{ height: "100%", animationDelay: `${i * 0.12}s` }} />
+                ))}
+              </span>
+              Listening
+            </span>
+          )}
+          {supported !== false && (
+            <button
+              type="button"
+              onClick={listening ? stop : start}
+              disabled={supported === null}
+              className={`flex items-center gap-3 px-8 py-4 text-xl font-semibold text-white disabled:opacity-50 ${
+                listening ? "bg-pass hover:bg-pass/85" : "bg-ink hover:bg-cobalt"
+              }`}
+            >
+              <span className={`h-3 w-3 rounded-full ${listening ? "bg-white" : "bg-pass"}`} aria-hidden />
+              {listening ? "Stop listening" : "Start listening"}
+            </button>
+          )}
+        </div>
       </header>
 
       {supported === false && (
-        <div className="rounded-xl border border-amber-300 bg-amber-50 px-5 py-4 text-amber-900">
-          <span className="font-semibold">Use Chrome for the mic.</span> This browser has no speech recognition. You
-          can still type claims below.
+        <div className="border-l-4 border-dig bg-dig-soft px-5 py-4">
+          <span className="font-semibold text-dig">Use Chrome for the mic.</span> This browser has no speech recognition.
+          You can still type claims below.
         </div>
       )}
 
-      <section className="min-h-32 rounded-2xl border border-line bg-soft p-6">
-        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-muted">Transcript</h2>
-        {finals.length === 0 && !interim ? (
-          <p className="text-lg text-muted">{listening ? "Listening..." : "Press Start listening and begin the pitch."}</p>
-        ) : (
-          <p className="text-xl leading-relaxed">
-            {finals.slice(-12).join(" ")} <span className="text-muted/70">{interim}</span>
-          </p>
-        )}
-      </section>
-
-      <form onSubmit={submitTyped} className="flex flex-col gap-3 sm:flex-row">
-        <input
-          value={typed}
-          onChange={(e) => setTyped(e.target.value)}
-          placeholder="Or type a claim"
-          aria-label="Or type a claim"
-          className="min-w-0 flex-1 rounded-xl border-2 border-line px-5 py-3 text-lg outline-none placeholder:text-muted/60 focus:border-accent"
-        />
-        <button
-          type="submit"
-          disabled={!typed.trim()}
-          className="rounded-xl bg-accent px-6 py-3 text-lg font-semibold text-white hover:bg-accent-hover disabled:opacity-50"
-        >
-          Check
-        </button>
-      </form>
-
       {error && <ErrorBox message={error} />}
 
-      <section className="space-y-5">
-        <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold uppercase tracking-wider text-muted">Claims</h2>
-          {pending > 0 && <span className="animate-pulse text-muted">Checking...</span>}
-        </div>
-        {checks.length === 0 && pending === 0 && (
-          <p className="text-lg text-muted">No claims checked yet.</p>
-        )}
-        {checks.map((c) => {
-          const v = VERDICT[c.verdict] ?? VERDICT.unclear;
-          return (
-            <article key={c.id + c.claim} className={`rounded-2xl border-l-8 p-6 ${v.card}`}>
-              <div className={`text-3xl font-bold ${v.text}`}>{v.label}</div>
-              <p className="mt-3 text-2xl font-medium leading-snug">&ldquo;{c.claim}&rdquo;</p>
-              <p className="mt-2 text-lg">{c.note}</p>
-              {c.sources.length > 0 && (
-                <ul className="mt-4 space-y-1">
-                  {c.sources.map((s, i) => (
-                    <li key={s.id} className="text-base">
-                      <span className="mr-2 font-mono text-sm font-semibold text-accent">[{i + 1}]</span>
-                      <a href={s.url} target="_blank" rel="noopener noreferrer" className="hover:underline">
-                        {s.title}
-                      </a>
-                      <span className="ml-2 text-sm text-muted">
-                        {domain(s.url)} via {s.engine}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-              <button
-                type="button"
-                onClick={() => setTrailId(c.trail_id)}
-                className="mt-4 font-medium text-accent hover:underline"
-              >
-                See how
-              </button>
-            </article>
-          );
-        })}
-      </section>
+      <div className="grid gap-8 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)]">
+        <section aria-labelledby="transcript-title" className="flex min-w-0 flex-col border border-rule bg-surface">
+          <div className="flex items-baseline justify-between border-b border-rule px-6 py-3">
+            <h2 id="transcript-title" className="font-semibold">
+              Transcript
+            </h2>
+            <span className="text-sm text-graphite">Checked claims are marked in their verdict colour</span>
+          </div>
+          <div ref={scrollRef} className="h-[46vh] min-h-[18rem] overflow-y-auto px-6 py-5" aria-live="off">
+            {log.length === 0 && !interim ? (
+              <p className="serif text-[1.5rem] leading-relaxed text-faint">
+                {listening ? "Listening. Start the pitch." : "Press Start listening and begin the pitch, or type a claim below."}
+              </p>
+            ) : (
+              <p className="serif text-[1.6rem] leading-[1.6]">
+                {log.slice(-30).map((l, i) => {
+                  const c = matchCheck(l.text, checks);
+                  const v = c ? VERDICT[c.verdict] ?? VERDICT.unclear : null;
+                  return (
+                    <span key={i}>
+                      {v ? (
+                        <mark
+                          className={`rounded-[2px] px-1 text-ink underline decoration-2 underline-offset-[6px] ${v.mark}`}
+                          title={`${v.label}: ${c?.note}`}
+                        >
+                          {l.text}
+                        </mark>
+                      ) : (
+                        <span className={l.typed ? "text-graphite" : ""}>{l.text}</span>
+                      )}{" "}
+                    </span>
+                  );
+                })}
+                <span className="text-faint">{interim}</span>
+              </p>
+            )}
+          </div>
+          <form onSubmit={submitTyped} className="flex border-t border-rule">
+            <label htmlFor="typed" className="sr-only">
+              Type a claim to check
+            </label>
+            <input
+              id="typed"
+              value={typed}
+              onChange={(e) => setTyped(e.target.value)}
+              placeholder="Type a claim to check, e.g. We have no competitors"
+              className="min-w-0 flex-1 bg-transparent px-6 py-4 text-lg outline-none placeholder:text-faint"
+            />
+            <button
+              type="submit"
+              disabled={!typed.trim()}
+              className="shrink-0 border-l border-rule px-7 text-lg font-semibold text-ink hover:bg-ink hover:text-white disabled:text-faint disabled:hover:bg-transparent"
+            >
+              Check
+            </button>
+          </form>
+        </section>
+
+        <section aria-labelledby="claims-title" className="min-w-0">
+          <div className="mb-4 flex items-baseline justify-between border-b-2 border-ink pb-2">
+            <h2 id="claims-title" className="text-lg font-semibold">
+              Claims checked
+            </h2>
+            <span className="tnum flex gap-4 text-sm">
+              <span className="text-pass">{counts.contradicted} contradicted</span>
+              <span className="text-dig">{counts.unclear} unclear</span>
+              <span className="text-pursue">{counts.supported} check out</span>
+            </span>
+          </div>
+
+          <div className="space-y-4" aria-live="polite">
+            {pending > 0 && (
+              <div className="flex items-center gap-3 border border-dashed border-cobalt/50 bg-cobalt-soft px-5 py-4 text-cobalt">
+                <span className="pulse-dot h-2.5 w-2.5 rounded-full bg-cobalt" aria-hidden />
+                Searching the web for the latest claim
+              </div>
+            )}
+            {checks.length === 0 && pending === 0 && (
+              <p className="text-lg text-graphite">
+                No claims yet. When the founder states a fact, its check appears here with sources.
+              </p>
+            )}
+            {checks.map((c) => {
+              const v = VERDICT[c.verdict] ?? VERDICT.unclear;
+              return (
+                <article key={c.id + c.claim} className={`row-in border-l-[6px] ${v.line} bg-surface px-6 py-5 shadow-[0_1px_0_#d8dee4]`}>
+                  <p className={`text-2xl font-semibold ${v.text}`}>{v.label}</p>
+                  <p className="serif mt-2 text-[1.45rem] font-medium leading-snug">&ldquo;{c.claim}&rdquo;</p>
+                  <p className="mt-2 text-lg leading-snug">{c.note}</p>
+                  {c.sources.length > 0 && (
+                    <ul className="mt-4 space-y-1.5 border-t border-rule-soft pt-3">
+                      {c.sources.map((s, i) => (
+                        <li key={s.id} className="grid grid-cols-[1.4rem_minmax(0,1fr)] gap-1">
+                          <span className="tnum text-sm font-semibold text-cobalt">{i + 1}</span>
+                          <div className="min-w-0">
+                            <a href={s.url} target="_blank" rel="noopener noreferrer" className="font-medium hover:underline">
+                              {s.title}
+                            </a>
+                            <p className="flex items-center gap-1.5 truncate text-sm text-graphite">
+                              <EngineDot name={s.engine} />
+                              {engineLabel(s.engine)}, {domain(s.url)}
+                            </p>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setTrailId(c.trail_id)}
+                    className="mt-4 font-medium text-cobalt hover:underline"
+                  >
+                    See the searches behind this
+                  </button>
+                </article>
+              );
+            })}
+          </div>
+        </section>
+      </div>
 
       <TrailDrawer trailId={trailId} onClose={closeTrail} />
     </div>

@@ -1,5 +1,6 @@
 "use client";
 import { useMemo, useState } from "react";
+import "./simulation.css";
 import SimulationCharts from "@/components/SimulationCharts";
 import { documents, features, trainModel } from "@/lib/search/simulation";
 
@@ -13,13 +14,24 @@ export default function Simulation() {
     return { document, score: model.score(query, document), features: features(query, document), original: index };
   }).sort((a, b) => enabled ? b.score - a.score : a.original - b.original);
 
-  return <div className="space-y-8">
-    <header className="space-y-4">
+  return <div className="ml-shell">
+    <aside className="ml-sidebar" aria-label="Simulation navigation">
+      <a href="/" className="ml-wordmark"><span>◈</span> Proven <small>LAB</small></a>
+      <p className="ml-nav-label">Workspace</p>
+      <a href="#overview" className="ml-side-link">◫ &nbsp; Overview</a>
+      <a href="#controls" className="ml-side-link">⌘ &nbsp; Experiment controls</a>
+      <a href="#decisions" className="ml-side-link">⑂ &nbsp; Decision explorer</a>
+      <a href="#results" className="ml-side-link">≡ &nbsp; Ranked sources</a>
+      <div className="ml-sidebar-note"><span className="ml-status-dot" /> Local model<br /><small>Synthetic data · No API calls</small></div>
+    </aside>
+    <div className="ml-workspace space-y-8">
+      <div className="ml-breadcrumb">Workspace <span>/</span> Machine learning <span>/</span> <strong>Relevance lab</strong></div>
+    <header id="overview" className="ml-hero space-y-4">
       <span className="inline-block rounded-full border border-dig bg-dig-soft px-3 py-1 text-sm font-semibold text-dig">SIMULATION · SYNTHETIC DATA</span>
-      <h1 className="serif text-4xl md:text-6xl">Teach search what matters.</h1>
+      <h1 className="serif text-4xl md:text-6xl">A clearer view of<br />every decision.</h1>
       <p className="max-w-3xl text-lg text-graphite">A small logistic regression model learns to rank research snippets. Change the query or source age to see the ranking respond. No API calls or credentials are used.</p>
     </header>
-    <section className="rounded-2xl border border-rule bg-surface p-6">
+    <section id="controls" className="rounded-2xl border border-rule bg-surface p-6">
       <label className="block font-semibold" htmlFor="sim-query">Research question</label>
       <input id="sim-query" value={query} onChange={e => setQuery(e.target.value)} className="mt-3 w-full rounded-lg border border-rule p-4 text-lg" />
       <div className="mt-4 flex flex-wrap gap-2">
@@ -32,9 +44,9 @@ export default function Simulation() {
         <label className="flex items-center gap-3"><input type="checkbox" checked={enabled} onChange={e => setEnabled(e.target.checked)} /> Rank with trained model</label>
       </div>
     </section>
-    <SimulationCharts results={results} weights={model.weights} enabled={enabled} hasQuery={Boolean(query.trim())} />
+    <div id="decisions"><SimulationCharts results={results} weights={model.weights} enabled={enabled} hasQuery={Boolean(query.trim())} /></div>
     <div className="grid gap-8 lg:grid-cols-[1fr_300px]">
-      <section aria-label="Ranked synthetic snippets" aria-live="polite" className="space-y-3">
+      <section id="results" aria-label="Ranked synthetic snippets" aria-live="polite" className="space-y-3">
         <h2 className="text-xl font-semibold">{enabled ? "ML ranking" : "Original source order"}</h2>
         {results.map(({ document, score, features: values }, i) => <article key={document.id} className="rounded-xl border border-rule bg-surface p-5">
           <div className="flex items-start justify-between gap-4"><h3 className="font-semibold"><span className="mr-3 text-graphite">{i + 1}.</span>{document.title}</h3><span className="whitespace-nowrap font-mono text-sm">{query.trim() ? Math.round(score * 100) + "/100" : "—"}</span></div>
@@ -51,5 +63,5 @@ export default function Simulation() {
         <p className="text-sm leading-relaxed text-graphite">Scores illustrate relevance, not truth or calibrated confidence. These companies and snippets are fictional. Token overlap can miss synonyms and confuse entities. Lower training loss does not establish real-world accuracy. The production research pipeline is unchanged.</p>
       </aside>
     </div>
-  </div>;
+  </div></div>;
 }

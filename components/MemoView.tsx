@@ -19,9 +19,6 @@ export default function MemoView({ memo }: { memo: Memo }) {
   const close = useCallback(() => setFocus(null), []);
 
   const index = new Map(memo.sources.map((s, i) => [s.id, i]));
-  const urlsFor = (ids: string[]) =>
-    ids.map((id) => memo.sources[index.get(id) ?? -1]?.url).filter((u): u is string => !!u);
-
   const v = VERDICT[memo.verdict] ?? VERDICT.dig_deeper;
   const [copied, setCopied] = useState<"idle" | "done" | "failed">("idle");
 
@@ -64,15 +61,9 @@ export default function MemoView({ memo }: { memo: Memo }) {
           <ul className="space-y-2">
             {lines.map((l, i) => (
               <li key={i}>
-                <div
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => setFocus(urlsFor(l.source_ids))}
-                  onKeyDown={(e) => e.key === "Enter" && setFocus(urlsFor(l.source_ids))}
-                  className="-mx-3 cursor-pointer rounded-lg px-3 py-2 text-lg leading-relaxed hover:bg-soft"
-                >
-                  {l.text}
-                  {l.source_ids.map((id) => {
+                <div className="break-words text-lg leading-relaxed">
+                  {l.text}{" "}
+                  {[...new Set(l.source_ids)].map((id) => {
                     const n = index.get(id);
                     if (n === undefined) return null;
                     const src = memo.sources[n];
@@ -96,7 +87,7 @@ export default function MemoView({ memo }: { memo: Memo }) {
             <span className="font-semibold text-foreground">{Math.round(memo.confidence * 100)}%</span> confidence
           </span>
         </div>
-        <h2 className="text-4xl font-semibold tracking-tight">{memo.company}</h2>
+        <h2 className="break-words text-4xl font-semibold tracking-tight">{memo.company}</h2>
         <p className="max-w-3xl text-xl leading-relaxed">{memo.summary}</p>
         <div className="flex flex-wrap items-center gap-6">
           <Link href={`/memo/${encodeURIComponent(memo.id)}`} className="font-medium text-accent hover:underline">
@@ -111,6 +102,7 @@ export default function MemoView({ memo }: { memo: Memo }) {
           </button>
           <button
             type="button"
+            aria-live="polite"
             onClick={copyMemo}
             className="rounded-lg border border-line px-4 py-1.5 font-medium hover:border-accent hover:text-accent"
           >

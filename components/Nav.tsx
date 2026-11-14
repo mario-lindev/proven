@@ -16,14 +16,15 @@ export default function Nav() {
         <Link href="/" className="text-2xl font-semibold tracking-tight">
           Proven<span className="text-accent">.</span>
         </Link>
-        <nav className="flex gap-2">
+        <nav aria-label="Main" className="flex gap-1 sm:gap-2">
           {links.map((l) => {
             const active = path === l.href;
             return (
               <Link
                 key={l.href}
                 href={l.href}
-                className={`rounded-lg px-4 py-2 font-medium transition-colors ${
+                aria-current={active ? "page" : undefined}
+                className={`rounded-lg px-2 py-2 sm:px-4 font-medium transition-colors ${
                   active ? "bg-accent-soft text-accent" : "text-muted hover:text-foreground"
                 }`}
               >

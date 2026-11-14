@@ -70,21 +70,21 @@ export default function Home() {
   return (
     <div className="space-y-12">
       <form onSubmit={submit} className="space-y-4">
-        {!memo && !loading && (
-          <div className="mb-8">
+        <div className="mb-8">
             <h1 className="text-5xl font-semibold tracking-tight">Is it worth pursuing?</h1>
             <p className="mt-3 max-w-2xl text-xl text-muted">
-              A one-page memo with fresh facts, risks and open questions. Every line links to its source.
+              Get a verdict, cited facts and risks, and questions to follow up on.
             </p>
-          </div>
-        )}
+        </div>
+        <label htmlFor="research-subject" className="block font-semibold">Company, vendor or market</label>
         <div className="flex flex-col gap-3 sm:flex-row">
           <input
             value={company}
             onChange={(e) => setCompany(e.target.value)}
             placeholder="A startup, vendor or market"
-            aria-label="A startup, vendor or market"
-            autoFocus
+            id="research-subject"
+            required
+            disabled={loading}
             className="min-w-0 flex-1 rounded-xl border-2 border-line px-5 py-4 text-2xl outline-none placeholder:text-muted/60 focus:border-accent"
           />
           <button
@@ -101,25 +101,26 @@ export default function Home() {
             onChange={(e) => setContext(e.target.value)}
             placeholder="Context (optional)"
             aria-label="Context (optional)"
+            disabled={loading}
             className="min-w-0 flex-1 rounded-xl border border-line px-4 py-2.5 outline-none placeholder:text-muted/60 focus:border-accent"
           />
-          <div role="radiogroup" aria-label="Research depth" className="flex rounded-xl border border-line p-1">
-            {(["quick", "deep"] as Depth[]).map((d) => (
-              <button
-                key={d}
-                type="button"
-                role="radio"
-                aria-checked={depth === d}
-                onClick={() => setDepth(d)}
-                disabled={!!loading}
-                className={`rounded-lg px-4 py-1.5 font-medium ${
-                  depth === d ? "bg-accent text-white" : "text-muted hover:text-foreground"
-                }`}
-              >
-                {d === "quick" ? "Quick research" : "Deep research"}
-              </button>
+          <fieldset disabled={loading} className="flex flex-wrap gap-1 rounded-xl border border-line p-1">
+            <legend className="sr-only">Research depth</legend>
+            {(["quick", "deep"] as const).map((option) => (
+              <label key={option} className="cursor-pointer">
+                <input
+                  type="radio"
+                  name="research-depth"
+                  checked={depth === option}
+                  onChange={() => setDepth(option)}
+                  className="peer sr-only"
+                />
+                <span className="block rounded-lg px-4 py-1.5 font-medium text-muted peer-checked:bg-accent peer-checked:text-white peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-accent">
+                  {option === "quick" ? "Quick research" : "Deep research"}
+                </span>
+              </label>
             ))}
-          </div>
+          </fieldset>
         </div>
       </form>
 

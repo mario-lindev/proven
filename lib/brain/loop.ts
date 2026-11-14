@@ -109,7 +109,8 @@ export async function researchUntilProven(
     // Answered counts only when the cited source exists.
     const answered = a.questions.filter((q) => q.status === "answered" && q.source_ids.some((id) => ids.has(id)));
     const open = a.questions.filter((q) => !answered.includes(q)).map((q) => q.question);
-    const coverage = Math.max(0, Math.min(1, a.coverage));
+    // Claude's score, but never below the share of questions answered with a real source (so 6 of 6 reads as 100%).
+    const coverage = Math.min(1, Math.max(a.coverage, a.questions.length ? answered.length / a.questions.length : 0));
     a.own_domains.forEach((d) => {
       const h = host(d.includes("://") ? d : `https://${d}`);
       if (h.includes(".")) ownDomains.add(h);

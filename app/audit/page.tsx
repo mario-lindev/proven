@@ -26,11 +26,21 @@ export default function AuditPage() {
 
   const closeTrail = useCallback(() => setTrailId(null), []);
 
+  const acRef = useRef<AbortController | null>(null);
+  // Stop: drop the stream; whatever already arrived stays on screen.
+  function stop() {
+    runRef.current++;
+    acRef.current?.abort();
+    setRunning(false);
+  }
+
   async function run(e?: React.FormEvent, given?: string) {
     e?.preventDefault();
     const value = (given ?? input).trim();
     if (!value || running) return;
     const run = ++runRef.current;
+    const ac = new AbortController();
+    acRef.current = ac;
     setRunning(true);
     setCompany(null);
     setClaims([]);
@@ -54,6 +64,7 @@ export default function AuditPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
+        signal: ac.signal,
       });
       if (!res.ok || !res.body) {
         const data = (await res.json().catch(() => null)) as { error?: string } | null;
@@ -72,7 +83,7 @@ export default function AuditPage() {
       }
       if (buf.trim()) handle(JSON.parse(buf) as AuditEvent);
     } catch (err) {
-      if (run === runRef.current) setError(errMsg(err));
+      if (run === runRef.current && !ac.signal.aborted) setError(errMsg(err));
     } finally {
       if (run === runRef.current) setRunning(false);
     }
@@ -134,11 +145,12 @@ export default function AuditPage() {
             {looksLikeUrl(input.trim()) || !input.trim() ? "A website address is read live." : "Pasted text is audited as written."}
           </span>
           <button
-            type="submit"
-            disabled={!input.trim() || running}
+            type={running ? "button" : "submit"}
+            onClick={running ? stop : undefined}
+            disabled={!running && !input.trim()}
             className="bg-ink px-8 py-3 text-xl font-semibold text-white hover:bg-cobalt disabled:opacity-50"
           >
-            {running ? "Auditing" : "Audit the claims"}
+            {running ? "Stop" : "Audit the claims"}
           </button>
         </div>
       </form>

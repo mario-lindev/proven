@@ -29,11 +29,21 @@ export default function ImpactPage() {
   const runRef = useRef(0);
   const companyRef = useRef<HTMLInputElement>(null);
 
+  const acRef = useRef<AbortController | null>(null);
+  // Stop: drop the stream; whatever already arrived stays on screen.
+  function stop() {
+    runRef.current++;
+    acRef.current?.abort();
+    setRunning(false);
+  }
+
   async function run(e?: React.FormEvent, given?: { company: string; event: string }) {
     e?.preventDefault();
     const body = { company: (given?.company ?? company).trim(), event: (given?.event ?? event).trim() };
     if (!body.company || !body.event || running) return;
     const run = ++runRef.current;
+    const ac = new AbortController();
+    acRef.current = ac;
     setRunning(true);
     setStart(null);
     setAnalogues([]);
@@ -51,7 +61,7 @@ export default function ImpactPage() {
     };
 
     try {
-      const res = await fetch("/api/impact", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+      const res = await fetch("/api/impact", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body), signal: ac.signal });
       if (!res.ok || !res.body) {
         const data = (await res.json().catch(() => null)) as { error?: string } | null;
         throw new Error(data?.error ?? `Request failed (${res.status})`);
@@ -69,7 +79,7 @@ export default function ImpactPage() {
       }
       if (buf.trim()) handle(JSON.parse(buf) as ImpactEvent);
     } catch (err) {
-      if (run === runRef.current) setError(errMsg(err));
+      if (run === runRef.current && !ac.signal.aborted) setError(errMsg(err));
     } finally {
       if (run === runRef.current) setRunning(false);
     }
@@ -115,8 +125,8 @@ export default function ImpactPage() {
         </div>
         <div className="flex items-center justify-between gap-4 border-t border-rule px-6 py-3">
           <span className="text-sm text-graphite">Research only. Proven shows what happened before; it does not predict a price.</span>
-          <button type="submit" disabled={!company.trim() || !event.trim() || running} className="bg-ink px-8 py-3 text-xl font-semibold text-white hover:bg-cobalt disabled:opacity-50">
-            {running ? "Researching" : "Find past reactions"}
+          <button type={running ? "button" : "submit"} onClick={running ? stop : undefined} disabled={!running && (!company.trim() || !event.trim())} className="bg-ink px-8 py-3 text-xl font-semibold text-white hover:bg-cobalt disabled:opacity-50">
+            {running ? "Stop" : "Find past reactions"}
           </button>
         </div>
       </form>

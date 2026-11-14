@@ -3,7 +3,7 @@
 // One click runs the whole workflow at once: pitch audit, research memo with proof, and a watch.
 // It only calls the existing endpoints; each panel links to the full page.
 import Link from "next/link";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { EngineDot, engineLabel } from "@/components/engines";
 import { ActivityStrip, COBALT, INK, RUST, StreamBand, type Phase } from "@/components/flow/Ascii";
 import CountUp from "@/components/flow/CountUp";
@@ -11,8 +11,8 @@ import PageHeader from "@/components/flow/PageHeader";
 import type { Memo, MemoEvent, TrailStep, Watch } from "@/lib/types";
 import type { AuditCheck, AuditClaim, AuditEvent, AuditSummary } from "@/lib/brain/audit";
 
-async function ndjson<T>(path: string, body: unknown, onEvent: (e: T) => void) {
-  const res = await fetch(path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+async function ndjson<T>(path: string, body: unknown, onEvent: (e: T) => void, signal?: AbortSignal) {
+  const res = await fetch(path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body), signal });
   if (!res.ok || !res.body) throw new Error(`Request failed (${res.status})`);
   const reader = res.body.getReader();
   const dec = new TextDecoder();
@@ -49,6 +49,12 @@ export default function RunEverything() {
   const [company, setCompany] = useState("");
   const [url, setUrl] = useState("");
   const [running, setRunning] = useState(false);
+  const acRef = useRef<AbortController | null>(null);
+  // Stop: drop the streams; whatever already arrived stays on screen.
+  const stop = () => {
+    acRef.current?.abort();
+    setRunning(false);
+  };
   const [started, setStarted] = useState(false);
 
   const [claims, setClaims] = useState<AuditClaim[]>([]);
@@ -67,6 +73,8 @@ export default function RunEverything() {
     const name = c.trim();
     const site = u.trim();
     if (!name || running) return;
+    const ac = new AbortController();
+    acRef.current = ac;
     setRunning(true);
     setStarted(true);
     setClaims([]); setChecks({}); setAudit(null); setAuditErr(null);
@@ -79,13 +87,13 @@ export default function RunEverything() {
           else if (e.type === "claim") setChecks((m) => ({ ...m, [e.index]: e.check }));
           else if (e.type === "done") setAudit({ summary: e.summary, trust_score: e.trust_score });
           else if (e.type === "error") setAuditErr(e.error);
-        }).catch((err) => setAuditErr(String(err.message ?? err)))
+        }, ac.signal).catch((err) => { if (!ac.signal.aborted) setAuditErr(String(err.message ?? err)); })
       : Promise.resolve();
     const m = ndjson<MemoEvent>("/api/memo", { company: name, depth: "quick", stream: true }, (e) => {
       if (e.type === "step") setSteps((s) => [...s, e.step]);
       else if (e.type === "memo") setMemo(e.memo);
       else if (e.type === "error") setMemoErr(e.error);
-    }).catch((err) => setMemoErr(String(err.message ?? err)));
+    }, ac.signal).catch((err) => { if (!ac.signal.aborted) setMemoErr(String(err.message ?? err)); });
     const w = fetch("/api/watch", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ company: name }) })
       .then(async (r) => {
         const d = await r.json();
@@ -136,11 +144,12 @@ export default function RunEverything() {
             <input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://ramp.com" className="mt-1 block w-full bg-transparent font-mono text-xl outline-none placeholder:text-faint" />
           </label>
           <button
-            type="submit"
-            disabled={!company.trim() || running}
+            type={running ? "button" : "submit"}
+            onClick={running ? stop : undefined}
+            disabled={!running && !company.trim()}
             className={`bg-ink px-10 py-4 text-lg font-semibold text-white transition-colors duration-300 ${EASE} hover:bg-cobalt disabled:opacity-50 disabled:hover:bg-ink`}
           >
-            {running ? "Running" : "Run everything"}
+            {running ? "Stop" : "Run everything"}
           </button>
         </div>
       </form>

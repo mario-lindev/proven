@@ -113,9 +113,9 @@ body {
 
 /* The home hero scene fades out under the copy on the left and at the edges. */
 .hero-scene {
-  -webkit-mask-image: linear-gradient(to right, transparent 42%, #000 64%), linear-gradient(transparent, #000 14%, #000 86%, transparent);
+  -webkit-mask-image: linear-gradient(to right, transparent 56%, #000 74%), linear-gradient(transparent, #000 14%, #000 86%, transparent);
   -webkit-mask-composite: source-in;
-  mask-image: linear-gradient(to right, transparent 42%, #000 64%), linear-gradient(transparent, #000 14%, #000 86%, transparent);
+  mask-image: linear-gradient(to right, transparent 56%, #000 74%), linear-gradient(transparent, #000 14%, #000 86%, transparent);
   mask-composite: intersect;
 }
 

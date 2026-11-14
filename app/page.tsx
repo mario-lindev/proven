@@ -160,6 +160,12 @@ export default function Home() {
     research(name, depth, context);
   }
 
+  // Stop: drop the stream and go back to the form; the typed company stays.
+  function stop() {
+    abortRef.current?.abort();
+    setRun(null);
+  }
+
   function reset() {
     abortRef.current?.abort();
     setRun(null);
@@ -189,11 +195,12 @@ export default function Home() {
           }`}
         />
         <button
-          type="submit"
-          disabled={!company.trim() || running}
+          type={running ? "button" : "submit"}
+          onClick={running ? stop : undefined}
+          disabled={!running && !company.trim()}
           className={`btn btn-primary shrink-0 ${idle ? "px-8 text-lg" : "px-6"}`}
         >
-          {running ? "Researching" : "Research"}
+          {running ? "Stop" : "Research"}
         </button>
       </div>
 

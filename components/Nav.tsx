@@ -5,12 +5,12 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 
 const links = [
-  { href: "/simulation", label: "ML Lab" },
   { href: "/", label: "Research" },
   { href: "/live", label: "Live Room" },
   { href: "/audit", label: "Pitch Audit" },
   { href: "/impact", label: "Event Impact" },
-  { href: "/engines", label: "What Proven learned" },
+  { href: "/engines", label: "Learned" },
+  { href: "/simulation", label: "ML Lab" },
 ];
 
 export default function Nav() {

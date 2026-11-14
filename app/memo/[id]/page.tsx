@@ -56,7 +56,7 @@ export default function MemoPage({ params }: { params: Promise<{ id: string }> }
           The link may be wrong, or the memo was made on another server. Research the company again to get a fresh memo
           with its sources.
         </p>
-        <Link href="/" className="mt-8 inline-block bg-ink px-6 py-3 font-semibold text-white hover:bg-cobalt">
+        <Link href="/" className="action-primary mt-8 inline-flex items-center px-5">
           Start new research
         </Link>
       </div>

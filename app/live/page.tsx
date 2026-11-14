@@ -53,6 +53,8 @@ function matchCheck(line: string, checks: ClaimCheck[]) {
 }
 
 type LogLine = { text: string; typed: boolean };
+type VerdictFilter = "all" | ClaimCheck["verdict"];
+const FILTERS = ["all", "supported", "contradicted", "unclear"] as const;
 
 export default function LiveRoom() {
   const [supported, setSupported] = useState<boolean | null>(null);
@@ -60,6 +62,7 @@ export default function LiveRoom() {
   const [log, setLog] = useState<LogLine[]>([]);
   const [interim, setInterim] = useState("");
   const [checks, setChecks] = useState<ClaimCheck[]>([]);
+  const [filter, setFilter] = useState<VerdictFilter>("all");
   const [pending, setPending] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [typedBusy, setTypedBusy] = useState(false);
@@ -205,11 +208,9 @@ export default function LiveRoom() {
     setTypedBusy(false);
   }
 
-  const counts = {
-    contradicted: checks.filter((c) => c.verdict === "contradicted").length,
-    unclear: checks.filter((c) => c.verdict === "unclear").length,
-    supported: checks.filter((c) => c.verdict === "supported").length,
-  };
+  const counts = { all: checks.length, supported: 0, contradicted: 0, unclear: 0 };
+  for (const check of checks) counts[check.verdict] += 1;
+  const visibleChecks = filter === "all" ? checks : checks.filter((check) => check.verdict === filter);
 
   return (
     <div className="space-y-8">
@@ -302,7 +303,7 @@ export default function LiveRoom() {
               value={typed}
               onChange={(e) => setTyped(e.target.value)}
               placeholder="Type a claim to check"
-              className="min-w-0 rounded-lg border border-rule bg-paper px-3 py-2.5 text-base placeholder:text-faint focus:border-cobalt"
+              className="workspace-input min-w-0 px-3"
             />
             <button
               type="submit"
@@ -315,18 +316,29 @@ export default function LiveRoom() {
         </section>
 
         <section aria-labelledby="claims-title" className="min-w-0">
-          <div className="mb-4 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 border-b border-rule pb-3">
+          <div className="mb-4 space-y-3 border-b border-rule pb-3">
             <h2 id="claims-title" className="text-2xl font-semibold tracking-tight">
               Claims checked
             </h2>
-            <span className="tnum flex flex-wrap gap-x-3 gap-y-1 text-sm">
-              <span className="text-pass">{counts.contradicted} contradicted</span>
-              <span className="text-dig">{counts.unclear} unclear</span>
-              <span className="text-pursue">{counts.supported} check out</span>
-            </span>
+            {checks.length > 0 && (
+              <div className="flex flex-wrap gap-1.5" role="group" aria-label="Filter claims by verdict">
+                {FILTERS.map((value) => (
+                  <button
+                    key={value}
+                    type="button"
+                    aria-pressed={filter === value}
+                    aria-controls="claim-results"
+                    className="tnum min-h-9 rounded-md border border-rule px-2.5 text-xs font-medium text-graphite hover:bg-raised hover:text-ink aria-pressed:border-cobalt/45 aria-pressed:bg-cobalt-soft aria-pressed:text-ink"
+                    onClick={() => setFilter(value)}
+                  >
+                    {value === "all" ? "All" : VERDICT[value].label} <span className={value === "all" ? "text-graphite" : VERDICT[value].text}>{counts[value]}</span>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
-          <div className="space-y-4" aria-live="polite">
+          <div id="claim-results" className="space-y-4" aria-live="polite">
             {pending > 0 && (
               <div className="flex items-center gap-3 rounded-lg bg-cobalt-soft px-4 py-3 text-cobalt">
                 <span className="pulse-dot h-2.5 w-2.5 rounded-full bg-cobalt" aria-hidden />
@@ -339,10 +351,13 @@ export default function LiveRoom() {
                 No claims yet. When the founder states a fact, its check appears here with sources.
               </p>
             )}
-            {checks.map((c) => {
+            {checks.length > 0 && visibleChecks.length === 0 && (
+              <p className="workspace-panel px-4 py-4 text-sm text-graphite">No claims match this verdict.</p>
+            )}
+            {visibleChecks.map((c) => {
               const v = VERDICT[c.verdict] ?? VERDICT.unclear;
               return (
-                <article key={c.id + c.claim} className={`row-in workspace-panel px-4 py-4 sm:px-5`}>
+                <article key={c.id + c.claim} className="row-in workspace-panel px-4 py-4 sm:px-5">
                   <p className={`text-sm font-semibold ${v.text}`}>{v.label}</p>
                   <p className="mt-2 break-words text-[1.35rem] font-medium leading-snug">&ldquo;{c.claim}&rdquo;</p>
                   <p className="mt-2 text-base leading-relaxed text-graphite">{c.note}</p>

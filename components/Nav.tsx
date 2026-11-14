@@ -4,11 +4,14 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 
-const links = [
+const primary = [
   { href: "/", label: "Research" },
   { href: "/run", label: "Run everything" },
-  { href: "/live", label: "Live Room" },
   { href: "/audit", label: "Audit" },
+  { href: "/live", label: "Live Room" },
+];
+
+const secondary = [
   { href: "/impact", label: "Impact" },
   { href: "/telem", label: "Telem" },
   { href: "/engines", label: "Learned" },
@@ -26,40 +29,62 @@ export default function Nav() {
       .catch(() => {});
   }, []);
 
+  const isActive = (href: string) => (href === "/" ? path === "/" || path.startsWith("/memo") : path.startsWith(href));
+
   return (
-    <header className="no-print border-b border-rule bg-surface">
-      <div className="mx-auto flex max-w-[1240px] items-center justify-between gap-4 px-5 py-4 md:px-10">
+    <header className="no-print relative z-20 border-b border-rule bg-paper">
+      <div className="mx-auto flex h-[68px] max-w-[1240px] items-center justify-between gap-6 px-5 md:px-10">
         <div className="flex items-center gap-4">
-          <Link href="/" className="flex items-baseline gap-3" aria-label="Proven home">
-            <span className="serif text-[1.75rem] font-semibold leading-none tracking-tight">Proven</span>
-            <span className="hidden whitespace-nowrap text-sm text-graphite xl:inline">Research where every line cites its source</span>
+          <Link href="/" className="serif text-[1.85rem] leading-none tracking-[-0.03em] text-navy" aria-label="Proven home">
+            Proven
           </Link>
           {mock && (
             <span
               title="The server is running with MOCK=1. Results are fixtures, not real research."
-              className="rounded-md border-2 border-dig bg-dig-soft px-2.5 py-0.5 text-sm font-semibold text-dig"
+              className="rounded-md border border-dig bg-dig-soft px-2 py-0.5 font-mono text-[0.72rem] font-medium uppercase tracking-wider text-dig"
             >
               Demo data
             </span>
           )}
         </div>
-        <nav className="flex shrink-0 gap-1 whitespace-nowrap" aria-label="Main">
-          {links.map((l) => {
-            const active = l.href === "/" ? path === "/" || path.startsWith("/memo") : path.startsWith(l.href);
-            return (
-              <Link
-                key={l.href}
-                href={l.href}
-                aria-current={active ? "page" : undefined}
-                className={`relative px-3 py-2 font-medium lg:px-4 transition-colors ${
-                  active ? "text-ink" : "text-graphite hover:text-ink"
-                }`}
-              >
-                {l.label}
-                {active && <span className="absolute inset-x-3 lg:inset-x-4 -bottom-[17px] h-[2px] bg-ink" />}
-              </Link>
-            );
-          })}
+        <nav className="flex shrink-0 items-center whitespace-nowrap" aria-label="Main">
+          <div className="flex items-center gap-1">
+            {primary.map((l) => {
+              const active = isActive(l.href);
+              return (
+                <Link
+                  key={l.href}
+                  href={l.href}
+                  aria-current={active ? "page" : undefined}
+                  className={`relative px-3 py-2 text-[0.94rem] font-medium transition-colors ${
+                    active ? "text-ink" : "text-graphite hover:text-cobalt"
+                  }`}
+                >
+                  {l.label}
+                  {active && <span className="absolute inset-x-3 -bottom-[15px] h-[2px] bg-ink" />}
+                </Link>
+              );
+            })}
+          </div>
+          <span className="mx-3 h-5 w-px bg-rule" aria-hidden />
+          <div className="flex items-center gap-0.5">
+            {secondary.map((l) => {
+              const active = isActive(l.href);
+              return (
+                <Link
+                  key={l.href}
+                  href={l.href}
+                  aria-current={active ? "page" : undefined}
+                  className={`relative px-2.5 py-2 font-mono text-[0.78rem] transition-colors ${
+                    active ? "text-ink" : "text-graphite/85 hover:text-cobalt"
+                  }`}
+                >
+                  {l.label}
+                  {active && <span className="absolute inset-x-2.5 -bottom-[15px] h-[2px] bg-ink" />}
+                </Link>
+              );
+            })}
+          </div>
         </nav>
       </div>
     </header>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { Memo, MemoEvent, TrailStep } from "@/lib/types";
 import ErrorBox from "@/components/ErrorBox";
 import MemoView from "@/components/MemoView";
@@ -31,11 +31,10 @@ export default function Home() {
   const [showFeed, setShowFeed] = useState(false);
   const [historyKey, setHistoryKey] = useState(0);
   const abortRef = useRef<AbortController | null>(null);
-  const deepLinked = useRef(false);
 
   const running = !!run && !run.memo && !run.error;
 
-  async function research(name: string, d: Depth, ctx: string) {
+  const research = useCallback(async (name: string, d: Depth, ctx: string) => {
     const target = name.trim();
     if (!target) return;
     abortRef.current?.abort();
@@ -78,7 +77,7 @@ export default function Home() {
         else if (ev.type === "memo") {
           finished = true;
           patch((r) => ({ ...r, memo: ev.memo, finishedAt: Date.now() }));
-          setHistoryKey((k) => k + 1);
+          if (!ac.signal.aborted) setHistoryKey((k) => k + 1);
         } else if (ev.type === "error") {
           finished = true;
           fail(ev.error);
@@ -94,27 +93,32 @@ export default function Home() {
           buf = buf.slice(i + 1);
         }
       }
-      handle(buf);
+      handle(buf + dec.decode());
       if (!finished) fail("The connection closed before the memo was written. Try again.");
     } catch (e) {
       if (ac.signal.aborted) return;
       fail(errMsg(e) === "Failed to fetch" ? "Couldn't reach the Proven server. Check that it is running." : errMsg(e));
     }
-  }
-
-  // Deep link from the Chrome extension: /?company=X&depth=quick|deep&go=1
-  useEffect(() => {
-    if (deepLinked.current) return;
-    deepLinked.current = true;
-    const q = new URLSearchParams(window.location.search);
-    const c = q.get("company")?.trim();
-    const d: Depth = q.get("depth") === "quick" ? "quick" : "deep";
-    if (q.get("depth")) setDepth(d);
-    if (c) {
-      setCompany(c);
-      if (q.get("go") === "1") research(c, d, "");
-    }
   }, []);
+
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    const name = url.searchParams.get("company")?.trim();
+    const requestedDepth: Depth = url.searchParams.get("depth") === "quick" ? "quick" : "deep";
+    if (url.searchParams.has("depth")) setDepth(requestedDepth);
+    if (name) setCompany(name);
+
+    const timer = name && url.searchParams.get("go") === "1" ? setTimeout(() => {
+      url.searchParams.delete("go");
+      window.history.replaceState(null, "", url);
+      void research(name, requestedDepth, "");
+    }, 0) : undefined;
+
+    return () => {
+      clearTimeout(timer);
+      abortRef.current?.abort();
+    };
+  }, [research]);
 
   function submit(e: React.FormEvent) {
     e.preventDefault();

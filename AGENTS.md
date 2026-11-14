@@ -91,7 +91,10 @@ Rules for ownership:
 
 - **Next.js (App Router) + TypeScript**, one repo, one `npm run dev`. API routes in `app/api/*`. Deploy on Vercel.
 - **Claude** through `@anthropic-ai/sdk`, model `claude-opus-5-5`. Structured output (`output_config.format` with a JSON schema) so the brain always returns JSON matching `lib/types.ts`. Live checks use `effort: "low"` for speed; the memo uses default effort.
-- **Telem** REST: `https://hack.telem.ai/api/v1/search`, `/v1/fetch`, `/v1/monitors` (details in §7). **Hackathon keys use `https://hack.telem.ai/api`** (docs: https://hack.telem.ai/doc); set `TELEM_BASE_URL` to change it.
+- **Telem** REST: `https://hack.telem.ai/api/v1/search`, `/v1/fetch`, `/v1/monitors` (details in §7). **Hackathon keys use `https://hack.telem.ai/api`**. SDK users set `TELEM_BASE_URL=https://hack.telem.ai/api`.
+- **Telem platform:** https://hack.telem.ai/
+- **Telem docs:** https://hack.telem.ai/doc
+- **Telem MCP server:** https://hack.telem.ai/mcp
 - **Tavily** REST: `https://api.tavily.com/search`, `/extract`.
 - **Live Room speech:** the browser Web Speech API (`webkitSpeechRecognition`) in Chrome. No paid speech service.
 - **Storage:** in memory (a `Map` in `lib/store.ts`) for memos and trails. No database today.
@@ -210,7 +213,7 @@ Verified Telem facts (docs, today):
 - `routing` is one entry per query when auto-routing is on. Show it in the trail if present.
 - `/v1/fetch`: `{ "urls": [...], "options": { "tier": "default" } }`, **at most 5 URLs per call**, one document per URL in `preprocessor_runs[].output_payload.fetched_results[]`; failed URLs come back as their own rows.
 - Monitors: `POST /v1/monitors` `{ "query": "...", "options": { "frequency": "1h" }, "ttl": "30d" }`. **Fastest run is hourly** and there is no "fire now" for polls, so create the demo watch **early (by 1 PM)** so a real update exists by judging. `POST /v1/monitors/{id}/poll` returns results new since the last poll.
-- Hard-to-reach platforms (LinkedIn, TikTok, WeChat...): list in docs.telem.ai/resources/supported-platforms. Use them for the competitor and hiring queries. That is our "hard to build without Telem" proof.
+- Hard-to-reach platforms (LinkedIn, TikTok, WeChat...): see the [hackathon docs](https://hack.telem.ai/doc). Use them for the competitor and hiring queries. That is our "hard to build without Telem" proof.
 
 Tavily (check docs.tavily.com if anything fails): `POST https://api.tavily.com/search` `{ query, max_results, topic }`, `POST https://api.tavily.com/extract` `{ urls }`, key as `Authorization: Bearer`.
 
@@ -264,7 +267,7 @@ If a checkpoint slips by more than 15 minutes, cut scope (§12), don't push the 
 |---|---|---|---|
 | Rishith | Integrated main: brain (deep 2-round memo + live), search layer, UI, docs, Chrome extension (Meet/Zoom captions → side panel). PRs #1 and #2 closed in favor of main: **pull main before your next change**. Next: first real-key run | 12:50 extension | keys |
 | Aarav | Search layer first version merged (Telem + Tavily, offline checks pass). Next: run `npx tsx --env-file=.env.local scripts/try-search.ts` with real keys and fix any shape differences | 12:20 | keys |
-| Mario | First UI merged (memo, trail drawer, watch, Live Room) + docs/ drafts (Devpost, slides, demo script, judge Q&A). Next: own polish, extension testing on a real Meet call, fill [MEASURE]/[FILL] placeholders | 12:35 | |
+| Mario | Streamed memo progress, saved memo links, Telem routing, and reliability fixes for Watch and Live Room | `mario/refine` | Live microphone and provider verification |
 
 ## 12. Cut list (if behind, cut from the bottom up)
 

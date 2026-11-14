@@ -1,11 +1,11 @@
 // Small fetch helper: GET when body is undefined, POST JSON otherwise.
 // Throws an Error carrying the API's { error } message so the UI can show it.
-export async function api<T>(path: string, body?: unknown): Promise<T> {
+export async function api<T>(path: string, body?: unknown, signal?: AbortSignal): Promise<T> {
   const res = await fetch(
     path,
     body === undefined
-      ? { cache: "no-store" }
-      : { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) },
+      ? { cache: "no-store", signal }
+      : { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body), signal },
   );
   let data: unknown = null;
   try {

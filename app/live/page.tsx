@@ -1,5 +1,6 @@
 "use client";
 
+import SourceLink from "@/components/SourceLink";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { ClaimCheck } from "@/lib/types";
 import ErrorBox from "@/components/ErrorBox";
@@ -17,6 +18,7 @@ type Recognition = {
   onresult: ((e: SpeechEvent) => void) | null;
   onerror: ((e: { error: string }) => void) | null;
   onend: (() => void) | null;
+  abort: () => void;
   start: () => void;
   stop: () => void;
 };
@@ -60,46 +62,58 @@ export default function LiveRoom() {
   const [checks, setChecks] = useState<ClaimCheck[]>([]);
   const [pending, setPending] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const [typedBusy, setTypedBusy] = useState(false);
+  const [notice, setNotice] = useState("");
   const [typed, setTyped] = useState("");
   const [trailId, setTrailId] = useState<string | null>(null);
 
   const recRef = useRef<Recognition | null>(null);
   const listeningRef = useRef(false);
   const finalsRef = useRef<string[]>([]);
-  const inFlight = useRef(new Set<string>());
+  const inFlight = useRef(new Map<string, AbortController>());
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const closeTrail = useCallback(() => setTrailId(null), []);
 
   const send = useCallback(async (text: string) => {
     const t = text.trim();
-    if (!t || inFlight.current.has(t)) return;
-    inFlight.current.add(t);
+    if (!t || inFlight.current.has(t)) return false;
+    const controller = new AbortController();
+    inFlight.current.set(t, controller);
+    setNotice("");
+    setError(null);
     setPending((p) => p + 1);
     try {
-      const { checks: found } = await api<{ checks: ClaimCheck[] }>("/api/live", { text: t });
-      setError(null);
+      const { checks: found } = await api<{ checks: ClaimCheck[] }>("/api/live", { text: t }, controller.signal);
+      if (controller.signal.aborted) return false;
       if (found?.length) {
         setChecks((prev) => {
-          const seen = new Set(prev.map((c) => norm(c.claim)));
-          const fresh = found.filter((c) => !seen.has(norm(c.claim)));
-          return [...fresh.reverse(), ...prev];
+          const latest = new Map(found.map((claim) => [norm(claim.claim), claim]));
+          return [...latest.values(), ...prev.filter((claim) => !latest.has(norm(claim.claim)))];
         });
+      } else {
+        setNotice("No new checkable claims returned.");
       }
+      return true;
     } catch (e) {
-      setError(errMsg(e));
+      if (!controller.signal.aborted) setError(errMsg(e));
+      return false;
     } finally {
       inFlight.current.delete(t);
-      setPending((p) => p - 1);
+      if (!controller.signal.aborted) setPending((p) => p - 1);
     }
   }, []);
 
   useEffect(() => {
     const w = window as unknown as { SpeechRecognition?: RecognitionCtor; webkitSpeechRecognition?: RecognitionCtor };
     setSupported(!!(w.webkitSpeechRecognition || w.SpeechRecognition));
+    const requests = inFlight.current;
     return () => {
       listeningRef.current = false;
-      recRef.current?.stop();
+      const recognition = recRef.current;
+      recRef.current = null;
+      recognition?.abort();
+      for (const controller of requests.values()) controller.abort();
     };
   }, []);
 
@@ -111,12 +125,13 @@ export default function LiveRoom() {
   function start() {
     const w = window as unknown as { SpeechRecognition?: RecognitionCtor; webkitSpeechRecognition?: RecognitionCtor };
     const Ctor = w.webkitSpeechRecognition || w.SpeechRecognition;
-    if (!Ctor) return;
+    if (!Ctor || recRef.current) return;
     const rec = new Ctor();
     rec.continuous = true;
     rec.interimResults = true;
     rec.lang = "en-US";
     rec.onresult = (e) => {
+      if (recRef.current !== rec) return;
       let live = "";
       let gotFinal = false;
       const newFinals: string[] = [];
@@ -125,7 +140,7 @@ export default function LiveRoom() {
         const txt = r[0].transcript.trim();
         if (r.isFinal) {
           if (txt) {
-            finalsRef.current = [...finalsRef.current, txt];
+            finalsRef.current = [...finalsRef.current.slice(-1), txt];
             newFinals.push(txt);
             gotFinal = true;
           }
@@ -140,6 +155,7 @@ export default function LiveRoom() {
       }
     };
     rec.onerror = (e) => {
+      if (recRef.current !== rec) return;
       if (e.error === "no-speech" || e.error === "aborted") return;
       if (e.error === "not-allowed" || e.error === "service-not-allowed") {
         listeningRef.current = false;
@@ -150,38 +166,43 @@ export default function LiveRoom() {
       setError(`Speech recognition error: ${e.error}`);
     };
     rec.onend = () => {
-      if (listeningRef.current) {
-        try {
-          rec.start();
-        } catch {
-          // already started
-        }
-      }
+      if (recRef.current !== rec) return;
+      recRef.current = null;
+      listeningRef.current = false;
+      setListening(false);
+      setInterim("");
     };
     recRef.current = rec;
+    finalsRef.current = [];
     listeningRef.current = true;
     setListening(true);
     setError(null);
     try {
       rec.start();
     } catch (e) {
+      recRef.current = null;
+      listeningRef.current = false;
+      setListening(false);
       setError(errMsg(e));
     }
   }
 
   function stop() {
+    if (!listeningRef.current) return;
     listeningRef.current = false;
-    setListening(false);
-    setInterim("");
     recRef.current?.stop();
   }
 
-  function submitTyped(e: React.FormEvent) {
+  async function submitTyped(e: React.FormEvent) {
     e.preventDefault();
-    if (!typed.trim()) return;
-    setLog((l) => [...l, { text: typed.trim(), typed: true }]);
-    send(typed);
-    setTyped("");
+    const text = typed.trim();
+    if (!text || typedBusy) return;
+    setTypedBusy(true);
+    if (await send(text)) {
+      setLog((previous) => [...previous, { text, typed: true }]);
+      setTyped((current) => current.trim() === text ? "" : current);
+    }
+    setTypedBusy(false);
   }
 
   const counts = {
@@ -285,10 +306,10 @@ export default function LiveRoom() {
             />
             <button
               type="submit"
-              disabled={!typed.trim()}
+              disabled={!typed.trim() || typedBusy}
               className="shrink-0 border-l border-rule px-7 text-lg font-semibold text-ink hover:bg-ink hover:text-white disabled:text-faint disabled:hover:bg-transparent"
             >
-              Check
+              {typedBusy ? "Checking…" : "Check"}
             </button>
           </form>
         </section>
@@ -312,7 +333,8 @@ export default function LiveRoom() {
                 Searching the web for the latest claim
               </div>
             )}
-            {checks.length === 0 && pending === 0 && (
+            {notice && <p className="text-graphite">{notice}</p>}
+            {checks.length === 0 && pending === 0 && !notice && !error && (
               <p className="text-lg text-graphite">
                 No claims yet. When the founder states a fact, its check appears here with sources.
               </p>
@@ -330,9 +352,9 @@ export default function LiveRoom() {
                         <li key={s.id} className="grid grid-cols-[1.4rem_minmax(0,1fr)] gap-1">
                           <span className="tnum text-sm font-semibold text-cobalt">{i + 1}</span>
                           <div className="min-w-0">
-                            <a href={s.url} target="_blank" rel="noopener noreferrer" className="font-medium hover:underline">
+                            <SourceLink url={s.url} className="font-medium hover:underline">
                               {s.title}
-                            </a>
+                            </SourceLink>
                             <p className="flex items-center gap-1.5 truncate text-sm text-graphite">
                               <EngineDot name={s.engine} />
                               {engineLabel(s.engine)}, {domain(s.url)}

@@ -51,7 +51,7 @@ Read at a calm pace, about 2.4 words a second. Record each line as its own clip,
 
 **Scene 9** (1:29 to 1:39, 10 s). On screen: telem. File name: `mario-scene9.mp4`
 
-> Today Telem routed 237 questions across 16 engines. 67% of verified proof came from engines Telem routed to.
+> Today Telem routed over 230 questions across 16 engines. Two thirds of our verified proof came from engines Telem chose.
 
 **Scene 10** (1:39 to 1:49, 10 s). On screen: engines. File name: `mario-scene10.mp4`
 

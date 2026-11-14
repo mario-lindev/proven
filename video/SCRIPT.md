@@ -17,7 +17,7 @@ The words below are exact. They match `captions.json` character for character. S
 | 6 | 0:52-1:04 | Mario | The Builder.ai memo. Verdict: Pass, 95% confidence. 19 of 19 lines verified. 3 high-severity contradictions. | Builder.ai memo, top of page: verdict Pass, 95% confidence, 19 of 19 lines verified. | `memo` | 15 |
 | 7 | 1:04-1:15 | Rishith | It gave lenders a 2024 sales forecast of about $220M. An audit put sales at about $50M. Hover a line for the quote. | Claims vs. reality section of the Builder.ai memo. Company claim beside the independent source; pointer hovers a line and the exact quote appears. | `contradictions` | 23 |
 | 8 | 1:15-1:29 | Aarav | Plan. Route through Telem and Tavily. Research until proven. Write. Find each quote in code. No quote, no line. | Architecture flow chart, seven boxes left to right: Plan, Route (Telem + Tavily), Research until proven, Write, Prove, Claims vs. reality, Learn. Each box lights up as it is named; arrow from Learn back to Plan. | `how` | 19 |
-| 9 | 1:29-1:39 | Mario | Today Telem routed 237 questions across 16 engines. 67% of verified proof came from engines Telem routed to. | /telem page: 237 questions routed, 1,279 engine runs, 16 engines used, 67% (88 of 132 results, 12 memos). | `telem` | 18 |
+| 9 | 1:29-1:39 | Mario | Today Telem routed over 230 questions across 16 engines. Two thirds of our verified proof came from engines Telem chose. | /telem page: 237 questions routed, 1,279 engine runs, 16 engines used, 67% (88 of 132 results, 12 memos). | `telem` | 18 |
 | 10 | 1:39-1:49 | Mario | An engine earns credit only when its page backs a verified line. Proven learns only from what it could prove. | /engines score table. If cutting inside the shot: brief looks at ML Lab (/simulation) and Self-improve (/improve, 16 of 16 on the saved run). | `engines` | 20 |
 | 11 | 1:49-2:00 | Rishith | For investors and buyers. Know what is true before you commit. Built by Rishith, Aarav and Mario. proven-tan.vercel.app | End card: "Know what is true before you commit." Proven. Rishith, Aarav, Mario. SearchHack 2026. Built on Telem AI and Tavily, with Claude. https://proven-tan.vercel.app | `end` | 18 |
 
@@ -40,7 +40,7 @@ The words below are exact. They match `captions.json` character for character. S
 
 - Scene 3 (0:19-0:28, 9 s): This is Proven. Ask about any company. It searches, reads the pages, and writes a memo while you watch.
 - Scene 6 (0:52-1:04, 12 s): The Builder.ai memo. Verdict: Pass, 95% confidence. 19 of 19 lines verified. 3 high-severity contradictions.
-- Scene 9 (1:29-1:39, 10 s): Today Telem routed 237 questions across 16 engines. 67% of verified proof came from engines Telem routed to.
+- Scene 9 (1:29-1:39, 10 s): Today Telem routed over 230 questions across 16 engines. Two thirds of our verified proof came from engines Telem chose.
 - Scene 10 (1:39-1:49, 10 s): An engine earns credit only when its page backs a verified line. Proven learns only from what it could prove.
 
 ## Recording notes

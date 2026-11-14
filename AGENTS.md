@@ -170,10 +170,18 @@ export type Watch = { id: string; company: string; monitor_id: string; updates: 
 | Route | Body | Returns | Used by |
 |---|---|---|---|
 | `POST /api/memo` | `{ company: string, context?: string, depth?: "quick" \| "deep" }` (default deep: two search rounds, 60 to 120 s) | `Memo` | home page |
+| `POST /api/memo` + `stream: true` | same body plus `stream: true` | NDJSON, one `MemoEvent` per line: `start`, a `step` per trail step live, then `memo` or `error` | home page live research feed |
+| `GET /api/memo/[id]` | none | `Memo` (saved to `.data/`, survives restarts) | shareable `/memo/[id]` page |
+| `GET /api/memos` | none | `{ memos: MemoSummary[] }` newest first | recent memos on home |
+| `GET /api/health` | none | `{ ok, mock, keys: { telem, tavily, anthropic } }` (booleans, never values) | "Demo data" badge, extension connection test |
 | `POST /api/live` | `{ text: string }` (latest ~2 sentences of transcript) | `{ checks: ClaimCheck[] }` (empty if no factual claim) | Live Room |
 | `GET /api/trail/[id]` | none | `Trail` | trail drawer |
 | `POST /api/watch` | `{ company: string }` | `Watch` | Watch button |
 | `GET /api/watch/[id]` | none | `Watch` (with new updates) | watch panel |
+
+Web app deep link: `/?company=X&depth=quick|deep&go=1` prefills and starts a memo (the extension opens it).
+
+Demo prep: `npx tsx --env-file=.env.local scripts/warm-cache.ts deep Stripe Figma Rivian` runs real memos ahead of time; they show in recent memos.
 
 All `/api/*` routes send CORS headers (`middleware.ts`) so the Chrome extension can call them.
 

@@ -98,6 +98,16 @@ export default function MemoView({ memo, trail: preloaded }: { memo: Memo; trail
       ...(ver && ver.checked > 0
         ? [`Verified: ${ver.kept} of ${ver.checked} lines checked against the text of their sources, ${ver.dropped} dropped.`, ""]
         : []),
+      ...(memo.contradictions && memo.contradictions.length > 0
+        ? [
+            "## Claims vs. reality",
+            ...memo.contradictions.map(
+              (c) =>
+                `- **The company says:** ${c.claim} ${cite(c.claim_source_ids)}\n  **Independent sources say:** ${c.reality} ${cite(c.reality_source_ids)} (${c.severity} severity)`,
+            ),
+            "",
+          ]
+        : []),
       "## Facts",
       ...memo.facts.map(item),
       "",
@@ -108,7 +118,7 @@ export default function MemoView({ memo, trail: preloaded }: { memo: Memo; trail
       ...memo.open_questions.map((q) => `- ${q}`),
       "",
       "## Sources",
-      ...memo.sources.map((s, i) => `${i + 1}. [${s.title}](${s.url}) (found by ${engineLabel(s.engine)})`),
+      ...memo.sources.map((s, i) => `${i + 1}. [${s.title}](${s.url}) (found by ${engineLabel(s.engine)}${s.own ? ", company's own" : ""})`),
       "",
       `Memo by Proven, ${fmtTime(memo.created_at)}. Research trail: ${shareUrl()}`,
     ].join("\n");
@@ -194,9 +204,10 @@ export default function MemoView({ memo, trail: preloaded }: { memo: Memo; trail
         </span>
       </div>
 
+      <Contradictions memo={memo} onSource={(src) => setFocus({ urls: [src.url], source: src })} />
+
       <div className="memo-grid grid gap-12 lg:grid-cols-[minmax(0,1fr)_22rem]">
         <div className="min-w-0 space-y-10">
-          <Contradictions memo={memo} onSource={(src) => setFocus({ urls: [src.url], source: src })} />
           <Rounds memo={memo} />
           <section className="avoid-break">
             <SectionTitle title="Facts" count={memo.facts.length} />
@@ -284,6 +295,14 @@ export default function MemoView({ memo, trail: preloaded }: { memo: Memo; trail
                             {domain(s.url)}
                             {s.published ? `, ${fmtDate(s.published)}` : ""}
                           </p>
+                          {s.own && (
+                            <p
+                              className="mt-1 inline-block border border-dig bg-dig-soft px-1.5 py-px text-xs font-semibold text-dig"
+                              title="The company's own site or a press release it issued. Proven does not count it as independent."
+                            >
+                              Company&rsquo;s own
+                            </p>
+                          )}
                           <p className="print-only break-all text-xs text-graphite">{s.url}</p>
                         </div>
                       </li>

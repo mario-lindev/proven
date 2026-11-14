@@ -9,7 +9,7 @@ export default function Rounds({ memo }: { memo: Memo }) {
   return (
     <section className="avoid-break border border-rule bg-surface p-5">
       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-        <h3 className="font-semibold">Researched until proven</h3>
+        <h3 className="font-semibold">{last.open.length === 0 ? "Researched until proven" : "Researched in rounds"}</h3>
         <p className="tnum text-sm text-graphite">
           {rounds.length} round{rounds.length === 1 ? "" : "s"}, {Math.round(last.coverage * 100)}% of the key questions answered
         </p>

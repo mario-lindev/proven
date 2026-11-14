@@ -16,6 +16,8 @@ type Recognition = {
   onresult: ((e: SpeechEvent) => void) | null;
   onerror: ((e: { error: string }) => void) | null;
   onend: (() => void) | null;
+  onstart: (() => void) | null;
+  abort: () => void;
   start: () => void;
   stop: () => void;
 };
@@ -27,67 +29,80 @@ const VERDICT: Record<ClaimCheck["verdict"], { label: string; card: string; text
   unclear: { label: "Unclear", card: "border-amber-500 bg-amber-50", text: "text-amber-800" },
 };
 
-const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9 ]/g, "").trim();
+const norm = (s: string) => s.normalize("NFKC").toLowerCase().trim().replace(/[.!?]+$/, "");
 
 export default function LiveRoom() {
   const [supported, setSupported] = useState<boolean | null>(null);
-  const [listening, setListening] = useState(false);
+  const [mic, setMic] = useState<"idle" | "starting" | "listening" | "stopping">("idle");
+  const listening = mic === "listening";
   const [finals, setFinals] = useState<string[]>([]);
   const [interim, setInterim] = useState("");
   const [checks, setChecks] = useState<ClaimCheck[]>([]);
   const [pending, setPending] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const [typedBusy, setTypedBusy] = useState(false);
+  const [notice, setNotice] = useState("");
+  const [micError, setMicError] = useState("");
   const [typed, setTyped] = useState("");
   const [trailId, setTrailId] = useState<string | null>(null);
 
   const recRef = useRef<Recognition | null>(null);
-  const listeningRef = useRef(false);
   const finalsRef = useRef<string[]>([]);
-  const inFlight = useRef(new Set<string>());
+  const inFlight = useRef(new Map<string, AbortController>());
 
   const closeTrail = useCallback(() => setTrailId(null), []);
 
   const send = useCallback(async (text: string) => {
     const t = text.trim();
-    if (!t || inFlight.current.has(t)) return;
-    inFlight.current.add(t);
+    if (!t || inFlight.current.has(t)) return false;
+    const controller = new AbortController();
+    inFlight.current.set(t, controller);
+    setNotice("");
+    setError(null);
     setPending((p) => p + 1);
     try {
-      const { checks: found } = await api<{ checks: ClaimCheck[] }>("/api/live", { text: t });
-      setError(null);
+      const { checks: found } = await api<{ checks: ClaimCheck[] }>("/api/live", { text: t }, controller.signal);
+      if (controller.signal.aborted) return false;
       if (found?.length) {
         setChecks((prev) => {
-          const seen = new Set(prev.map((c) => norm(c.claim)));
-          const fresh = found.filter((c) => !seen.has(norm(c.claim)));
-          return [...fresh.reverse(), ...prev];
+          const latest = new Map(found.map((claim) => [norm(claim.claim), claim]));
+          return [...latest.values(), ...prev.filter((claim) => !latest.has(norm(claim.claim)))];
         });
+      } else {
+        setNotice("No new checkable claims returned.");
       }
+      return true;
     } catch (e) {
-      setError(errMsg(e));
+      if (!controller.signal.aborted) setError(errMsg(e));
+      return false;
     } finally {
       inFlight.current.delete(t);
-      setPending((p) => p - 1);
+      if (!controller.signal.aborted) setPending((p) => p - 1);
     }
   }, []);
 
   useEffect(() => {
     const w = window as unknown as { SpeechRecognition?: RecognitionCtor; webkitSpeechRecognition?: RecognitionCtor };
     setSupported(!!(w.webkitSpeechRecognition || w.SpeechRecognition));
+    const requests = inFlight.current;
     return () => {
-      listeningRef.current = false;
-      recRef.current?.stop();
+      const recognizer = recRef.current;
+      recRef.current = null;
+      recognizer?.abort();
+      for (const controller of requests.values()) controller.abort();
     };
   }, []);
 
   function start() {
     const w = window as unknown as { SpeechRecognition?: RecognitionCtor; webkitSpeechRecognition?: RecognitionCtor };
     const Ctor = w.webkitSpeechRecognition || w.SpeechRecognition;
-    if (!Ctor) return;
+    if (!Ctor || recRef.current) return;
     const rec = new Ctor();
     rec.continuous = true;
     rec.interimResults = true;
     rec.lang = "en-US";
     rec.onresult = (e) => {
+      if (recRef.current !== rec) return;
       let live = "";
       let gotFinal = false;
       for (let i = e.resultIndex; i < e.results.length; i++) {
@@ -95,7 +110,7 @@ export default function LiveRoom() {
         const txt = r[0].transcript.trim();
         if (r.isFinal) {
           if (txt) {
-            finalsRef.current = [...finalsRef.current, txt];
+            finalsRef.current = [...finalsRef.current.slice(-11), txt];
             gotFinal = true;
           }
         } else {
@@ -105,51 +120,52 @@ export default function LiveRoom() {
       setInterim(live);
       if (gotFinal) {
         setFinals(finalsRef.current);
-        send(finalsRef.current.slice(-2).join(" "));
+        void send(finalsRef.current.slice(-2).join("\n"));
       }
     };
-    rec.onerror = (e) => {
-      if (e.error === "no-speech" || e.error === "aborted") return;
-      if (e.error === "not-allowed" || e.error === "service-not-allowed") {
-        listeningRef.current = false;
-        setListening(false);
-        setError("Microphone access was blocked. Allow the mic for this site, or type a claim below.");
-        return;
-      }
-      setError(`Speech recognition error: ${e.error}`);
+    rec.onstart = () => {
+      if (recRef.current === rec) setMic("listening");
+    };
+    rec.onerror = ({ error }) => {
+      if (recRef.current !== rec || error === "aborted" || error === "no-speech") return;
+      setMicError(error === "not-allowed" || error === "service-not-allowed"
+        ? "Microphone access was blocked. Allow access for this site or type a claim below."
+        : `Speech recognition error: ${error}. You can type a claim below.`);
     };
     rec.onend = () => {
-      if (listeningRef.current) {
-        try {
-          rec.start();
-        } catch {
-          // already started
-        }
-      }
+      if (recRef.current !== rec) return;
+      recRef.current = null;
+      setMic("idle");
+      setInterim("");
     };
     recRef.current = rec;
-    listeningRef.current = true;
-    setListening(true);
-    setError(null);
+    finalsRef.current = [];
+    setMic("starting");
+    setMicError("");
     try {
       rec.start();
+      setFinals([]);
     } catch (e) {
-      setError(errMsg(e));
+      recRef.current = null;
+      setMic("idle");
+      setMicError(errMsg(e));
     }
   }
 
   function stop() {
-    listeningRef.current = false;
-    setListening(false);
-    setInterim("");
-    recRef.current?.stop();
+    const recognizer = recRef.current;
+    if (!recognizer) return;
+    setMic("stopping");
+    recognizer.stop();
   }
 
-  function submitTyped(e: React.FormEvent) {
+  async function submitTyped(e: React.FormEvent) {
     e.preventDefault();
-    if (!typed.trim()) return;
-    send(typed);
-    setTyped("");
+    const text = typed.trim();
+    if (!text || typedBusy) return;
+    setTypedBusy(true);
+    if (await send(text)) setTyped((current) => current.trim() === text ? "" : current);
+    setTypedBusy(false);
   }
 
   return (
@@ -165,13 +181,13 @@ export default function LiveRoom() {
           <button
             type="button"
             onClick={listening ? stop : start}
-            disabled={supported === null}
+            disabled={supported === null || mic === "starting" || mic === "stopping"}
             className={`flex items-center gap-3 rounded-xl px-8 py-4 text-xl font-semibold text-white disabled:opacity-50 ${
               listening ? "bg-red-700 hover:bg-red-800" : "bg-accent hover:bg-accent-hover"
             }`}
           >
             {listening && <span className="h-3 w-3 animate-pulse rounded-full bg-white" />}
-            {listening ? "Stop" : "Start listening"}
+            {({ idle: "Start listening", starting: "Starting…", listening: "Stop listening", stopping: "Stopping…" })[mic]}
           </button>
         )}
       </header>
@@ -182,6 +198,8 @@ export default function LiveRoom() {
           can still type claims below.
         </div>
       )}
+
+      {micError && <ErrorBox message={micError} />}
 
       <section className="min-h-32 rounded-2xl border border-line bg-soft p-6">
         <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-muted">Transcript</h2>
@@ -204,10 +222,10 @@ export default function LiveRoom() {
         />
         <button
           type="submit"
-          disabled={!typed.trim()}
+          disabled={!typed.trim() || typedBusy}
           className="rounded-xl bg-accent px-6 py-3 text-lg font-semibold text-white hover:bg-accent-hover disabled:opacity-50"
         >
-          Check
+          {typedBusy ? "Checking…" : "Check claim"}
         </button>
       </form>
 
@@ -216,9 +234,10 @@ export default function LiveRoom() {
       <section className="space-y-5">
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-semibold uppercase tracking-wider text-muted">Claims</h2>
-          {pending > 0 && <span className="animate-pulse text-muted">Checking...</span>}
+          {pending > 0 && <span className="text-muted" role="status">Checking…</span>}
         </div>
-        {checks.length === 0 && pending === 0 && (
+        {notice && <p className="text-muted" role="status">{notice}</p>}
+        {checks.length === 0 && pending === 0 && !notice && !error && (
           <p className="text-lg text-muted">No claims checked yet.</p>
         )}
         {checks.map((c) => {

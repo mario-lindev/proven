@@ -1,5 +1,6 @@
 "use client";
 import { useMemo, useState } from "react";
+import SimulationCharts from "@/components/SimulationCharts";
 import { documents, features, trainModel } from "@/lib/search/simulation";
 
 export default function Simulation() {
@@ -31,6 +32,7 @@ export default function Simulation() {
         <label className="flex items-center gap-3"><input type="checkbox" checked={enabled} onChange={e => setEnabled(e.target.checked)} /> Rank with trained model</label>
       </div>
     </section>
+    <SimulationCharts results={results} weights={model.weights} enabled={enabled} hasQuery={Boolean(query.trim())} />
     <div className="grid gap-8 lg:grid-cols-[1fr_300px]">
       <section aria-label="Ranked synthetic snippets" aria-live="polite" className="space-y-3">
         <h2 className="text-xl font-semibold">{enabled ? "ML ranking" : "Original source order"}</h2>

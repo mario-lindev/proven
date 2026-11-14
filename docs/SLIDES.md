@@ -42,9 +42,9 @@ Diligence where every line has a source.
 
 - Router picks engines per query, live
 - Consensus across engines ranks the pages
-- LinkedIn, X, TikTok, Trustpilot via platform engines
+- LinkedIn, X, Reddit, Trustpilot via platform engines
 - News filtered to the last year
-- One Telem session per memo
+- 16 engines across 20 queries in one deep memo
 - Monitor agents re-check on demand
 
 *Fallback image: the trail drawer opened on a risk, showing "Telem's router chose", engines and latency.*

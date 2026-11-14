@@ -27,7 +27,7 @@ export default function MemoView({ memo, trail: preloaded }: { memo: Memo; trail
   const v = VERDICT[memo.verdict] ?? VERDICT.dig_deeper;
   const pct = Math.round(memo.confidence * 100);
   const stats = trail ? feedStats(trail.steps) : null;
-  const totalMs = trail?.steps.reduce((a, s) => a + s.ms, 0) ?? 0;
+  const totalMs = stats?.spanMs ?? 0;
 
   const byEngine = useMemo(() => {
     const g = new Map<string, { s: Source; n: number }[]>();

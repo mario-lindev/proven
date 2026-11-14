@@ -70,8 +70,8 @@ export default function TrailDrawer({
   if (!trailId) return null;
 
   const steps = trail?.steps ?? [];
-  const total = steps.reduce((a, s) => a + s.ms, 0);
   const stats = feedStats(steps);
+  const total = stats.spanMs;
   const scale = Math.max(1500, ...steps.flatMap((s) => (s.engines ?? []).map((e) => e.latency_ms)));
 
   return (
@@ -155,7 +155,11 @@ export default function TrailDrawer({
                         </p>
                         <span className="tnum shrink-0 text-sm text-graphite">{fmtMs(s.ms)}</span>
                       </div>
-                      {hit && <p className="mt-1 text-sm font-medium text-cobalt">This search found the cited source</p>}
+                      {hit && (
+                        <p className="mt-1 text-sm font-medium text-cobalt">
+                          {s.kind === "search" ? "This search found the cited source" : "This step read the cited page"}
+                        </p>
+                      )}
                       {s.routing && s.routing.length > 0 && (
                         <p className="mt-1 text-sm text-cobalt">
                           Telem&rsquo;s router chose {s.routing.map(engineLabel).join(", ")}

@@ -162,7 +162,7 @@ export default function Home() {
             placeholder="Company, vendor or market"
             autoFocus={idle}
             autoComplete="off"
-            className={`serif min-w-0 flex-1 bg-transparent px-5 outline-none placeholder:text-faint ${
+            className={`serif min-w-0 flex-1 bg-transparent px-5 outline-none placeholder:text-faint focus-visible:outline-none ${
               idle ? "py-4 text-[1.9rem]" : "py-2.5 text-[1.4rem]"
             }`}
           />

@@ -17,6 +17,15 @@ const PHASES: Record<PhaseId, string> = {
   write: "Writing",
 };
 
+const ACTIVITY: Record<PhaseId, string> = {
+  plan: "Claude is planning the searches",
+  search1: "Telem is routing each query to its engines",
+  gaps: "Claude is looking for gaps in what came back",
+  search2: "Telem is running the follow-up searches",
+  read: "Reading the best pages in full",
+  write: "Claude is writing the memo from these sources only",
+};
+
 const ORDER: Record<Depth, PhaseId[]> = {
   quick: ["plan", "search1", "read", "write"],
   deep: ["plan", "search1", "gaps", "search2", "read", "write"],
@@ -55,7 +64,17 @@ export function feedStats(steps: TrailStep[]) {
     for (const u of s.urls ?? []) urls.add(u);
     if (s.telem_session_id) sessions.add(s.telem_session_id);
   }
-  return { queries: searches.length, engines, telemEngines, urls: urls.size, sessions };
+  // Wall-clock span of the run: steps overlap (searches run in parallel), so summing ms overstates it.
+  let first = Infinity;
+  let end = -Infinity;
+  for (const s of steps) {
+    const at = new Date(s.at).getTime();
+    if (isNaN(at)) continue;
+    first = Math.min(first, at - s.ms);
+    end = Math.max(end, at);
+  }
+  const spanMs = end > first ? end - first : steps.reduce((a, s) => a + s.ms, 0);
+  return { queries: searches.length, engines, telemEngines, urls: urls.size, sessions, spanMs };
 }
 
 export default function ResearchFeed({
@@ -179,64 +198,13 @@ export default function ResearchFeed({
         )}
 
         {searchSteps.length === 0 && (
-          <div className="py-6 text-graphite">
-            <p className="flex items-center gap-2 text-lg">
-              <span className="pulse-dot h-2 w-2 rounded-full bg-cobalt" />
-              {failed ? "No searches ran." : "Planning the searches for this company."}
-            </p>
-            <p className="mt-1">Each search will appear here as Telem picks its engines.</p>
-          </div>
+          <p className="pb-4 text-graphite">
+            {failed ? "No searches ran." : "Each search will appear here as Telem picks its engines for it."}
+          </p>
         )}
 
-        {searchSteps.length > 0 && (
-          <div>
-            <div className="hidden grid-cols-[minmax(0,5fr)_minmax(0,7fr)_5.5rem] gap-6 border-b border-rule pb-2 text-sm text-graphite md:grid">
-              <span>Query</span>
-              <span>Engines that answered, with latency</span>
-              <span className="text-right">Pages</span>
-            </div>
-            <ol>
-              {searchSteps.map(({ s, i, p }, k) => {
-                const prev = searchSteps[k - 1];
-                const { telem, tavily } = splitEngines(s.engines);
-                return (
-                  <li key={i} className="row-in">
-                    {p === "search2" && prev?.p === "search1" && (
-                      <p className="mt-4 border-t border-dashed border-rule pt-3 text-sm font-medium text-graphite">
-                        Follow-up searches for the gaps
-                      </p>
-                    )}
-                    <div className="grid gap-3 border-b border-rule-soft py-3.5 md:grid-cols-[minmax(0,5fr)_minmax(0,7fr)_5.5rem] md:gap-6">
-                      <div className="min-w-0">
-                        <p className="break-words font-mono text-[0.92rem] leading-snug">{s.query ?? s.label}</p>
-                        {s.routing && s.routing.length > 0 && (
-                          <p className="mt-1 text-sm text-cobalt">Router chose {s.routing.map(engineLabel).join(", ")}</p>
-                        )}
-                        {s.urls && s.urls.length > 0 && (
-                          <p className="mt-1 truncate text-sm text-faint">
-                            {[...new Set(s.urls.map(domain))].slice(0, 4).join(", ")}
-                          </p>
-                        )}
-                      </div>
-                      <div className="grid min-w-0 grid-cols-2 gap-x-5 gap-y-2 lg:grid-cols-3">
-                        {telem.map((e, j) => (
-                          <EngineBar key={`t${j}`} e={e} scale={scale} animate />
-                        ))}
-                        {tavily.map((e, j) => (
-                          <EngineBar key={`v${j}`} e={e} scale={scale} animate />
-                        ))}
-                      </div>
-                      <p className="tnum text-right text-lg font-medium">{s.urls?.length ?? 0}</p>
-                    </div>
-                  </li>
-                );
-              })}
-            </ol>
-          </div>
-        )}
-
-        {(extracts.length > 0 || llms.length > 0) && (
-          <ul className="mt-5 flex flex-wrap gap-x-8 gap-y-2 text-sm text-graphite">
+        {(llms.length > 0 || extracts.length > 0 || running) && (
+          <ul className="mb-5 flex flex-wrap gap-x-8 gap-y-2 text-sm text-graphite">
             {steps
               .filter((s) => s.kind !== "search")
               .map((s, i) => (
@@ -249,19 +217,69 @@ export default function ResearchFeed({
                   )}
                 </li>
               ))}
-            {running && active === "write" && (
-              <li className="flex items-center gap-2 text-cobalt">
+            {running && active && (
+              <li className="flex items-center gap-2 font-medium text-cobalt">
                 <span className="pulse-dot h-1.5 w-1.5 rounded-full bg-cobalt" />
-                Claude is writing the memo from these sources only
-              </li>
-            )}
-            {running && active === "read" && (
-              <li className="flex items-center gap-2 text-cobalt">
-                <span className="pulse-dot h-1.5 w-1.5 rounded-full bg-cobalt" />
-                Reading the best pages in full
+                {ACTIVITY[active]}
               </li>
             )}
           </ul>
+        )}
+
+        {searchSteps.length > 0 && (
+          <div>
+            <div className="hidden grid-cols-[minmax(0,5fr)_minmax(0,7fr)_5.5rem] gap-6 border-b border-rule pb-2 text-sm text-graphite md:grid">
+              <span>Query, newest first</span>
+              <span>Engines that answered, with latency</span>
+              <span className="text-right">Pages</span>
+            </div>
+            {(["search2", "search1"] as PhaseId[]).map((round) => {
+              const rows = searchSteps.filter((x) => x.p === round).reverse();
+              if (rows.length === 0) return null;
+              return (
+                <div key={round}>
+                  {depth === "deep" && (
+                    <p className="mt-4 text-sm font-medium text-graphite">
+                      {round === "search2" ? "Round 2: follow-up searches for the gaps" : "Round 1"}
+                      <span className="tnum ml-2 font-normal text-faint">{rows.length} {rows.length === 1 ? "query" : "queries"}</span>
+                    </p>
+                  )}
+                  <ol>
+                    {rows.map(({ s, i }) => {
+                      const { telem, tavily } = splitEngines(s.engines);
+                      return (
+                        <li
+                          key={i}
+                          className="row-in grid gap-3 border-b border-rule-soft py-3.5 md:grid-cols-[minmax(0,5fr)_minmax(0,7fr)_5.5rem] md:gap-6"
+                        >
+                          <div className="min-w-0">
+                            <p className="break-words font-mono text-[0.92rem] leading-snug">{s.query ?? s.label}</p>
+                            {s.routing && s.routing.length > 0 && (
+                              <p className="mt-1 text-sm text-cobalt">Router chose {s.routing.map(engineLabel).join(", ")}</p>
+                            )}
+                            {s.urls && s.urls.length > 0 && (
+                              <p className="mt-1 truncate text-sm text-faint">
+                                {[...new Set(s.urls.map(domain))].slice(0, 4).join(", ")}
+                              </p>
+                            )}
+                          </div>
+                          <div className="grid min-w-0 grid-cols-2 gap-x-5 gap-y-2 lg:grid-cols-3">
+                            {telem.map((e, j) => (
+                              <EngineBar key={`t${j}`} e={e} scale={scale} animate />
+                            ))}
+                            {tavily.map((e, j) => (
+                              <EngineBar key={`v${j}`} e={e} scale={scale} animate />
+                            ))}
+                          </div>
+                          <p className="tnum text-right text-lg font-medium">{s.urls?.length ?? 0}</p>
+                        </li>
+                      );
+                    })}
+                  </ol>
+                </div>
+              );
+            })}
+          </div>
         )}
 
         {stats.sessions.size > 0 && (

@@ -200,7 +200,7 @@ Verified Telem facts (docs, today):
 - Auth: `Authorization: Bearer $TELEM_API_KEY`.
 - Response: results are under `preprocessor_runs[].output_payload.results[]` (`rank`, `url`, `title`, `summary`). The engine is `preprocessor_runs[].preprocessor_name`, not a field on each result. Each run has `latency_ms`, `status`, `error`, `batch_index`.
 - `routing` is one entry per query when auto-routing is on. Show it in the trail if present.
-- `/v1/fetch`: `{ "urls": [...], "options": { "tier": "default" } }`, one document per URL; failed URLs come back as their own rows.
+- `/v1/fetch`: `{ "urls": [...], "options": { "tier": "default" } }`, **at most 5 URLs per call**, one document per URL in `preprocessor_runs[].output_payload.fetched_results[]`; failed URLs come back as their own rows.
 - Monitors: `POST /v1/monitors` `{ "query": "...", "options": { "frequency": "1h" }, "ttl": "30d" }`. **Fastest run is hourly** and there is no "fire now" for polls, so create the demo watch **early (by 1 PM)** so a real update exists by judging. `POST /v1/monitors/{id}/poll` returns results new since the last poll.
 - Hard-to-reach platforms (LinkedIn, TikTok, WeChat...): list in docs.telem.ai/resources/supported-platforms. Use them for the competitor and hiring queries. That is our "hard to build without Telem" proof.
 
@@ -255,7 +255,7 @@ If a checkpoint slips by more than 15 minutes, cut scope (§12), don't push the 
 | Who | Now working on | Last pushed | Blocked on |
 |---|---|---|---|
 | Rishith | Scaffold done: types, store, mock API routes, fixtures, lib/brain (memo + live). Next: test brain with real keys once searchAll lands | 11:58 scaffold | Aarav: searchAll |
-| Aarav | | | |
+| Aarav | Search layer first version merged (Telem + Tavily, offline checks pass). Next: run `npx tsx --env-file=.env.local scripts/try-search.ts` with real keys and fix any shape differences | 12:20 | keys |
 | Mario | | | |
 
 ## 12. Cut list (if behind, cut from the bottom up)

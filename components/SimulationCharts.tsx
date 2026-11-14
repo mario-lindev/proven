@@ -1,4 +1,5 @@
 "use client";
+import { useState } from "react";
 
 type Result = { document: { id: string; title: string }; score: number; features: number[] };
 type Props = { results: Result[]; weights: number[]; enabled: boolean; hasQuery: boolean };
@@ -11,22 +12,52 @@ const groupFor = (score: number) => score >= .7 ? 0 : score >= .4 ? 1 : 2;
 const signed = (value: number) => (value >= 0 ? "+" : "") + value.toFixed(3);
 
 export default function SimulationCharts({ results, weights, enabled, hasQuery }: Props) {
+  const [selected, setSelected] = useState<string | null>(null);
   const counts = groups.map((_, index) => results.filter(result => groupFor(result.score) === index).length);
   let offset = 0;
   return <section aria-label="Simulation decision charts" className="space-y-6">
-    <div className="grid gap-6 lg:grid-cols-[340px_1fr]">
-      <section className="rounded-2xl border border-rule bg-surface p-6">
+    {hasQuery && <section className="relative overflow-hidden rounded-3xl border border-emerald-800 bg-[#10281f] p-6 text-white shadow-xl md:p-8">
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0 opacity-20" style={{ backgroundImage: "radial-gradient(#86bfa3 1px, transparent 1px)", backgroundSize: "22px 22px" }} />
+      <div className="relative flex flex-wrap items-center justify-between gap-3">
+        <div><p className="text-xs uppercase tracking-[.2em] text-emerald-300">Model observatory · synthetic data</p><h2 className="mt-2 text-2xl font-semibold">Follow every signal.</h2></div>
+        <span className="rounded-full border border-emerald-600/50 bg-emerald-900/70 px-4 py-2 text-xs">{enabled ? "ML ranking active" : "Original order active"}</span>
+      </div>
+      <p className="relative mt-3 text-sm text-emerald-100/70">Select a snippet to trace its calculation below. Every branch uses the current model score.</p>
+      <div className="relative mt-8 overflow-x-auto pb-3">
+        <div className="min-w-[650px]">
+          <div className="mx-auto w-fit rounded-xl border border-emerald-400/50 bg-[#1d4433] px-7 py-3 text-center shadow-lg"><span className="text-xs text-emerald-200">TRAINED MODEL</span><p className="mt-1 font-semibold">Weighted signals → relevance</p></div>
+          <div aria-hidden="true" className="mx-auto h-8 w-px bg-emerald-500/60" />
+          <div aria-hidden="true" className="mx-[10%] border-t border-emerald-500/60" />
+          <div className="grid grid-cols-5 gap-3">
+            {results.map((result, index) => <div key={result.document.id}>
+              <div aria-hidden="true" className="mx-auto h-6 w-px bg-emerald-500/60" />
+              <button type="button" aria-pressed={selected === result.document.id} onClick={() => setSelected(selected === result.document.id ? null : result.document.id)}
+                className="h-full max-h-[140px] w-full rounded-xl border p-3 text-left transition-all hover:-translate-y-1 hover:border-emerald-300 focus-visible:outline-emerald-300"
+                style={{ borderColor: selected === result.document.id ? "#a7f3d0" : "#38634c", background: selected === result.document.id ? "#285c43" : "#163827", boxShadow: selected === result.document.id ? "0 0 28px #34d39925" : "none" }}>
+                <span className="text-[10px] uppercase tracking-widest text-emerald-200">{enabled ? "Rank" : "Position"} {index + 1}</span>
+                <span className="mt-2 block text-xs leading-relaxed">{result.document.title}</span>
+                <span className="mt-3 block font-mono text-lg">{(result.score * 100).toFixed(1)}<span className="text-xs text-emerald-200"> / 100</span></span>
+              </button>
+            </div>)}
+          </div>
+        </div>
+      </div>
+    </section>}
+    <div className="grid gap-6 lg:grid-cols-[360px_1fr]">
+      <section className="rounded-3xl border border-rule bg-surface p-7 shadow-sm">
         <h2 className="text-xl font-semibold">Relevance distribution</h2>
         <p className="mt-2 text-sm text-graphite">Share of synthetic snippets in each score band.</p>
         {!hasQuery ? <p className="py-12 text-center text-graphite">Enter a question to see the chart.</p> : <>
-          <svg viewBox="0 0 220 220" className="mx-auto my-5 w-full max-w-[220px]" role="img" aria-label={groups.map((group, index) => group.label + ": " + counts[index] + " snippets").join("; ")}>
+          <svg viewBox="0 0 220 220" className="mx-auto my-6 w-full max-w-[260px] drop-shadow-lg" role="img" aria-label={groups.map((group, index) => group.label + ": " + counts[index] + " snippets").join("; ")}>
             <title>Relevance distribution across {results.length} synthetic snippets</title>
+            <circle cx="110" cy="110" r="109" fill="none" stroke="#e5ece7" strokeWidth="1" />
+            <circle cx="110" cy="110" r="56" fill="#f3f8f4" />
             {groups.map((group, index) => {
               const percentage = results.length ? counts[index] / results.length * 100 : 0;
               const start = offset;
               offset += percentage;
               return percentage > 0 ? <circle key={group.label} cx="110" cy="110" r="85" fill="none" stroke={group.color}
-                strokeWidth="48" pathLength="100" strokeDasharray={percentage + " " + (100 - percentage)}
+                className="transition-opacity duration-300 hover:opacity-75" strokeWidth="40" pathLength="100" strokeDasharray={percentage + " " + (100 - percentage)}
                 strokeDashoffset={-start} transform="rotate(-90 110 110)"><title>{group.label}: {counts[index]} snippets</title></circle> : null;
             })}
             <text x="110" y="108" textAnchor="middle" fill="currentColor" fontSize="32" fontWeight="600">{results.length}</text>
@@ -50,7 +81,7 @@ export default function SimulationCharts({ results, weights, enabled, hasQuery }
               const contributions = result.features.map((value, index) => value * weights[index]);
               const logit = contributions.reduce((sum, value) => sum + value, 0);
               const group = groups[groupFor(result.score)];
-              return <li key={result.document.id}><details className="rounded-xl border border-rule p-4">
+              return <li key={result.document.id}><details key={selected === result.document.id ? "selected" : "collapsed"} open={selected === result.document.id} className="rounded-2xl border border-rule bg-gradient-to-br from-white to-emerald-50/40 p-5 shadow-sm">
                 <summary className="cursor-pointer font-semibold"><span className="mr-2 font-mono text-sm text-graphite">{enabled ? "Rank" : "Position"} {rank + 1}</span>{result.document.title}
                   <span className="mt-2 block text-sm font-normal" style={{ color: group.color }}>{group.label} · {(result.score * 100).toFixed(1)}/100</span>
                 </summary>

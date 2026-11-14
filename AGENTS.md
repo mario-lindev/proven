@@ -19,7 +19,7 @@ Read this first, every time. This file is for people (Rishith, Aarav, Mario) and
 
 > You are working on Proven, a hackathon project. Read AGENTS.md fully first. You own ONLY `lib/search/` and `fixtures/`. Do not edit any other file; if you need a change elsewhere, stop and tell me.
 > Build `lib/search/index.ts` exporting exactly the functions in AGENTS.md §7: `searchAll`, `extract`, `watch`, `pollWatch` (newTrail is already in lib/store.ts), with the types from `lib/types.ts`.
-> - `lib/search/telem.ts`: `POST https://router.telem.ai/v1/search` with `user_input` as a list of `{query}` (batch), `search: { auto_routing: "accuracy", num_results: 5, tier: "default" }`, Bearer `TELEM_API_KEY`. Results are in `preprocessor_runs[].output_payload.results[]`; the engine name is `preprocessor_runs[].preprocessor_name`; `batch_index` says which query. Also `/v1/fetch` and `/v1/monitors` (+ `/poll`) per §7.
+> - `lib/search/telem.ts`: `POST https://hack.telem.ai/api/v1/search` with `user_input` as a list of `{query}` (batch), `search: { auto_routing: "accuracy", num_results: 5, tier: "default" }`, Bearer `TELEM_API_KEY`. Results are in `preprocessor_runs[].output_payload.results[]`; the engine name is `preprocessor_runs[].preprocessor_name`; `batch_index` says which query. Also `/v1/fetch` and `/v1/monitors` (+ `/poll`) per §7.
 > - `lib/search/tavily.ts`: `POST https://api.tavily.com/search` and `/extract`, Bearer `TAVILY_API_KEY`. Check docs.tavily.com for exact fields.
 > - `searchAll` runs Telem (one batch call) and Tavily (one call per query) in parallel, merges, dedupes by URL, ids `s1..sN`, max 20 sources, and records one `search` TrailStep per query with each engine's name, latency_ms, result count and error.
 > - Every failure returns a clear error; never invent results.
@@ -91,7 +91,7 @@ Rules for ownership:
 
 - **Next.js (App Router) + TypeScript**, one repo, one `npm run dev`. API routes in `app/api/*`. Deploy on Vercel.
 - **Claude** through `@anthropic-ai/sdk`, model `claude-opus-5-5`. Structured output (`output_config.format` with a JSON schema) so the brain always returns JSON matching `lib/types.ts`. Live checks use `effort: "low"` for speed; the memo uses default effort.
-- **Telem** REST: `https://router.telem.ai/v1/search`, `/v1/fetch`, `/v1/monitors` (details in §7).
+- **Telem** REST: `https://hack.telem.ai/api/v1/search`, `/v1/fetch`, `/v1/monitors` (details in §7). **Hackathon keys use `https://hack.telem.ai/api`** (docs: https://hack.telem.ai/doc); set `TELEM_BASE_URL` to change it.
 - **Tavily** REST: `https://api.tavily.com/search`, `/extract`.
 - **Live Room speech:** the browser Web Speech API (`webkitSpeechRecognition`) in Chrome. No paid speech service.
 - **Storage:** in memory (a `Map` in `lib/store.ts`) for memos and trails. No database today.

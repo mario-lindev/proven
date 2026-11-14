@@ -2,7 +2,8 @@
 import type { Engine, WatchUpdate } from "../types";
 import { clip, errorText, needKey, postJSON, type Hit } from "./http";
 
-const BASE = "https://router.telem.ai/v1";
+// Hackathon keys work on hack.telem.ai (https://hack.telem.ai/doc). Override with TELEM_BASE_URL.
+const BASE = `${(process.env.TELEM_BASE_URL ?? "https://hack.telem.ai/api").replace(/\/+$/, "")}/v1`;
 
 export type TelemResult = {
   rank?: number;

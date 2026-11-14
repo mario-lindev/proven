@@ -183,7 +183,7 @@ async function e2e() {
   });
   let trail = newTrail();
   let sources = await searchAll(queries, trail);
-  const telemCall = calls.find((c) => c.url === "https://router.telem.ai/v1/search")!;
+  const telemCall = calls.find((c) => c.url === "https://hack.telem.ai/api/v1/search")!;
   assert.deepEqual(telemCall.body, {
     user_input: [{ query: queries[0] }, { query: queries[1] }],
     search: { auto_routing: "accuracy", num_results: 5, tier: "default" },
@@ -235,7 +235,7 @@ async function e2e() {
       assert.deepEqual((body as { urls: string[] }).urls, ["https://a.com/", "https://b.com"]);
       return { status: 200, json: { results: [{ url: "https://a.com", raw_content: "A".repeat(9000) }], failed_results: [{ url: "https://b.com", error: "blocked" }] } };
     }
-    if (url === "https://router.telem.ai/v1/fetch") {
+    if (url === "https://hack.telem.ai/api/v1/fetch") {
       assert.deepEqual(body, { urls: ["https://b.com"], options: { tier: "default", content_format: "text" } });
       return { status: 200, json: { session_id: "f1", preprocessor_runs: [{ batch_index: 0, preprocessor_name: "web_fetch", output_payload: { fetched_results: [{ url: "https://b.com", error: null, content: "B text" }] } }] } };
     }
@@ -252,11 +252,11 @@ async function e2e() {
 
   // monitors
   stub((url, body) => {
-    if (url === "https://router.telem.ai/v1/monitors") {
+    if (url === "https://hack.telem.ai/api/v1/monitors") {
       assert.deepEqual(body, { query: "News, funding, layoffs, lawsuits or new competitors for Acme", options: { frequency: "1h" }, ttl: "30d" });
       return { status: 201, json: { id: "mon-1", status: "active", session_id: "s" } };
     }
-    if (url === "https://router.telem.ai/v1/monitors/mon-1/poll") return { status: 200, json: { completed_at: "2026-11-14T14:00:00Z", preprocessor_runs: telemSample.preprocessor_runs } };
+    if (url === "https://hack.telem.ai/api/v1/monitors/mon-1/poll") return { status: 200, json: { completed_at: "2026-11-14T14:00:00Z", preprocessor_runs: telemSample.preprocessor_runs } };
     throw new Error(`unexpected ${url}`);
   });
   assert.deepEqual(await watch("Acme"), { monitor_id: "mon-1" });

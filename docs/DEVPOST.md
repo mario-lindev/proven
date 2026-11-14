@@ -120,3 +120,14 @@ A chat answer is fast, but an investor cannot take it to a partner meeting witho
 ## Built with
 
 nextjs, typescript, react, tailwindcss, anthropic, claude, telem, tavily, web-speech-api, chrome-extension, vercel
+
+## How Proven fits the SearchHack brief
+
+- **Routing queries to the right engine:** Telem routes every query; Proven adds an extra search on the engines whose pages held up in past memos.
+- **Agents that plan, search, verify and synthesize:** plan, search in rounds until the key questions are answered, read pages, write, then check every line's quote in code.
+- **Retrieval beyond keyword matching:** pages found by several engines rank higher; LinkedIn, X, Reddit and review sites are searched; news is limited to the past year.
+- **Memory:** Proven remembers which engines and which query phrasings led to verified lines and reuses them on the next memo.
+- **Fewer wasted searches:** it measures verified lines per search and reads pages from better-scoring engines first.
+- **New interfaces:** a live research feed, the quote behind each line on hover, Claims vs. reality, Pitch Audit, and a Chrome side panel that checks claims during a call.
+
+Not built: knowledge graphs, and search over images, video or code.

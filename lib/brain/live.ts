@@ -32,7 +32,10 @@ const judgeSchema = {
   },
 };
 
-const seen = new Set<string>(); // don't re-check the same claim twice in one session
+// Don't re-check the same claim within 90 s (overlapping transcript windows send it twice).
+// Expires so a rehearsal doesn't block the real demo.
+const seen = new Map<string, number>();
+const SEEN_MS = 90_000;
 
 export async function checkText(text: string): Promise<ClaimCheck[]> {
   const pickTrail = newTrail();
@@ -50,8 +53,9 @@ export async function checkText(text: string): Promise<ClaimCheck[]> {
     schema: claimsSchema,
   });
 
-  const fresh = claims.filter((c) => !seen.has(c.claim.toLowerCase())).slice(0, 2);
-  fresh.forEach((c) => seen.add(c.claim.toLowerCase()));
+  const now = Date.now();
+  const fresh = claims.filter((c) => now - (seen.get(c.claim.toLowerCase()) ?? 0) > SEEN_MS).slice(0, 2);
+  fresh.forEach((c) => seen.set(c.claim.toLowerCase(), now));
 
   return Promise.all(
     fresh.map(async (c) => {

@@ -256,7 +256,7 @@ If a checkpoint slips by more than 15 minutes, cut scope (§12), don't push the 
 |---|---|---|---|
 | Rishith | Scaffold done: types, store, mock API routes, fixtures, lib/brain (memo + live). Next: test brain with real keys once searchAll lands | 11:58 scaffold | Aarav: searchAll |
 | Aarav | Search layer first version merged (Telem + Tavily, offline checks pass). Next: run `npx tsx --env-file=.env.local scripts/try-search.ts` with real keys and fix any shape differences | 12:20 | keys |
-| Mario | | | |
+| Mario | First UI merged (memo, trail drawer, watch, Live Room) + docs/ drafts (Devpost, slides, demo script, judge Q&A). Next: own polish, extension testing on a real Meet call, fill [MEASURE]/[FILL] placeholders | 12:35 | |
 
 ## 12. Cut list (if behind, cut from the bottom up)
 

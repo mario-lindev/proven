@@ -1,8 +1,9 @@
 // OWNER: Rishith. Company name -> sourced memo (AGENTS.md §8).
 import type { Line, Memo, Source, TrailRecorder } from "../types";
-import { extract, searchAll } from "../search";
+import { extract, normalizeUrl, searchAll } from "../search";
 import { newId, newTrail, saveMemo } from "../store";
 import { askJSON } from "./claude";
+import { verifyLines } from "./verify";
 
 const planSchema = {
   type: "object",
@@ -33,6 +34,13 @@ const memoSchema = {
 };
 
 export type Depth = "quick" | "deep";
+
+// Verify pass: pages read while the memo is written (so it costs no time), and cited pages read after, at most.
+const MORE_PAGES = 16;
+const CITED_PAGES = 10;
+// Resolve with `fallback` if `p` takes longer than `ms` (extract can take up to 40 s when a site hangs).
+const within = <T>(p: Promise<T>, ms: number, fallback: T) =>
+  Promise.race([p, new Promise<T>((r) => setTimeout(() => r(fallback), ms).unref?.())]);
 
 // Pass a trail to watch progress (newTrail(onStep)); otherwise a new one is made.
 export async function buildMemo(
@@ -79,11 +87,15 @@ export async function buildMemo(
   }
 
   let pages: { url: string; text: string }[] = [];
+  const firstUrls = sources.slice(0, deep ? 8 : 4).map((s) => s.url);
   try {
-    pages = await extract(sources.slice(0, deep ? 8 : 4).map((s) => s.url), trail);
+    pages = await extract(firstUrls, trail);
   } catch {
     // Extract is optional; the memo falls back to search snippets.
   }
+  // For the verify pass: read more pages now, while Claude writes the memo.
+  const moreUrls = sources.map((s) => s.url).filter((u) => !firstUrls.includes(u)).slice(0, MORE_PAGES);
+  const morePages = moreUrls.length ? extract(moreUrls, trail).catch(() => [] as typeof pages) : Promise.resolve([]);
 
   const sourceBlock = sources
     .map((s) => {
@@ -113,9 +125,32 @@ export async function buildMemo(
     lines
       .map((l) => ({ ...l, source_ids: l.source_ids.filter((id) => ids.has(id)) }))
       .filter((l) => l.source_ids.length > 0);
+  let facts = keep(draft.facts);
+  let risks = keep(draft.risks);
+
+  // Verify every line against the text of the sources it cites; a line with no quote found in them is dropped.
+  // If the verify pass fails, the memo is kept as written, with no `verification` (the trail step says why).
+  let verification: Memo["verification"];
+  const tried = new Set([...firstUrls, ...moreUrls]);
+  const cited = new Set([...facts, ...risks].flatMap((l) => l.source_ids));
+  const citedUrls = sources.filter((s) => cited.has(s.id) && !tried.has(s.url)).map((s) => s.url).slice(0, CITED_PAGES);
+  const [more, citedPages] = await Promise.all([
+    within(morePages, 8000, []),
+    citedUrls.length ? within(extract(citedUrls, trail).catch(() => []), 10000, []) : [],
+  ]);
+  const known = new Set(pages.map((p) => normalizeUrl(p.url)));
+  for (const p of [...more, ...citedPages]) if (!known.has(normalizeUrl(p.url))) pages.push(p);
+  try {
+    const v = await verifyLines([...facts, ...risks], sources, pages, trail);
+    const ok = (l: Line) => (l.evidence?.length ?? 0) > 0;
+    facts = v.lines.slice(0, facts.length).filter(ok);
+    risks = v.lines.slice(v.lines.length - risks.length).filter(ok);
+    verification = { checked: v.checked, kept: v.kept, dropped: v.dropped, ms: v.ms };
+  } catch {
+    // Recorded in the trail by verifyLines.
+  }
+
   const used = new Set<string>();
-  const facts = keep(draft.facts);
-  const risks = keep(draft.risks);
   [...facts, ...risks].forEach((l) => l.source_ids.forEach((id) => used.add(id)));
 
   const memo: Memo = {
@@ -130,6 +165,7 @@ export async function buildMemo(
     sources: sources.filter((s: Source) => used.has(s.id)),
     trail_id: trail.id,
     created_at: new Date().toISOString(),
+    ...(verification ? { verification } : {}),
   };
   saveMemo(memo);
   return memo;

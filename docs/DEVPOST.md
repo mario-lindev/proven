@@ -73,17 +73,17 @@ Telem is the retrieval core of Proven. All of it is in `lib/search/telem.ts` and
 - **Per-query auto-routing, visible live.** Every search sets `auto_routing: "accuracy"`. Telem returns a `routing` entry per query with its providers, best first. We put that on the query's trail step, and the feed shows "Router chose ..." under each query as it finishes. A funding query and a hiring query get different engines, and the user can see that happen.
 - **Batch calls.** Each search round is one Telem call per batch, with `user_input` as a list of queries. Each engine run carries `batch_index`, so we map every run back to its query.
 - **Multi-engine consensus ranking.** Telem's `rank` is per provider, not a shared score, and results are not merged for us. So per query we merge by URL and order pages the way Telem's docs merge: pages that more engines found come first, then the best rank any engine gave, then the router's provider order. Each page is credited to the best-routed engine that found it, and that engine name is on its source chip.
-- **Platform engines.** Telem's platform providers are pin-only: auto-routing never picks them by itself. For memo queries about hiring, customers, reviews or social signals (up to 4 per round), Proven sends a separate batch pinned to `apify_linkedin`, `socialdatax_x`, `fetchlayer_tiktok`, `socialdatax_youtube`, `fetchlayer_trustpilot`, `fetchlayer_producthunt`, `apify_quora` and `socialdatax_wechat`, with auto-routing on so Telem picks the best of those for each query. LinkedIn hiring, TikTok sentiment and Trustpilot reviews are where early growth or trouble shows up, and a normal web search API reaches them poorly. [VERIFY: name the platform engines that actually returned results in a real memo]
+- **Platform engines.** Telem's platform providers are pin-only: auto-routing never picks them by itself. For memo queries about hiring, customers, reviews or social signals (up to 4 per round), Proven sends a separate batch pinned to `apify_linkedin`, `socialdatax_x`, `fetchlayer_reddit`, `socialdatax_youtube`, `fetchlayer_trustpilot`, `fetchlayer_producthunt` and `socialdatax_wechat`, with auto-routing on so Telem picks the best of those for each query. LinkedIn hiring, Reddit complaints and Trustpilot reviews are where early growth or trouble shows up, and a normal web search API reaches them poorly. In our Stripe deep memo all seven returned results, and the memo's merchant-trust risk cites a LinkedIn post that `apify_linkedin` found. (We dropped TikTok, which hung for 45 s, and Quora, which returned nothing.)
 - **Date-filtered news.** Queries that ask for news, latest or recent go in their own batch with `published_after` set to 365 days ago, so old coverage does not crowd out this year's. The date is recorded on the trail step. We request `publish_date` in `fields`, so dated sources show their date at the base price.
-- **One Telem session per memo.** The first search returns a `session_id`. Every later search and fetch in the same memo sends it back: both rounds, the platform batch, the news batch and the page fetches. In the Telem console the whole memo is one trajectory, and the session id is printed in our feed and trail so you can find it.
+- **Telem sessions.** The first search returns a `session_id`, and every later search and fetch in the memo sends it back: round two and the page fetches. The session id is printed in our feed and trail so you can find the memo in the Telem console. Round one's news and platform batches run in parallel with the first call, so today they open their own sessions.
 - **Engine-level trail.** Telem returns one run per engine with name, latency, status, error and warnings. Each query's trail step lists every engine that answered, how fast, how many results, and any error or warning such as `routing_unavailable`.
 - **Fetch.** `/v1/fetch` (5 URLs per call, split into parallel calls) reads pages Tavily extract could not, in the memo's session.
 - **Monitor agents for Watch.** **Watch this company** creates a monitor ("News, funding, layoffs, lawsuits or new competitors for X", hourly, 30-day TTL) with Telem's agent. **Check now** calls `/v1/monitors/{id}/agent/ticks` to run the agent immediately, then reads `/agent/changes` from a cursor, so each update is a new entity or changed fact with its quote and source URL. The legacy `/poll` read runs alongside. We run no crawler and no cron job.
 - **Safe fallback.** If Telem refuses the richer request body (400 or 422, which run nothing), we retry once with the plain body from the docs, so the demo still gets results.
 
-Why this is hard without Telem: we would need accounts and code for many search engines, our own per-query engine choice, our own merge across engines, separate access to LinkedIn, TikTok, X and Trustpilot, per-engine latency and error tracking, and a scheduler with change detection for Watch. Telem gives all of that through one API, and its per-engine output is what lets us show a trail for every line.
+Why this is hard without Telem: we would need accounts and code for many search engines, our own per-query engine choice, our own merge across engines, separate access to LinkedIn, X, Reddit and Trustpilot, per-engine latency and error tracking, and a scheduler with change detection for Watch. Telem gives all of that through one API, and its per-engine output is what lets us show a trail for every line.
 
-In one deep memo, [MEASURE: distinct engines in one memo's trail] engines answered across [MEASURE: queries in that memo] queries.
+In one deep memo (Stripe), 16 engines answered through Telem across 20 queries, and Telem's router put the queries in 5 topics (financial filings, finance and markets, companies, people profiles, general).
 
 ## How we use Tavily
 
@@ -95,7 +95,7 @@ In one deep memo, [MEASURE: distinct engines in one memo's trail] engines answer
 - **Grounding.** "Cite your sources" in a prompt is not enough; models sometimes cite ids that do not exist. We added a code check after every memo that removes bad citations, drops uncited lines and keeps only cited sources.
 - **Merging engines.** Each engine ranks on its own scale. We had to build a merge that rewards agreement between engines instead of trusting one engine's rank 1.
 - **Batch options.** Telem search options apply to the whole batch, so news (date filter) and platform (pinned providers) queries need their own batches. One query can be in two batches; the trail step joins them back together.
-- **Speed in the Live Room.** A check has to come back while the speaker is still on the point. We use low effort, at most 2 claims and 3 queries per claim, and send only the last two sentences. We measured [MEASURE: seconds per live claim check] per claim.
+- **Speed in the Live Room.** A check has to come back while the speaker is still on the point. We use low effort, at most 2 claims and 3 queries per claim, and send only the last two sentences. We measured about 8 s per check (7 to 11 s over 9 checks), and 1.7 s when there is no factual claim.
 - **Monitors run hourly.** The fix was Telem's monitor agent: **Check now** runs it on demand.
 - **Three people, one day.** We wrote the data contract first and gave every route a mock mode, so nobody waited on anyone.
 
@@ -103,9 +103,9 @@ In one deep memo, [MEASURE: distinct engines in one memo's trail] engines answer
 
 - Every fact and risk links to a real page, and code enforces it.
 - You can watch Telem route each query live, then open the trail for any line and see which engines found it.
-- Live Room and the extension check claims during the pitch, not days later. [VERIFY: Live Room returns Contradicted for "we have no competitors" with real keys]
+- Live Room and the extension check claims during the pitch, not days later. With real keys, "Investors spend hours checking pitch claims by hand. And the best part: we have no competitors." came back Contradicted in 6.7 s, naming five tools that do the same with their pages.
 - A deep memo searches twice: the second round goes after what the first could not answer.
-- A quick memo took [MEASURE: seconds per quick memo] seconds and a deep memo [MEASURE: seconds per deep memo] seconds in our runs.
+- A quick memo took 25 to 26 seconds and a deep memo 54 to 60 seconds in our runs.
 
 ## What we learned
 

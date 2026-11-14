@@ -9,6 +9,7 @@
   --color-faint: #9296a5;
   --color-rule: #2d3039;
   --color-rule-soft: #24262d;
+  --color-control: #555965;
   --color-cobalt: #b0adff;
   --color-cobalt-soft: #26253d;
   --color-action: #605acf;
@@ -66,6 +67,73 @@ body {
 
 .research-hero {
   padding-block: clamp(0.75rem, 4vw, 3rem) clamp(1.5rem, 4vw, 3rem);
+}
+
+.research-pipeline {
+  position: relative;
+  padding-left: 0.5rem;
+  background: radial-gradient(ellipse at left center, #26233b73, transparent 75%);
+}
+
+.research-pipeline li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 1rem;
+  z-index: 1;
+  width: 0.55rem;
+  height: 0.55rem;
+  border: 1px solid var(--color-cobalt);
+  border-radius: 50%;
+  background: var(--color-cobalt-soft);
+}
+
+.research-pipeline li:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  left: 0.25rem;
+  top: 1.4rem;
+  bottom: -1.1rem;
+  width: 1px;
+  background: var(--color-control);
+}
+
+.workspace-input {
+  min-height: 2.75rem;
+  border: 1px solid var(--color-rule);
+  border-radius: 0.45rem;
+  background: var(--color-paper);
+  caret-color: var(--color-cobalt);
+}
+
+.workspace-input::placeholder {
+  color: var(--color-faint);
+}
+
+.workspace-input:hover:not(:read-only) {
+  border-color: var(--color-control);
+}
+
+.workspace-input:focus-visible {
+  border-color: var(--color-cobalt);
+}
+
+.action-secondary {
+  min-height: 2.25rem;
+  border: 1px solid var(--color-rule);
+  border-radius: 0.45rem;
+  background: var(--color-surface);
+  color: var(--color-ink);
+  transition: background-color 150ms ease, border-color 150ms ease;
+}
+
+.action-secondary:hover:not(:disabled) {
+  border-color: var(--color-control);
+  background: var(--color-raised);
+}
+
+button:not(:disabled) {
+  cursor: pointer;
 }
 
 .research-form {

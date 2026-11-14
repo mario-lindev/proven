@@ -13,6 +13,7 @@ type Depth = "quick" | "deep";
 type Run = {
   company: string;
   depth: Depth;
+  context: string;
   trailId: string | null;
   steps: TrailStep[];
   startedAt: number;
@@ -23,14 +24,21 @@ type Run = {
 
 const EXAMPLES = ["Stripe", "Figma", "Rivian", "Duolingo"];
 
+const PIPELINE = [
+  { action: "Plan the research", detail: "Claude turns your question into targeted searches." },
+  { action: "Route and retrieve", detail: "Telem routes queries. Tavily finds and reads pages." },
+  { action: "Inspect the evidence", detail: "Open a citation to see the search that found it." },
+];
+
 export default function Home() {
   const [company, setCompany] = useState("");
   const [context, setContext] = useState("");
   const [depth, setDepth] = useState<Depth>("deep");
   const [run, setRun] = useState<Run | null>(null);
   const [showFeed, setShowFeed] = useState(false);
-  const [historyKey, setHistoryKey] = useState(0);
   const abortRef = useRef<AbortController | null>(null);
+  const companyRef = useRef<HTMLInputElement>(null);
+  const runStatusRef = useRef<HTMLParagraphElement>(null);
 
   const running = !!run && !run.memo && !run.error;
 
@@ -41,7 +49,7 @@ export default function Home() {
     const ac = new AbortController();
     abortRef.current = ac;
     setShowFeed(false);
-    setRun({ company: target, depth: d, trailId: null, steps: [], startedAt: Date.now(), finishedAt: null, memo: null, error: null });
+    setRun({ company: target, depth: d, context: ctx, trailId: null, steps: [], startedAt: Date.now(), finishedAt: null, memo: null, error: null });
     const patch = (f: (r: Run) => Run) => setRun((r) => (r && !ac.signal.aborted ? f(r) : r));
     const fail = (error: string) => patch((r) => ({ ...r, error, finishedAt: Date.now() }));
 
@@ -77,7 +85,6 @@ export default function Home() {
         else if (ev.type === "memo") {
           finished = true;
           patch((r) => ({ ...r, memo: ev.memo, finishedAt: Date.now() }));
-          if (!ac.signal.aborted) setHistoryKey((k) => k + 1);
         } else if (ev.type === "error") {
           finished = true;
           fail(ev.error);
@@ -130,12 +137,19 @@ export default function Home() {
     research(name, depth, context);
   }
 
-  function reset() {
+  function reset(keepDraft = false) {
     abortRef.current?.abort();
     setRun(null);
-    setCompany("");
-    setContext("");
+    if (!keepDraft) {
+      setCompany("");
+      setContext("");
+    }
+    companyRef.current?.focus({ preventScroll: true });
   }
+
+  useEffect(() => {
+    if (running) runStatusRef.current?.focus({ preventScroll: true });
+  }, [running]);
 
   const idle = !run;
   const stats = run ? feedStats(run.steps) : null;
@@ -143,13 +157,23 @@ export default function Home() {
   return (
     <div className="space-y-8 sm:space-y-10">
       {idle && (
-        <header className="research-hero">
-          <h1 className="max-w-[19ch] text-balance text-[clamp(2.4rem,5.2vw,4.5rem)] font-medium leading-[1.03] tracking-[-0.04em]">
-            Know what is true before you commit.
-          </h1>
-          <p className="mt-5 max-w-[57ch] text-pretty text-base leading-relaxed text-graphite sm:text-lg">
-            Research a startup, vendor or market. Get a decision memo that shows the evidence behind every finding.
-          </p>
+        <header className="research-hero grid items-center gap-8 lg:grid-cols-[minmax(0,1fr)_22rem]">
+          <div>
+            <h1 className="max-w-[19ch] text-balance text-[clamp(2.2rem,5.2vw,4.5rem)] font-medium leading-[1.03] tracking-[-0.04em]">
+              Know what is true before you commit.
+            </h1>
+            <p className="mt-5 max-w-[51ch] text-pretty text-base leading-relaxed text-graphite sm:text-lg">
+              Research a startup, vendor or market. Get a decision memo that shows the evidence behind every finding.
+            </p>
+          </div>
+          <ol className="research-pipeline hidden lg:grid" aria-label="How research works">
+            {PIPELINE.map(({ action, detail }) => (
+              <li key={action} className="relative py-3 pl-6">
+                <h2 className="text-sm font-medium text-ink">{action}</h2>
+                <p className="mt-1 text-[0.8rem] leading-relaxed text-graphite">{detail}</p>
+              </li>
+            ))}
+          </ol>
         </header>
       )}
 
@@ -158,7 +182,12 @@ export default function Home() {
           <svg aria-hidden="true" className="size-4 text-cobalt" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
             <path d="M4 5h16v14H4zM4 9h16m-11 4h6m-6 3h4" />
           </svg>
-          <h2 id="workspace-title" className="text-sm font-medium">Research workspace</h2>
+          <h2 id="workspace-title" className="text-sm font-medium">{idle ? "Research workspace" : "Research request"}</h2>
+          {running && (
+            <button type="button" onClick={() => reset(true)} className="action-secondary ml-auto min-h-8 px-2.5 text-xs">
+              Stop viewing run
+            </button>
+          )}
         </div>
         <div className={idle ? "grid lg:grid-cols-[minmax(0,1fr)_minmax(18rem,0.58fr)]" : undefined}>
           <form onSubmit={submit} className="research-form min-w-0" aria-label="Research a company">
@@ -172,14 +201,17 @@ export default function Home() {
               </svg>
               <input
                 id="company"
+                ref={companyRef}
+                readOnly={running}
                 value={company}
                 onChange={(e) => setCompany(e.target.value)}
                 placeholder="e.g. Stripe"
                 autoComplete="off"
-                className="w-full min-w-0 rounded-md border border-rule bg-paper py-3 pr-3 pl-10 text-base placeholder:text-faint focus:border-cobalt"
+                className="workspace-input w-full min-w-0 pr-3 pl-10"
               />
               <button type="submit" disabled={!company.trim() || running} className="action-primary whitespace-nowrap px-4 sm:px-6">
-                {running ? "Researching" : "Research"}
+                {running ? "Researching…" : "Research"}
+                {!running && <span className="ml-2 hidden text-white/75 sm:inline" aria-hidden="true">→</span>}
               </button>
             </div>
 
@@ -190,10 +222,11 @@ export default function Home() {
                 </label>
                 <input
                   id="context"
+                  readOnly={running}
                   value={context}
                   onChange={(e) => setContext(e.target.value)}
                   placeholder="e.g. Vendor contract"
-                  className="w-full rounded-md border border-rule bg-paper px-3 py-2.5 text-base placeholder:text-faint focus:border-cobalt"
+                  className="workspace-input w-full px-3"
                 />
               </div>
               <fieldset className="min-w-0" disabled={running}>
@@ -236,27 +269,13 @@ export default function Home() {
             )}
           </form>
 
-          {idle && <RecentMemos refreshKey={historyKey} />}
+          {idle && <RecentMemos />}
         </div>
       </section>
 
-      {idle && (
-        <section aria-labelledby="workflow-title" className="border-y border-rule py-5">
-          <h2 id="workflow-title" className="text-sm font-semibold">How research works</h2>
-          <ol className="mt-4 grid gap-5 sm:grid-cols-3 sm:gap-8">
-            {[
-              ["Plan", "Claude breaks the question into searches for funding, competitors, hiring, lawsuits and sentiment."],
-              ["Route", "Telem sends each query to the search engines best suited to it, including LinkedIn and Reddit."],
-              ["Prove", "The memo keeps findings with sources. Open the trail to see the searches behind each finding."],
-            ].map(([title, description]) => (
-              <li key={title} className="border-l border-rule pl-4">
-                <h3 className="text-sm font-medium">{title}</h3>
-                <p className="mt-1 max-w-[31ch] text-sm leading-relaxed text-graphite">{description}</p>
-              </li>
-            ))}
-          </ol>
-        </section>
-      )}
+      <p className="sr-only" ref={runStatusRef} tabIndex={-1} role="status">
+        {running ? `Research started for ${run.company}.` : run?.memo ? `Memo ready for ${run.company}.` : ""}
+      </p>
 
       {run && (
         <>
@@ -272,7 +291,7 @@ export default function Home() {
           )}
 
           {run.error && (
-            <ErrorBox message={run.error} onRetry={() => research(run.company, run.depth, context)} />
+            <ErrorBox message={run.error} onRetry={() => research(run.company, run.depth, run.context)} />
           )}
 
           {run.memo && stats && (
@@ -285,10 +304,10 @@ export default function Home() {
                 <span className="tnum font-medium text-ink">{stats.urls}</span> pages found.
               </p>
               <div className="flex gap-4">
-                <button type="button" onClick={() => setShowFeed((s) => !s)} className="font-medium text-cobalt hover:underline">
+                <button type="button" onClick={() => setShowFeed((s) => !s)} aria-expanded={showFeed} className="text-sm font-medium text-cobalt hover:underline">
                   {showFeed ? "Hide the research feed" : "Show the research feed"}
                 </button>
-                <button type="button" onClick={reset} className="font-medium text-ink hover:underline">
+                <button type="button" onClick={() => reset()} className="action-secondary px-3 text-sm">
                   New research
                 </button>
               </div>

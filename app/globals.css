@@ -208,3 +208,8 @@ header nav { overflow-x:auto; max-width:100%; scrollbar-width:thin; }
  html { color-scheme:light; }
  body { color:#14202b !important; --color-ink:#14202b; --color-graphite:#5b6773; --color-paper:#fff; --color-surface:#fff; --color-rule:#d8dee4; --color-cobalt:#2c46c9; --color-pursue:#17704a; --color-dig:#a8670b; --color-pass:#b2242c; }
 }
+
+/* Keep selected chips and actions legible after inverting the ink token. */
+.bg-ink.text-white { background-color:#a297f4; color:#171222; }
+.hover\:bg-ink:hover { background-color:#a297f4; color:#171222; }
+@media print { .bg-ink.text-white { background:#14202b !important; color:#fff !important; } }

@@ -158,3 +158,9 @@ node_modules
 .claude/
 .data/
 .vercel
+
+# demo video working files
+video/rec/
+video/clips/
+video/*.mp4
+video/check-*.png

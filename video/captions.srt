@@ -1,0 +1,44 @@
+1
+00:00:00,000 --> 00:00:09,000
+Rishith: Investors hear a pitch and check every claim by hand. The answers arrive days later.
+
+2
+00:00:09,000 --> 00:00:19,000
+Aarav: A search engine gives you links to read. A chatbot gives you an answer with no receipt. Proven gives you a verdict.
+
+3
+00:00:19,000 --> 00:00:28,000
+Mario: This is Proven. Ask about any company. It searches, reads the pages, and writes a memo while you watch.
+
+4
+00:00:28,000 --> 00:00:40,000
+Rishith: Run everything does it in one click: a pitch audit, a full memo, and a watch that re-checks the company.
+
+5
+00:00:40,000 --> 00:00:52,000
+Aarav: Pitch Audit on rippling.com: 8 claims in 21 seconds. 4 hold up, 2 are contradicted, 2 are unclear. Trust score 63.
+
+6
+00:00:52,000 --> 00:01:04,000
+Mario: The Builder.ai memo. Verdict: Pass, 95% confidence. 19 of 19 lines verified. 3 high-severity contradictions.
+
+7
+00:01:04,000 --> 00:01:15,000
+Rishith: It gave lenders a 2024 sales forecast of about $220M. An audit put sales at about $50M. Hover a line for the quote.
+
+8
+00:01:15,000 --> 00:01:29,000
+Aarav: Plan. Route through Telem and Tavily. Research until proven. Write. Find each quote in code. No quote, no line.
+
+9
+00:01:29,000 --> 00:01:39,000
+Mario: Today Telem routed 237 questions across 16 engines. 67% of verified proof came from engines Telem routed to.
+
+10
+00:01:39,000 --> 00:01:49,000
+Mario: An engine earns credit only when its page backs a verified line. Proven learns only from what it could prove.
+
+11
+00:01:49,000 --> 00:02:00,000
+Rishith: For investors and buyers. Know what is true before you commit. Built by Rishith, Aarav and Mario. proven-tan.vercel.app
+

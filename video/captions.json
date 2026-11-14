@@ -1,0 +1,90 @@
+[
+ {
+  "scene": 1,
+  "start": 0,
+  "end": 9,
+  "voice": "Rishith",
+  "shot": "title",
+  "caption": "Investors hear a pitch and check every claim by hand. The answers arrive days later."
+ },
+ {
+  "scene": 2,
+  "start": 9,
+  "end": 19,
+  "voice": "Aarav",
+  "shot": "compare",
+  "caption": "Ask AI search one question and you get one good answer. Diligence is a hundred questions. Proven runs the whole job."
+ },
+ {
+  "scene": 3,
+  "start": 19,
+  "end": 28,
+  "voice": "Mario",
+  "shot": "home",
+  "caption": "This is Proven. Ask about any company. It searches, reads the pages, and writes a memo while you watch."
+ },
+ {
+  "scene": 4,
+  "start": 28,
+  "end": 40,
+  "voice": "Rishith",
+  "shot": "run",
+  "caption": "Run everything does it in one click: a pitch audit, a full memo, and a watch that re-checks the company."
+ },
+ {
+  "scene": 5,
+  "start": 40,
+  "end": 52,
+  "voice": "Aarav",
+  "shot": "audit",
+  "caption": "Pitch Audit on rippling.com: 8 claims in 21 seconds. 4 hold up, 2 are contradicted, 2 are unclear. Trust score 63."
+ },
+ {
+  "scene": 6,
+  "start": 52,
+  "end": 64,
+  "voice": "Mario",
+  "shot": "memo",
+  "caption": "The Builder.ai memo. Verdict: Pass, 95% confidence. 19 of 19 lines verified. 3 high-severity contradictions."
+ },
+ {
+  "scene": 7,
+  "start": 64,
+  "end": 75,
+  "voice": "Rishith",
+  "shot": "contradictions",
+  "caption": "It gave lenders a 2024 sales forecast of about $220M. An audit put sales at about $50M. Hover a line for the quote."
+ },
+ {
+  "scene": 8,
+  "start": 75,
+  "end": 89,
+  "voice": "Aarav",
+  "shot": "how",
+  "caption": "Plan. Route through Telem and Tavily. Research until proven. Write. Find each quote in code. No quote, no line."
+ },
+ {
+  "scene": 9,
+  "start": 89,
+  "end": 99,
+  "voice": "Mario",
+  "shot": "telem",
+  "caption": "Today Telem routed 237 questions across 16 engines. 67% of verified proof came from engines Telem routed to."
+ },
+ {
+  "scene": 10,
+  "start": 99,
+  "end": 109,
+  "voice": "Mario",
+  "shot": "engines",
+  "caption": "An engine earns credit only when its page backs a verified line. Proven learns only from what it could prove."
+ },
+ {
+  "scene": 11,
+  "start": 109,
+  "end": 120,
+  "voice": "Rishith",
+  "shot": "end",
+  "caption": "For investors and buyers. Know what is true before you commit. Built by Rishith, Aarav and Mario. proven-tan.vercel.app"
+ }
+]

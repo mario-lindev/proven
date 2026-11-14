@@ -146,8 +146,8 @@ export default function Landing({ numbers, refreshKey, onStart }: { numbers: Num
         <div data-reveal className="grid gap-px overflow-hidden rounded-lg border border-rule bg-rule md:grid-cols-3">
           {[
             ["A search engine", "gives you links."],
-            ["A chatbot", "gives you an answer."],
-            ["Proven", "gives you a verdict with the receipt."],
+            ["AI search", "answers one question."],
+            ["Proven", "runs the whole diligence job, with receipts."],
           ].map(([who, what], i) => (
             <div key={who} className={`p-8 ${i === 2 ? "bg-surface" : "bg-paper"}`}>
               <p className={`display text-[2.2rem] ${i === 2 ? "" : "!text-graphite"}`}>{who}</p>

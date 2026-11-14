@@ -112,7 +112,7 @@ export function ImpactSentimentList({ sentiment }: { sentiment: ImpactSentiment 
                   <a href={it.source.url} target="_blank" rel="noopener noreferrer" className="hover:underline">
                     {it.source.title || domain(it.source.url)}
                   </a>
-                  , {domain(it.source.url)}, via {engineLabel(it.source.engine)}
+                  <span className="-ml-1.5 truncate">, {domain(it.source.url)}, via {engineLabel(it.source.engine)}</span>
                 </p>
               </div>
             </li>

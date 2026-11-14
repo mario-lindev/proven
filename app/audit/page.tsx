@@ -193,7 +193,8 @@ export default function AuditPage() {
                 {done ? done.trust_score : "--"}
                 <span className="text-[1.6rem] text-faint"> / 100</span>
               </p>
-              <p className="mt-1 text-sm text-graphite">Share of claims that hold up; an unclear claim counts half</p>
+              <div className="mt-3 h-2 w-full min-w-[16rem] overflow-hidden rounded-full bg-rule-soft" role="meter" aria-label="Trust score" aria-valuenow={done ? done.trust_score : 0} aria-valuemin={0} aria-valuemax={100}><div className={`h-full rounded-full transition-[width] duration-700 ease-[cubic-bezier(.22,1,.36,1)] ${!done ? "bg-faint" : done.trust_score >= 70 ? "bg-pursue" : done.trust_score >= 40 ? "bg-dig" : "bg-pass"}`} style={{ width: `${done ? done.trust_score : Math.round((got.length / Math.max(1, claims.length)) * 100)}%` }} /></div>
+              <p className="mt-2 text-sm text-graphite">Share of claims that hold up; an unclear claim counts half</p>
             </div>
           </section>
 

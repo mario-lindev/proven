@@ -105,7 +105,7 @@ In one deep memo (Stripe), 16 engines answered through Telem across 20 queries, 
 - You can watch Telem route each query live, then open the trail for any line and see which engines found it.
 - Live Room and the extension check claims during the pitch, not days later. With real keys, "Investors spend hours checking pitch claims by hand. And the best part: we have no competitors." came back Contradicted in 6.7 s, naming five tools that do the same with their pages.
 - A deep memo searches twice: the second round goes after what the first could not answer.
-- A quick memo took 25 to 26 seconds and a deep memo 54 to 60 seconds in our runs.
+- A quick memo took 39 seconds including the verify pass (25 to 26 seconds without it), and a deep memo 54 to 60 seconds before the verify pass, in our runs.
 
 ## What we learned
 
@@ -116,7 +116,7 @@ In one deep memo (Stripe), 16 engines answered through Telem across 20 queries, 
 
 ## What's next for Proven
 
-- **Check that each source says what the line says.** Today code checks that a cited source exists. Next, a second pass checks the line against the source text and flags mismatches.
+- **Stricter proof.** The verify pass already drops any line with no exact quote in its source. Next: mark lines backed only partially, and check the summary too.
 - **Measure accuracy.** A test set of memos and claims with known answers, and a published score.
 - **Keep watches across restarts** and send Watch updates to email and Slack.
 - **Exports.** A PDF memo with the trail attached, for investment committee packets.

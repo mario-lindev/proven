@@ -32,7 +32,7 @@ Mario:
 - [ ] Optional extension beat: Proven loaded in Chrome, a Meet call open with Aarav joined from his laptop, captions on (**CC**), the Proven side panel showing **Listening to Google Meet captions** with a green dot.
 
 Rishith:
-- [ ] Know the warm-cache times for a deep memo: about 1 minute (54 s Stripe, 60 s Figma, measured 1:21 PM). A quick memo took 25 to 26 s. Know one live check time: about 8 s (7 to 11 s over 9 checks).
+- [ ] Know the warm-cache times for a deep memo: about 1 minute (54 s Stripe, 60 s Figma, measured 1:21 PM). A quick memo took 39 s with the verify pass (25 to 26 s before it), so it fits the 45 s memo beat with little spare. Deep memos warmed before 1:29 PM have no verification; re-warm them. Know one live check time: about 8 s (7 to 11 s over 9 checks).
 - [ ] Fallback company if no judge names one: [FILL: demo company 1].
 
 ---

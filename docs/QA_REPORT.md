@@ -12,12 +12,15 @@ Times are wall clock from the client. Phases come from the `step` events (receiv
 | Figma deep | `memo_ht8wcxgq` | **60.2 s** | 3.9 s | 15.8 s | 2.8 s | 4.4 s | 5.0 s (8 pages) | 28.2 s | 20 | 15 of 16 | 6 | 22 | 11 / 7 | dig deeper 0.65 |
 | Rivian quick | `memo_5lqu3lmi` | **25.1 s** | 2.8 s | 8.0 s | | | 0.3 s (4 pages) | 14.0 s | 8 | 14 of 16 | 4 | 15 | 8 / 6 | dig deeper 0.60 |
 | Duolingo quick | `memo_adns0toc` | **26.1 s** | 2.7 s | 8.2 s | | | 0.9 s (4 pages) | 14.5 s | 8 | 12 of 12 | 6 | 13 | 8 / 6 | dig deeper 0.60 |
+| Rivian quick, **with verify + learn** (1:32 PM, after `5c3f0d6`) | `memo_uyjvyk1j` | **39.4 s** | 3.7 s | 5.7 s | | | 9.2 s (4 pages), then 2.9 s (16 pages, overlaps the write) | 14.3 s, then verify 6.6 s | 8 | 15 of 16 | 6 | 12 | 7 / 6 | dig deeper 0.60 |
 
 - **Engines that answered:** exa, tavily (through Telem), perplexity, brave, parallel, ceramic, seltz, you, linkup; platform: apify_linkedin, socialdatax_x, fetchlayer_reddit, socialdatax_youtube, fetchlayer_trustpilot, fetchlayer_producthunt, socialdatax_wechat. Plus our direct Tavily call on every query.
 - **Telem routing topics seen:** financial_filings, finance_markets, companies, people_profiles, general, news, academic_papers. Every query got a topic and a provider list.
 - **Engine errors** (all `upstream 429, reason: rate_limited`): Stripe socialdatax_wechat, socialdatax_youtube; Rivian socialdatax_x, socialdatax_youtube; Figma socialdatax_x, socialdatax_wechat; Duolingo none. Other engines still answered.
 - **Warnings:** `unranked_provider` (all platform engines), `trimmed_results` (ceramic), `dropped_results` (apify_linkedin), `routing_fallback` (socialdatax_youtube).
-- **Verify and learn:** no memo had a `verification` field. `GET /api/engines` returned 404 at 1:15 PM and `{"engines":[],"memos":0}` at 1:27 PM (learner merged, not wired into the memo yet). See the end of this report for the last check.
+- **Verify and learn:** the first four memos ran before they were merged and have no `verification`. `GET /api/engines` was 404 at 1:15 PM and an empty board at 1:27 PM. After `5c3f0d6` (1:29 PM) the Rivian rerun had `verification {checked: 13, kept: 13, dropped: 0, ms: 6564}`, a `learn` step "Ranked 20 sources with what Proven learned from 1 memo", and a second `learn` step after the memo. `/api/engines` then showed 6 engines from 2 memos: tavily 0.50, you 0.30, exa 0.25, perplexity 0.21, apify_linkedin 0.12, seltz 0.09.
+- **Verify quotes are real.** The 19 quotes on `memo_uyjvyk1j` are checked in code against the source text (`quoteIn` in `lib/brain/verify.ts`), and 13 of them appear word for word in the search snippet. 11 of 19 are labelled `partial`. 5 of the 13 kept lines have only partial quotes. One example: "2,083 R2s registered in California in Q3 2026" is kept on a quote that doesn't contain 2,083 (bug 4).
+- **Verify adds about 14 s to a quick memo** (39.4 s against 25.1 s for the same company): 6.6 s for 4 parallel Claude calls, plus a slower extract this time (9.2 s against 0.3 s). Deep memos were not re-run with verify (budget).
 - **Writing the memo is half the time** (14 s quick, 27 to 28 s deep). Round one's search takes 8 to 9 s; Figma's took 15.8 s because `fetchlayer_producthunt` took 15.1 s.
 
 ### Reading the memos
@@ -74,8 +77,9 @@ No per-call prices are written in `docs/` (TELEM_NOTES only says billing is per 
 
 | | Claude calls | Telem search calls | Telem engine runs (platform) | Tavily search | Tavily extract | Telem fetch |
 |---|---|---|---|---|---|---|
-| Quick | 2 | 3 | 41 to 44 (12 to 13) | 8 | 1 call, 4 pages | 0 |
-| Deep | 3 | 5 | 96 to 111 (20 to 24) | 20 | 1 call, 8 pages | yes (pages Tavily missed) |
+| Quick, before verify | 2 | 3 | 41 to 44 (12 to 13) | 8 | 1 call, 4 pages | 0 |
+| Quick, with verify (`memo_uyjvyk1j`) | 6 (plan, write, 4 verify batches) | 3 | 46 (14) | 8 | 2 calls, 4 + 16 pages | yes (pages Tavily missed) |
+| Deep, before verify | 3 | 5 | 96 to 111 (20 to 24) | 20 | 1 call, 8 pages | yes (pages Tavily missed) |
 | Live check, per claim | 2 (find + judge; find is shared) | 1 to 2 | 9 to 21 (0) | 2 to 3 | 0 | 0 |
 
 Claude token usage is not recorded anywhere (`askJSON` drops `res.usage`), so the Claude cost can't be computed from the trail.
@@ -86,16 +90,18 @@ Claude token usage is not recorded anywhere (`askJSON` drops `res.usage`), so th
 |---|---|---|---|---|---|
 | 1 | **High (demo)** | Fixture memos show as real history. 4 memos say "Stripe sells warehouse picking robots" and sit under **Recent memos** beside the real Stripe memo. | `GET /api/memos` | `memo_m0czv31o` ("Acme Robotics sells warehouse picking robots..."), `memo_6pwu931r`, `memo_fcyp6prt`, `memo_1vpn6mcw` | `app/api/memo/route.ts` (mock branch calls `saveMemo`); files in `.data/memos/` |
 | 2 | **High (demo)** | A typed "We have no competitors" comes back amber, not red. Typed claims are sent alone, with no product named. | `POST /api/live {"text":"We have no competitors."}` | `unclear`: "Startup not identified; sources are generic competitor guides or unrelated companies" | `app/live/page.tsx` (`send(typed)`), `extension/panel.js` (`alone`), `lib/brain/live.ts` |
-| 3 | Medium | Verify and learn are not live on 3313: no `verification` on any memo; `/api/engines` is an empty board. The pitch line depends on them. | `GET /api/memo/memo_djnn6gxn`, `GET /api/engines` | no `verification` key; `{"engines":[],"memos":0,"updated_at":""}` | `lib/brain/memo.ts` (wiring), `lib/brain/verify.ts` |
-| 4 | Medium | Live checks miss the under 6 s target. | 9 checks | 6.7 to 10.6 s, median 8.1 s | `lib/brain/live.ts` (two Claude calls in series), `lib/search/index.ts` |
+| 3 | **Medium (pitch)** | The learning board can't tell our direct Tavily calls from Telem's `tavily` provider: both are named `tavily`, and `tavily` leads the board (0.50). On stage, "Proven learns which of Telem's engines hold up" is topped by a non-Telem call. | `GET /api/engines` after `memo_uyjvyk1j` | `{"name":"tavily","memos":2,"returned":15,"cited":13,"supported":11.5,"score":0.5}` | `lib/search/index.ts` (engine name on direct Tavily results), `lib/learn.ts` |
+| 4 | Medium | "Kept" counts lines backed only by `partial` quotes, so "13 of 13 verified" overstates. 5 of 13 kept lines on `memo_uyjvyk1j` have only partial quotes; one keeps "2,083 R2s registered" on a quote without that number. | `GET /api/memo/memo_uyjvyk1j` | `verification {checked:13, kept:13, dropped:0}`; 11 of 19 evidence items `"verdict":"partial"` | `lib/brain/verify.ts` (kept = any evidence), UI summary |
+| 4b | Medium | Live checks miss the under 6 s target (measured at 1:21 to 1:24 PM, before `5c3f0d6` changed `live.ts`). | 9 checks | 6.7 to 10.6 s, median 8.1 s | `lib/brain/live.ts` (two Claude calls in series), `lib/search/index.ts` |
+| 4c | Low | Deep memos warmed before 1:29 PM (`memo_djnn6gxn`, `memo_ht8wcxgq`) have no `verification`, so they won't show quotes or "N of M verified" in the new UI. | `GET /api/memo/memo_djnn6gxn` | no `verification` key | re-run warm-cache after the freeze |
 | 5 | Medium | X, YouTube and WeChat get rate-limited when memos run back to back; the trail shows them as errors. | 4 memos in a row | `socialdatax_x: the provider returned an error (upstream 429, reason: rate_limited)` | `lib/search/index.ts` (`PLATFORM_PROVIDERS`); space warm-cache runs |
 | 6 | Medium | One slow platform engine stalls round one. | Figma deep | `fetchlayer_producthunt` 15,110 ms; round one 15.8 s (vs about 9 s) | `lib/search/index.ts` / `lib/search/telem.ts` (no per-batch timeout) |
 | 7 | Low | Each memo has 2 Telem session ids. Round one's news and platform batches start in parallel before a session exists. README.md still says "one Telem session per memo" (not a QA-owned file; docs/ fixed). | any memo trail | Rivian: `32de551c...` (main) and `f622674c...` (news batch) | `lib/search/index.ts:93-144` |
 | 8 | Low | The memo summary is never checked. It can carry uncited numbers. | `memo_5lqu3lmi` | "R1 demand that has flattened near a ~$90k price point": in no line or snippet | `lib/brain/memo.ts` (summary outside the cite check) |
 | 9 | Low | Process text and raw source ids in memo lines. | `memo_djnn6gxn` F11, `memo_adns0toc` F8 | "...was disregarded."; "the s3 and s11 comparisons..." | `lib/brain/memo.ts` write prompt |
-| 10 | Low | "tavily" appears twice on each query's trail step (Telem's tavily provider and our direct call), so they can't be told apart. | any search step | `['exa','perplexity','tavily','tavily']` | `lib/search/index.ts` |
+| 10 | Low | "tavily" appears twice on each query's trail step (Telem's tavily provider and our direct call), so they can't be told apart (same cause as bug 3). | any search step | `['exa','perplexity','tavily','tavily']` | `lib/search/index.ts` |
 | 11 | Low | Watch: agent updates have an empty `summary`; the same page shows twice (poll title vs agent title); some items are off topic (Blackstone office lease, sponsored TechCrunch post). | watch `w_i6cc9g2m` | `"summary": ""` on all 14 agent items | `lib/search/telem.ts` (changes to updates, ~line 302), `app/api/watch/[id]/route.ts` (`addUpdates` keys on url + title) |
-| 12 | Low | All memos say dig deeper (9 of 9 in history, confidence 0.60 to 0.70). A judge may ask whether it ever says pursue or pass. | `GET /api/memos` | | `lib/brain/memo.ts` verdict rubric |
+| 12 | Low | Almost every memo says dig deeper: 11 of 12 in history at 1:35 PM (one other team run of "fyn academy" said pass), confidence 0.60 to 0.70. No memo has said pursue. A judge may ask. | `GET /api/memos` | | `lib/brain/memo.ts` verdict rubric |
 | 13 | Low | Prompts have no date. For "last year" the live planner searched "Rivian deliveries 2024 total" (it is 2026). The judge still got 2025 right. | live check 4 | queries in trail `tr_61caqi20` | `lib/brain/live.ts`, `lib/brain/memo.ts` |
 | 14 | Low | `POST /api/live` with a non-JSON body returns 500 (the memo route returns 400). | `POST /api/live` body `not json` | `500 {"error":"Unexpected token 'o', \"not json\" is not valid JSON"}` | `app/api/live/route.ts` |
 | 15 | Low | The "Find checkable claims" step goes to its own trail, which no claim card links to, so a claim's trail starts at search. | any live check | trails `tr_*` have 3 search + 1 llm (judge) steps only | `lib/brain/live.ts` (`pickTrail`) |
@@ -104,11 +110,14 @@ Claude token usage is not recorded anywhere (`askJSON` drops `res.usage`), so th
 
 1. **Remove the fixture memos and stop mock runs from saving.** Delete the four files above from `.data/memos/` (and their trails), and drop `saveMemo` from the mock branch of `app/api/memo/route.ts`. About 5 minutes, and it removes the most visible demo hazard.
 2. **Make the typed "no competitors" fallback land red.** Docs now say to type `Proven checks investor pitch claims live during the meeting. We have no competitors.` (Contradicted in 7.6 s). In code, `app/live/page.tsx` could send the last spoken sentence with a typed claim, or `lib/brain/live.ts` could tell the claim finder that an unnamed "we" is the product being pitched.
-3. **Bound the platform batch and soften rate limits.** Give the platform batch a timeout of about 8 s in `lib/search/` (Product Hunt stalled round one by 7 s). Show 429 as "rate limited, skipped" rather than an error, and run warm-cache memos a minute apart. Also record `res.usage` in `askJSON`'s trail step so cost can be measured.
+3. **Rename the direct Tavily engine** (for example `tavily_direct`) in `lib/search/` so the learning board and trail credit Telem's engines separately (bugs 3 and 10). Show "N supported, M partial" instead of "N of N verified" (bug 4). Then re-warm the demo memos so they carry verification.
+
+Next if there's time: give the platform batch a timeout of about 8 s (Product Hunt stalled round one by 7 s), show 429 as "rate limited, skipped" rather than an error, run warm-cache memos a minute apart, and record `res.usage` in `askJSON`'s trail step so cost can be measured.
 
 ## Best demo backups
 
-- **`memo_djnn6gxn` Stripe deep:** the strongest. 12 facts, 8 risks, 24 sources: the $159B tender, the alleged August 2026 data breach, privacy class actions, merchant account freezes (a LinkedIn post via `apify_linkedin`, Trustpilot 1.6/5), Bridge and Tempo. 16 engines, 20 queries.
+- **`memo_uyjvyk1j` Rivian quick, verified:** the only memo with evidence quotes and a `verification` block (13 checked, 13 kept). Use it to show the hover quote until the deep memos are re-warmed.
+- **`memo_djnn6gxn` Stripe deep:** the strongest content (no verification yet). 12 facts, 8 risks, 24 sources: the $159B tender, the alleged August 2026 data breach, privacy class actions, merchant account freezes (a LinkedIn post via `apify_linkedin`, Trustpilot 1.6/5), Bridge and Tempo. 16 engines, 20 queries.
 - **`memo_ht8wcxgq` Figma deep:** margin squeeze from AI costs, the Claude Design threat, stock down 52% in H1 2026, short interest before the lock-up expiry.
 - **`memo_5lqu3lmi` Rivian quick:** guidance cuts, five layoff rounds, VW now the largest holder, a $250M settlement. Its summary has the uncited "$90k" phrase (bug 8).
 - **`memo_adns0toc` Duolingo quick:** a securities class action, the AI-first backlash, subscribers growing at half the rate of DAUs.

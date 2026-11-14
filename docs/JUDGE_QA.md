@@ -10,9 +10,9 @@ Three layers. Claude only sees the sources we found, and the prompt says to use 
 
 On the retrieval side, pages that several engines found rank first, so one engine's odd result doesn't lead the memo.
 
-What it doesn't do yet: check that the cited page says what the line says. Claude can still misread a source. That's why every line is one click from its page and its search. A second pass that checks each line against its source text is next.
+Then a verify pass: after the memo is written, Claude re-reads each fact and risk against the text of the sources it cites and must return the exact quote that backs it. Code checks that the quote really is in that source's text and drops any line with no quote found. In our Rivian quick memo (1:32 PM) it checked 13 lines, kept 13, dropped 0, with 19 quotes, 13 of them word for word in the search snippet. It labels quotes "supported" or "partial"; 5 of those 13 lines were backed only partially, so say "every line has a quote", not "every line is proven".
 
-We checked 66 lines across 4 real memos (Stripe, Figma, Rivian, Duolingo) against the sources they cite. In 44, every number in the line is in the cited page's search snippet. In 21, the numbers come from the full page text Claude read, not the snippet. One line's year was in no snippet (and the line was correct). We read 34 of those lines by hand (Stripe, Rivian) and found none that contradicted its source. This is a spot check, not an accuracy score; for that we'd build a test set of claims with known answers.
+Before the verify pass existed, we checked 66 lines across 4 real memos (Stripe, Figma, Rivian, Duolingo) against the sources they cite. In 44, every number in the line is in the cited page's search snippet. In 21, the numbers come from the full page text Claude read, not the snippet. One line's year was in no snippet (and the line was correct). We read 34 of those lines by hand (Stripe, Rivian) and found none that contradicted its source. This is a spot check, not an accuracy score; for that we'd build a test set of claims with known answers.
 
 ## 2. Why not ChatGPT or Perplexity?
 
@@ -46,12 +46,13 @@ Counted on real runs today:
 - **Quick** (Rivian, Duolingo): 2 Claude calls, 3 Telem search calls with 41 to 44 engine runs (12 to 13 of them on platform engines), 8 Tavily searches, 1 Tavily extract of 4 pages.
 - **Deep** (Stripe, Figma): 3 Claude calls, 5 Telem search calls with 96 to 111 engine runs (20 to 24 on platform engines), 20 Tavily searches, 1 extract of 8 pages plus a Telem fetch for pages Tavily missed.
 - **Live check:** 2 Claude calls per claim (find the claims, judge), 2 to 3 queries (1 to 2 Telem calls, 2 to 3 Tavily searches).
+- **The verify pass adds** (one quick Rivian run): 4 Claude calls (4 lines each, in parallel) and a second extract of 16 pages, so a quick memo is 6 Claude calls.
 
 Dollars: we haven't measured them. Our docs don't list per-call prices and we didn't read the usage pages before and after a run. Say: "We know the call counts; we'll read the price off the Anthropic, Telem and Tavily dashboards."
 
 ## 7. How fast is it?
 
-Quick memo 25 to 26 s (2 runs), deep memo 54 to 60 s (2 runs), live claim check about 8 s (7 to 11 s over 9 checks). Writing the memo is half the time (14 s quick, 27 to 28 s deep); all of round one's searches take 8 to 9 s (16 s once, when one platform engine was slow). The screen shows the elapsed time on every run, so these come from real runs.
+Quick memo 39 s with the verify pass (1 run; 25 to 26 s before it), deep memo 54 to 60 s (2 runs, before the verify pass), live claim check about 8 s (7 to 11 s over 9 checks). Verifying 13 lines took 6.6 s. Writing the memo is half the time (14 s quick, 27 to 28 s deep); all of round one's searches take 8 to 9 s (16 s once, when one platform engine was slow). The screen shows the elapsed time on every run, so these come from real runs.
 
 ## 8. Who pays, and how much?
 
@@ -72,3 +73,9 @@ For real use: the founder should know checks are on, and a fund needs settings f
 ## 11. What if a founder's claim is true but Proven says Contradicted?
 
 Every card shows the note and the pages it used, and **See the searches behind this** shows the queries. The investor judges, not Proven. Amber **Unclear** is the default when evidence is thin; it won't guess. We'd track overturned verdicts as part of the accuracy test set.
+
+## 12. Another team built a recursive self-learning agent on Telem. How is Proven different?
+
+Proven learns too, but only from what it can prove. A loop that grades its own answers can learn its own mistakes. Proven gives an engine credit only when a page that engine returned backs a memo line with an exact quote, and code checks that the quote is really on that page. Per engine it counts results returned, cited and backed by a quote, shows them on the "What Proven learned" board (`GET /api/engines`), and uses that score to rank pages before reading them in the next memo. The score is smoothed, so a few lucky quotes can't put an engine on top.
+
+It's early: the board has data from a few memos today, not thousands. The learning is not the product either. Proven is the investor's workflow: a memo where every line has a quote, a trail down to the engine that found it, Live Room checking the pitch while it's spoken, and Watch.

@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Proven panel test</title>
+  <link rel="stylesheet" href="panel.css">
+  <style>
+    #report { position: fixed; top: 0; right: 0; width: 46%; height: 100%; overflow: auto; background: #fafafa; border-left: 1px solid #ddd; padding: 12px; font: 12px/1.4 ui-monospace, monospace; }
+    #panel { width: 380px; }
+    #verdict { font: 700 18px system-ui; } .pass { color: #15803d; } .fail { color: #b91c1c; }
+  </style>
+</head>
+<body>
+  <!--
+    Runs panel.html + panel.js outside the extension with a fake `chrome` API.
+    Needs http (fetch of panel.html): from the repo root run
+      python3 -m http.server 8765 -d extension
+    and open http://localhost:8765/test-panel.html
+    ?server=http://localhost:3331 also runs a few checks against a real (MOCK=1) Proven server.
+  -->
+  <div id="panel"></div>
+  <div id="report"><div id="verdict">Running…</div><pre id="log"></pre></div>
+  <script>
+    "use strict";
+    const params = new URLSearchParams(location.search);
+    const REAL = params.get("server");
+    const log = [];
+    const ok = (name, cond, extra) => {
+      log.push((cond ? "ok   " : "FAIL ") + name + (cond || extra == null ? "" : "\n     " + JSON.stringify(extra)));
+      document.getElementById("log").textContent = log.join("\n");
+      return cond;
+    };
+    const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+    // ---- fake chrome API ----
+    const listeners = [];
+    const created = [];
+    const store = { base: REAL || "http://test.local" };
+    window.chrome = {
+      runtime: { onMessage: { addListener: (f) => listeners.push(f) }, getURL: (p) => p },
+      storage: { local: { get: async () => ({ ...store }), set: async (o) => Object.assign(store, o) } },
+      tabs: {
+        query: async () => [{ id: 7, url: "https://meet.google.com/abc-defg-hij" }],
+        sendMessage: async () => ({ site: "meet", region: false, mode: "none", lastCaptionAt: 0 }),
+        create: (o) => created.push(o.url),
+        onActivated: { addListener() {} },
+        onUpdated: { addListener() {} },
+      },
+      scripting: { executeScript: async () => {} },
+    };
+
+    // ---- fake server (unless ?server=) ----
+    const requests = [];
+    let serverDown = false;
+    const realFetch = window.fetch.bind(window);
+    const src = (n, url) => ({ id: "s" + n, url, title: "Source " + n, engine: "exa", snippet: "" });
+    if (!REAL) {
+      window.fetch = async (url, init) => {
+        if (String(url).endsWith(".html")) return realFetch(url, init);
+        if (serverDown) throw new TypeError("Failed to fetch");
+        const path = String(url).replace(store.base, "");
+        const json = (b) => new Response(JSON.stringify(b), { status: 200, headers: { "Content-Type": "application/json" } });
+        if (path === "/api/memos") return json({ memos: [] });
+        if (path === "/api/live") {
+          const { text } = JSON.parse(init.body);
+          requests.push(text);
+          const checks = [];
+          if (/competitor/i.test(text))
+            checks.push({ id: "c1", claim: "We have no competitors.", verdict: "contradicted", note: "Found 3 funded competitors", sources: [src(1, "https://www.crunchbase.com/x")], trail_id: "t1" });
+          if (/revenue/i.test(text))
+            checks.push({ id: "c2", claim: "Our revenue grew 3x last year.", verdict: "supported", note: "Matches a TechCrunch report", sources: [src(2, "https://techcrunch.com/y")], trail_id: "t2" });
+          return json({ checks });
+        }
+        return new Response("{}", { status: 404 });
+      };
+    }
+
+    const say = (speaker, text) => listeners.forEach((f) => f({ type: "caption", site: "meet", speaker, text }));
+    const txt = (id) => document.getElementById(id).textContent.trim();
+
+    (async () => {
+      // Load the real panel markup + script.
+      const html = await (await realFetch("panel.html")).text();
+      const doc = new DOMParser().parseFromString(html, "text/html");
+      doc.querySelectorAll("script").forEach((s) => s.remove());
+      document.getElementById("panel").innerHTML = doc.body.innerHTML;
+      await new Promise((res, rej) => {
+        const s = document.createElement("script");
+        s.src = "panel.js";
+        s.onload = res;
+        s.onerror = rej;
+        document.body.append(s);
+      });
+      await sleep(300);
+
+      if (REAL) {
+        ok("ping real server", (await ping(REAL)) === true);
+        say("Alice", "We have no competitors at all.");
+        for (let i = 0; i < 40 && !document.querySelector(".card"); i++) await sleep(250);
+        ok("real server returns a contradicted card", !!document.querySelector(".card.contradicted"));
+        ok("server line shows connected", /Proven server:/.test(txt("server")), txt("server"));
+        return finish();
+      }
+
+      // 1. status before captions
+      ok("status: connected to Meet", txt("status") === "Connected to Google Meet", txt("status"));
+      state.openedAt -= 11000;
+      renderStatus();
+      ok("status: no captions found", /no captions found/.test(txt("status")), txt("status"));
+      ok("hint: turn on captions (CC)", /Turn on captions \(CC\)/.test(txt("hint")), txt("hint"));
+      ok("server line ok after startup ping", txt("server") === "Proven server: test.local", txt("server"));
+
+      // 2. company detection
+      ok("detect CEO of", detectCompany("Hi, I'm the CEO of Acme Robotics.") === "Acme Robotics", detectCompany("Hi, I'm the CEO of Acme Robotics."));
+      ok("detect here at", detectCompany("here at Stripe we move money") === "Stripe");
+      ok("detect called", detectCompany("Our startup is called Nimbus Labs, and") === "Nimbus Labs");
+      ok("no detect: worked at Google", detectCompany("I worked at Google for years.") === "");
+      ok("no detect: plain claim", detectCompany("Our revenue grew 3x last year.") === "");
+
+      // 3. captions -> requests, dedupe, context
+      say("Alice", "Hi, I'm the CEO of Acme Robotics.");
+      say("Alice", "We have no competitors.");
+      await sleep(50);
+      say("Alice", "We have no competitors."); // same sentence again: not re-sent
+      await sleep(50);
+      say("Alice", "Our revenue grew 3x last year.");
+      await sleep(100);
+      ok("company field auto-filled", document.getElementById("company").value === "Acme Robotics", document.getElementById("company").value);
+      ok("status: listening", txt("status") === "Listening to Google Meet captions", txt("status"));
+      ok("3 requests, duplicate skipped", requests.length === 3, requests);
+      ok("2nd request carries previous sentence as context", requests[1] === "Hi, I'm the CEO of Acme Robotics. We have no competitors.", requests[1]);
+      ok("3rd request = context + new", requests[2] === "We have no competitors. Our revenue grew 3x last year.", requests[2]);
+
+      // 4. cards
+      const cards = [...document.querySelectorAll("#cards .card")];
+      ok("2 cards (repeat claim deduped)", cards.length === 2, cards.length);
+      ok("newest first: supported on top", cards[0] && cards[0].classList.contains("supported"));
+      ok("contradicted card is red", cards[1] && cards[1].classList.contains("contradicted"));
+      ok("card shows domain", cards[1] && /crunchbase\.com/.test(cards[1].querySelector(".domain").textContent));
+      ok("counts", txt("nChecked") === "2" && txt("nSupported") === "1" && txt("nContradicted") === "1", [txt("nChecked"), txt("nSupported"), txt("nContradicted")]);
+      ok("transcript has 4 lines", document.querySelectorAll("#transcript p").length === 4);
+
+      // 5. research buttons
+      document.querySelector('#research button[data-depth="quick"]').click();
+      document.querySelector('#research button[data-depth="deep"]').click();
+      ok("quick opens web app", created[0] === "http://test.local/?company=Acme%20Robotics&depth=quick&go=1", created[0]);
+      ok("deep opens web app", created[1] === "http://test.local/?company=Acme%20Robotics&depth=deep&go=1", created[1]);
+      document.getElementById("company").value = "Other Co";
+      document.getElementById("company").dispatchEvent(new Event("input"));
+      say("Bob", "We at Globex love it.");
+      ok("typed company not overwritten", document.getElementById("company").value === "Other Co");
+      ok("suggestion offered", /Globex/.test(txt("heard")), txt("heard"));
+
+      // 6. typed claim is always sent, alone
+      document.getElementById("claim").value = "We have no competitors.";
+      document.getElementById("typed").requestSubmit();
+      await sleep(50);
+      ok("typed claim sent alone", requests[requests.length - 1] === "We have no competitors.", requests[requests.length - 1]);
+
+      // 7. server down
+      serverDown = true;
+      say("Alice", "We sell to 40 banks.");
+      await sleep(100);
+      ok("error banner shown", !document.getElementById("error").hidden && /Can't reach/.test(txt("error")), txt("error"));
+      ok("server line offline", /offline/.test(txt("server")) && document.getElementById("server").classList.contains("down"), txt("server"));
+      document.getElementById("test").click();
+      await sleep(100);
+      ok("test connection: fail", /^Failed/.test(txt("saved")), txt("saved"));
+      serverDown = false;
+      document.getElementById("test").click();
+      await sleep(100);
+      ok("test connection: ok", txt("saved") === "Connected", txt("saved"));
+      ok("server line back", txt("server") === "Proven server: test.local", txt("server"));
+      ok("error banner cleared", document.getElementById("error").hidden);
+      finish();
+    })().catch((e) => {
+      ok("exception: " + e.message, false);
+      finish();
+    });
+
+    function finish() {
+      const pass = log.length > 0 && log.every((l) => l.startsWith("ok"));
+      const v = document.getElementById("verdict");
+      v.textContent = (pass ? "PASS" : "FAIL") + " (" + (REAL ? "real" : "panel") + ")";
+      v.className = pass ? "pass" : "fail";
+      document.title = v.textContent;
+    }
+  </script>
+</body>
+</html>

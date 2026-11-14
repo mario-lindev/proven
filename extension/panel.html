@@ -8,31 +8,40 @@
 </head>
 <body>
   <header>
-    <h1>Proven <span>· Live</span></h1>
+    <h1>Proven <span>Live</span></h1>
     <button id="copy" class="ghost" title="Copy every check as text">Copy all</button>
   </header>
 
-  <div id="status" class="status">Starting…</div>
+  <section id="statusBox" class="status idle" aria-live="polite">
+    <div class="status-main"><span class="dot" aria-hidden="true"></span><span id="status">Starting…</span></div>
+    <div id="hint" class="hint"></div>
+    <div id="server" class="server"></div>
+  </section>
   <div id="error" class="error" hidden></div>
 
-  <section class="controls">
-    <label class="row">
-      <span>Only check this speaker</span>
-      <select id="speaker"><option value="">Everyone</option></select>
-    </label>
-    <div class="row">
-      <button id="mic" class="ghost">Use microphone</button>
-      <span id="busy" class="busy" hidden>Checking…</span>
-    </div>
-    <div id="micHelp" class="help" hidden></div>
-    <form id="typed" class="typed">
-      <input id="claim" type="text" placeholder="Type a claim, e.g. “We have no competitors”" autocomplete="off">
-      <button type="submit">Check</button>
+  <section class="stats" aria-label="Counts">
+    <div class="stat"><b id="nChecked">0</b><span>claims checked</span></div>
+    <div class="stat ok"><b id="nSupported">0</b><span>check out</span></div>
+    <div class="stat bad"><b id="nContradicted">0</b><span>contradicted</span></div>
+  </section>
+
+  <section class="research">
+    <h2>Research this company</h2>
+    <form id="research" class="research-row">
+      <input id="company" type="text" placeholder="Company name" autocomplete="off" aria-label="Company name">
+      <button type="submit" data-depth="deep" title="Full memo with every source">Deep memo</button>
+      <button type="submit" data-depth="quick" class="ghost" title="Faster, fewer searches">Quick</button>
     </form>
+    <div id="heard" class="heard" hidden></div>
   </section>
 
   <section>
-    <h2>Claims <span id="count" class="count"></span></h2>
+    <h2>Claims</h2>
+    <form id="typed" class="typed">
+      <input id="claim" type="text" placeholder="Type a claim, e.g. “We have no competitors”" autocomplete="off" aria-label="Type a claim">
+      <button type="submit" class="ghost">Check</button>
+      <span id="busy" class="busy" hidden>Checking…</span>
+    </form>
     <div id="cards"><p class="empty">Claims the founder makes will appear here, newest first.</p></div>
   </section>
 
@@ -41,6 +50,18 @@
     <div id="transcript" class="transcript"><p class="empty">Nothing heard yet.</p></div>
   </section>
 
+  <details id="callopts">
+    <summary>Call options</summary>
+    <label class="field">
+      <span>Only check this speaker</span>
+      <select id="speaker"><option value="">Everyone</option></select>
+    </label>
+    <div class="row">
+      <button id="mic" class="ghost" type="button">Use microphone</button>
+    </div>
+    <div id="micHelp" class="help" hidden></div>
+  </details>
+
   <details id="settings">
     <summary>Settings</summary>
     <label class="field">
@@ -48,11 +69,11 @@
       <input id="base" type="url" placeholder="http://localhost:3000">
     </label>
     <div class="row">
-      <button id="save">Save</button>
-      <button id="test" class="ghost">Test connection</button>
+      <button id="save" type="button">Save</button>
+      <button id="test" class="ghost" type="button">Test connection</button>
       <span id="saved" class="muted"></span>
     </div>
-    <p class="muted small">Only the caption text of the last two sentences is sent to this server. No audio leaves your browser, except through Chrome's own speech service when you use the microphone.</p>
+    <p class="muted small">Only caption text (the new sentences plus one before them) is sent to this server. No audio leaves your browser, except through Chrome's own speech service when you use the microphone.</p>
   </details>
 
   <script src="panel.js"></script>

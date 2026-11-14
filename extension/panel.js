@@ -11,10 +11,12 @@ const $ = (id) => document.getElementById(id);
 
 const state = {
   base: DEFAULT_BASE,
-  sentences: [], // last sentences that pass the speaker filter
-  pending: null, // latest text waiting to be sent
-  lastSent: "",
+  unsent: [], // [{text, alone}] waiting to go to /api/live, oldest first
+  context: "", // last sentence sent, sent again before new ones for context
+  recent: [], // normalized sentences already queued (no duplicate submissions)
   inflight: false,
+  server: "unknown", // "ok" | "down" | "unknown"
+  company: { heard: "", edited: false },
   checks: [], // newest first
   claimsSeen: new Set(),
   speakers: new Set(),
@@ -85,8 +87,10 @@ async function api(path, init) {
   try {
     res = await fetch(state.base + path, init);
   } catch (e) {
+    setServer("down");
     throw new Error(`Can't reach the Proven server at ${state.base}. Is it running? Check the URL in Settings.`);
   }
+  setServer("ok");
   let body = null;
   try {
     body = await res.json();
@@ -97,19 +101,44 @@ async function api(path, init) {
   return body;
 }
 
-function queue(text) {
+function setServer(s) {
+  if (state.server === s) return;
+  if (s === "ok" && state.server === "down") showError(""); // server is back: drop the "can't reach" banner
+  state.server = s;
+  renderStatus();
+}
+
+// Queue a sentence for checking. Returns false if the same sentence was already queued.
+// alone: send it by itself (typed claims), not after the previous sentence.
+function queue(text, alone) {
   const t = text.trim();
-  if (!t) return;
-  state.pending = t;
+  const key = normClaim(t);
+  if (!key) return false;
+  if (!alone) {
+    if (state.recent.includes(key)) return false;
+    state.recent.push(key);
+    if (state.recent.length > 100) state.recent.shift();
+  }
+  state.unsent.push({ text: t, alone: !!alone });
   pump();
+  return true;
+}
+
+// Next request body: one typed claim alone, or up to 3 new sentences after the last one sent.
+function nextBatch() {
+  if (!state.unsent.length) return null;
+  if (state.unsent[0].alone) return state.unsent.shift().text;
+  const batch = [];
+  while (batch.length < 3 && state.unsent.length && !state.unsent[0].alone) batch.push(state.unsent.shift().text);
+  const text = [state.context, ...batch].filter(Boolean).join(" ");
+  state.context = batch[batch.length - 1];
+  return text;
 }
 
 async function pump() {
-  if (state.inflight || !state.pending) return;
-  const text = state.pending;
-  state.pending = null;
-  if (text === state.lastSent) return;
-  state.lastSent = text;
+  if (state.inflight) return;
+  const text = nextBatch();
+  if (!text) return;
   state.inflight = true;
   $("busy").hidden = false;
   try {
@@ -142,8 +171,72 @@ function addChecks(checks) {
     if (empty) empty.remove();
     $("cards").prepend(card(check));
   }
-  $("count").textContent = state.checks.length ? `(${state.checks.length})` : "";
+  renderCounts();
 }
+
+function renderCounts() {
+  const n = (v) => state.checks.filter((c) => c.verdict === v).length;
+  $("nChecked").textContent = state.checks.length;
+  $("nSupported").textContent = n("supported");
+  $("nContradicted").textContent = n("contradicted");
+}
+
+// ---------- company detection (for "Research this company") ----------
+
+const NOT_COMPANY = new Set(
+  "a an the this that it we our us they i you he she there here today so and but my its google meet zoom".split(" ")
+);
+const CO = "([A-Z][\\w&'.-]*(?:\\s+[A-Z][\\w&'.-]*){0,2})";
+const CO_PATTERNS = [
+  new RegExp("\\b(?:founder|co-?founder|cofounder|CEO|CTO|COO)\\s+(?:of|at)\\s+" + CO),
+  new RegExp("\\b(?:[Hh]ere at|[Ww]e at|I'm from|I am from|[Ww]e're from|[Ww]e are from|[Ww]elcome to|[Pp]itching|is called|are called|[Ww]e're called|it's called)\\s+" + CO),
+  new RegExp("\\b(?:[Mm]y|[Oo]ur) (?:company|startup),?\\s+" + CO),
+];
+
+// Pull a company name out of a spoken sentence, or "" if none.
+function detectCompany(text) {
+  for (const re of CO_PATTERNS) {
+    const m = String(text).match(re);
+    if (!m) continue;
+    const name = m[1].replace(/[.,'’-]+$/, "").trim();
+    const first = name.split(/\s+/)[0].toLowerCase();
+    if (name.length < 2 || NOT_COMPANY.has(first)) continue;
+    return name;
+  }
+  return "";
+}
+
+function noteCompany(text) {
+  const name = detectCompany(text);
+  if (!name || name === state.company.heard) return;
+  state.company.heard = name;
+  const input = $("company");
+  if (!state.company.edited || !input.value.trim()) {
+    input.value = name;
+    state.company.edited = false;
+  }
+  const box = $("heard");
+  box.hidden = false;
+  box.replaceChildren(
+    "Heard on the call: ",
+    h("button", { type: "button", onclick: () => (($("company").value = name), (state.company.edited = false)) }, name)
+  );
+}
+
+function researchUrl(name, depth) {
+  return `${state.base}/?company=${encodeURIComponent(name)}&depth=${depth}&go=1`;
+}
+
+$("company").addEventListener("input", () => (state.company.edited = true));
+$("research").addEventListener("submit", (e) => {
+  e.preventDefault();
+  const name = $("company").value.trim();
+  if (!name) return $("company").focus();
+  const depth = e.submitter && e.submitter.dataset.depth === "quick" ? "quick" : "deep";
+  const url = researchUrl(name, depth);
+  if (chrome.tabs && chrome.tabs.create) chrome.tabs.create({ url });
+  else window.open(url, "_blank", "noopener");
+});
 
 // ---------- transcript ----------
 
@@ -156,10 +249,9 @@ function onSentence(speaker, text) {
   const filter = $("speaker").value;
   const checked = !filter || who === filter;
   addTranscript(who, text, !checked);
+  noteCompany(text);
   if (!checked) return;
-  state.sentences.push(text);
-  state.sentences = state.sentences.slice(-2);
-  queue(state.sentences.join(" "));
+  queue(text);
 }
 
 function addTranscript(who, text, skipped) {
@@ -169,7 +261,7 @@ function addTranscript(who, text, skipped) {
   const interim = box.querySelector(".interim");
   const p = h("p", { class: skipped ? "skipped" : null }, who ? h("span", { class: "who" }, who + ":") : null, text);
   box.insertBefore(p, interim);
-  while (box.querySelectorAll("p:not(.interim)").length > 200) box.firstChild.remove();
+  while (box.querySelectorAll("p:not(.interim)").length > 80) box.firstChild.remove();
   box.scrollTop = box.scrollHeight;
 }
 
@@ -199,7 +291,7 @@ chrome.runtime.onMessage.addListener((msg) => {
 function renderCards() {
   const box = $("cards");
   box.replaceChildren();
-  $("count").textContent = state.checks.length ? `(${state.checks.length})` : "";
+  renderCounts();
   if (!state.checks.length) {
     box.append(h("p", { class: "empty" }, "Claims the founder makes will appear here, newest first."));
     return;
@@ -228,8 +320,12 @@ function card(c) {
   return h(
     "article",
     { class: "card " + verdict },
-    h("span", { class: "meta" }, c.at.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })),
-    h("div", { class: "verdict" }, VERDICT[verdict]),
+    h(
+      "div",
+      { class: "card-top" },
+      h("span", { class: "verdict" }, VERDICT[verdict]),
+      h("span", { class: "meta" }, c.at.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }))
+    ),
     h("p", { class: "claim" }, `“${c.claim}”`),
     c.note ? h("p", { class: "note" }, c.note) : null,
     sources.length
@@ -243,7 +339,7 @@ function card(c) {
               "li",
               {},
               url ? h("a", { href: url, target: "_blank", rel: "noopener noreferrer", title: url }, label) : label,
-              s.engine ? h("span", { class: "engine" }, s.engine) : null
+              h("span", { class: "domain" }, hostOf(s.url) + (s.engine ? " · " + s.engine : ""))
             );
           })
         )
@@ -316,8 +412,7 @@ $("typed").addEventListener("submit", (e) => {
   if (!text) return;
   $("claim").value = "";
   addTranscript("You typed", text, false);
-  state.lastSent = ""; // always check a typed claim, even if repeated
-  queue(text);
+  queue(text, true); // always check a typed claim, even if repeated
 });
 
 // ---------- microphone (Web Speech API) ----------
@@ -437,31 +532,52 @@ async function pollStatus() {
   renderStatus();
 }
 
-function renderStatus() {
-  const el = $("status");
+const SITE_NAME = { meet: "Google Meet", zoom: "Zoom" };
+
+// Returns {title, hint, tone} for the status box. tone: "live" | "warn" | "idle".
+function statusInfo(now) {
   const st = state.tabStatus;
   const site = state.tab && state.tab.site;
-  const name = site === "zoom" ? "Zoom" : "Meet";
+  const name = SITE_NAME[site] || "the call";
   const heard = state.lastCaptionAt > 0;
-  let text;
-  let warn = false;
-  if (state.micOn) text = "Using mic";
-  else if (site && ((st && st.region) || (heard && Date.now() - state.lastCaptionAt < 60000)))
-    text = heard ? `Listening to ${name} captions` : `Captions found in ${name}. Waiting for someone to speak.`;
-  else if (site === "meet" && Date.now() - state.openedAt > 10000) {
-    text = "Turn on captions (CC) in Meet so Proven can follow the call.";
-    warn = true;
-  } else if (site === "zoom" && Date.now() - state.openedAt > 10000) {
-    text = "Captions not found: turn on captions in Zoom (the host must enable them).";
-    warn = true;
-  } else if (site) text = `Looking for ${name} captions…`;
-  else if (heard) text = "Listening to call captions";
-  else {
-    text = "Open a Google Meet or Zoom web call, or use the mic or type a claim below.";
-    warn = true;
-  }
-  el.textContent = text;
-  el.classList.toggle("warn", warn);
+  const recent = heard && now - state.lastCaptionAt < 60000;
+  const ccHint =
+    site === "zoom"
+      ? "Turn on captions (CC) in Zoom's bottom bar. The host must allow them."
+      : "Turn on captions (CC) in Meet's bottom bar, or press c.";
+  if (state.micOn) return { title: "Listening: microphone", hint: "Hears the room through this laptop's mic.", tone: "live" };
+  if (site && ((st && st.region) || recent))
+    return {
+      title: `Listening to ${name} captions`,
+      hint: heard ? "" : "Captions are on. Waiting for someone to speak.",
+      tone: "live",
+    };
+  if (site && now - state.openedAt > 10000) return { title: `Connected to ${name}: no captions found`, hint: ccHint, tone: "warn" };
+  if (site) return { title: `Connected to ${name}`, hint: "Looking for captions…", tone: "idle" };
+  if (recent) return { title: "Listening to call captions", hint: "", tone: "live" };
+  return {
+    title: "No call in this tab",
+    hint: "Open a Google Meet or Zoom web call in this window, or type a claim below.",
+    tone: "warn",
+  };
+}
+
+function renderStatus() {
+  const s = statusInfo(Date.now());
+  $("status").textContent = s.title;
+  $("hint").textContent = s.hint;
+  const box = $("statusBox");
+  box.classList.toggle("live", s.tone === "live");
+  box.classList.toggle("warn", s.tone === "warn");
+  const sv = $("server");
+  const host = state.base.replace(/^https?:\/\//, "");
+  sv.textContent =
+    state.server === "down"
+      ? `Proven server offline (${host}). Start it or fix the URL in Settings.`
+      : state.server === "ok"
+        ? `Proven server: ${host}`
+        : "";
+  sv.classList.toggle("down", state.server === "down");
 }
 
 chrome.tabs.onActivated.addListener(refreshTab);
@@ -469,6 +585,18 @@ chrome.tabs.onUpdated.addListener((_id, info) => info.status === "complete" && r
 setInterval(pollStatus, 3000);
 
 // ---------- settings ----------
+
+// GET /api/memos on base. Returns true, or a short failure message.
+async function ping(base) {
+  try {
+    const res = await fetch(base + "/api/memos", { cache: "no-store" });
+    if (!res.ok) return `Failed: server returned ${res.status}`;
+    const body = await res.json().catch(() => null);
+    return body && Array.isArray(body.memos) ? true : "Failed: that URL is not a Proven server";
+  } catch (_) {
+    return "Failed: can't reach it (server down, wrong URL, or CORS)";
+  }
+}
 
 function cleanBase(v) {
   return (v || "").trim().replace(/\/+$/, "") || DEFAULT_BASE;
@@ -478,6 +606,8 @@ $("save").addEventListener("click", async () => {
   state.base = cleanBase($("base").value);
   $("base").value = state.base;
   await chrome.storage.local.set({ base: state.base });
+  setServer("unknown");
+  ping(state.base).then((ok) => setServer(ok === true ? "ok" : "down"));
   $("saved").textContent = "Saved";
   setTimeout(() => ($("saved").textContent = ""), 1500);
 });
@@ -485,16 +615,9 @@ $("save").addEventListener("click", async () => {
 $("test").addEventListener("click", async () => {
   const base = cleanBase($("base").value);
   $("saved").textContent = "Testing…";
-  try {
-    const res = await fetch(base + "/api/live", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text: "" }),
-    });
-    $("saved").textContent = res.ok ? "Connected" : `Server returned ${res.status}`;
-  } catch (_) {
-    $("saved").textContent = "Can't reach it (server down or CORS)";
-  }
+  const ok = await ping(base);
+  $("saved").textContent = ok === true ? "Connected" : ok;
+  if (base === state.base) setServer(ok === true ? "ok" : "down");
 });
 
 // ---------- start ----------
@@ -504,6 +627,7 @@ $("test").addEventListener("click", async () => {
   state.base = cleanBase(base);
   $("base").value = state.base;
   renderCards();
+  ping(state.base).then((ok) => setServer(ok === true ? "ok" : "down"));
   await refreshTab();
   setInterval(renderStatus, 1000);
 })();

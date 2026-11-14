@@ -23,8 +23,8 @@ export async function askJSON<T>(opts: {
   const params: any = {
     model,
     max_tokens: opts.maxTokens ?? 8000,
-    system: opts.system,
-    messages: [{ role: "user", content: opts.user }],
+    system: wellFormed(opts.system),
+    messages: [{ role: "user", content: wellFormed(opts.user) }],
     output_config: {
       effort: opts.effort ?? "medium",
       format: { type: "json_schema", schema: opts.schema },
@@ -39,4 +39,9 @@ export async function askJSON<T>(opts: {
     .map((b) => (b.type === "text" ? b.text : ""))
     .join("");
   return JSON.parse(text) as T;
+}
+
+// Page text cut mid-emoji leaves a lone surrogate, which makes the request body invalid JSON (400).
+function wellFormed(s: string): string {
+  return s.replace(/[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/g, "\uFFFD");
 }

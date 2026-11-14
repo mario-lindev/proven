@@ -8,13 +8,12 @@ import { domain, fmtMs } from "./http";
 
 type Depth = "quick" | "deep";
 // "rank" (a learn step before the memo is written) belongs to reading and has no box of its own.
-type PhaseId = "plan" | "search1" | "gaps" | "search2" | "rank" | "read" | "write" | "verify" | "learn";
+// "search" covers every search round and the coverage check after each one (deep mode runs 1 to 4 rounds).
+type PhaseId = "plan" | "search" | "rank" | "read" | "write" | "verify" | "learn";
 
 const PHASES: Record<PhaseId, string> = {
   plan: "Planning",
-  search1: "Searching",
-  gaps: "Finding gaps",
-  search2: "Searching again",
+  search: "Searching",
   rank: "Ranking",
   read: "Reading pages",
   write: "Writing",
@@ -24,9 +23,7 @@ const PHASES: Record<PhaseId, string> = {
 
 const ACTIVITY: Record<PhaseId, string> = {
   plan: "Claude is planning the searches",
-  search1: "Telem is routing each query to its engines",
-  gaps: "Claude is looking for gaps in what came back",
-  search2: "Telem is running the follow-up searches",
+  search: "Telem is routing each query to its engines",
   rank: "Reading the best pages in full",
   read: "Reading the best pages in full",
   write: "Claude is writing the memo from these sources only",
@@ -34,37 +31,59 @@ const ACTIVITY: Record<PhaseId, string> = {
   learn: "Recording which engines' pages backed a verified line",
 };
 
-const ORDER: Record<Depth, PhaseId[]> = {
-  quick: ["plan", "search1", "read", "write", "verify", "learn"],
-  deep: ["plan", "search1", "gaps", "search2", "read", "write", "verify", "learn"],
-};
+const ORDER: PhaseId[] = ["plan", "search", "read", "write", "verify", "learn"];
 
-// Which phase each step belongs to, in order. A step arrives once it is finished.
-export function phaseOf(steps: TrailStep[]): PhaseId[] {
+// Deep mode's coverage check after each round: "Round 2: 4 of 6 key questions answered, searching the gaps".
+const ROUND = /^Round (\d+):\s*(.*)$/;
+
+// Which phase and search round each step belongs to, in order. A step arrives once it is finished.
+// round: the search round a step is part of (1 to 4). searching: the loop is still going after the last step.
+export function phaseOf(steps: TrailStep[]): { phases: PhaseId[]; rounds: number[]; round: number; searching: boolean } {
   let round = 1;
   let written = false;
-  return steps.map((s) => {
+  let searching = false;
+  const rounds: number[] = [];
+  const phases = steps.map((s): PhaseId => {
+    rounds.push(round);
+    if (s.kind === "search") {
+      searching = true;
+      return "search";
+    }
     if (s.kind === "llm") {
-      const l = s.label.toLowerCase();
-      if (l.includes("gap")) {
-        round = 2;
-        return "gaps";
+      const m = ROUND.exec(s.label);
+      if (m) {
+        // The check closes round N; "searching the gaps" means round N+1 follows, anything else ends the loop.
+        const n = Number(m[1]);
+        rounds[rounds.length - 1] = n;
+        searching = /searching the gaps/i.test(m[2]);
+        round = searching ? n + 1 : n;
+        return "search";
       }
-      if (l.includes("write")) {
+      // Older servers named the gap check "Find gaps": it opens round 2.
+      if (/gap/i.test(s.label)) {
+        round = 2;
+        searching = true;
+        return "search";
+      }
+      if (/write/i.test(s.label)) {
         written = true;
+        searching = false;
         return "write";
       }
-      return "plan";
+      // Verify batches are llm steps too; anything after the memo is written belongs to checking.
+      return written ? "verify" : "plan";
     }
-    if (s.kind === "search") return round === 2 ? "search2" : "search1";
+    searching = false;
     if (s.kind === "verify") {
       written = true;
       return "verify";
     }
     // A learn step before writing ranks the sources; after it, it records what this memo taught.
     if (s.kind === "learn") return written ? "learn" : "rank";
-    return "read";
+    // Pages fetched after the memo is written are read for the line-by-line check.
+    return written ? "verify" : "read";
   });
+  return { phases, rounds, round, searching };
 }
 
 export function feedStats(steps: TrailStep[]) {
@@ -119,11 +138,11 @@ export default function ResearchFeed({
   }, [running]);
 
   const elapsed = ((finishedAt ?? now) - startedAt) / 1000;
-  const stepPhases = phaseOf(steps);
+  const { phases: stepPhases, rounds: stepRounds, round, searching } = phaseOf(steps);
   const donePhases = new Set(stepPhases);
   // Checking and Learning wait in the bar while a run is going; once it ends they stay only if
   // their steps really happened (older servers and memos have neither).
-  const phases = ORDER[depth].filter((p) => (p !== "verify" && p !== "learn") || running || donePhases.has(p));
+  const phases = ORDER.filter((p) => (p !== "verify" && p !== "learn") || running || donePhases.has(p));
   const last = stepPhases[stepPhases.length - 1];
 
   // The phase in progress: a search round stays active while results keep arriving;
@@ -131,7 +150,7 @@ export default function ResearchFeed({
   let active: PhaseId | null = null;
   if (running) {
     if (!last) active = "plan";
-    else if (last === "search1" || last === "search2") active = last;
+    else if (last === "search") active = searching ? "search" : "read";
     else if (last === "rank") active = "read";
     else {
       const i = phases.indexOf(last);
@@ -140,7 +159,15 @@ export default function ResearchFeed({
   }
 
   const stats = feedStats(steps);
-  const searchSteps = steps.map((s, i) => ({ s, i, p: stepPhases[i] })).filter((x) => x.s.kind === "search");
+  const searchSteps = steps.map((s, i) => ({ s, i, r: stepRounds[i] })).filter((x) => x.s.kind === "search");
+  // What the coverage check said after each round, e.g. "4 of 6 key questions answered, searching the gaps".
+  const roundNotes = new Map<number, string>();
+  for (const s of steps) {
+    const m = s.kind === "llm" ? ROUND.exec(s.label) : null;
+    if (m) roundNotes.set(Number(m[1]), m[2]);
+  }
+  const roundNumbers = [...new Set(searchSteps.map((x) => x.r))].sort((a, b) => b - a);
+  const multiRound = depth === "deep" || roundNumbers.length > 1;
   const scale = Math.max(1500, ...searchSteps.flatMap((x) => (x.s.engines ?? []).map((e) => e.latency_ms)));
   const extracts = steps.filter((s) => s.kind === "extract" || s.kind === "fetch");
   const llms = steps.filter((s) => s.kind === "llm");
@@ -189,6 +216,11 @@ export default function ResearchFeed({
                 </span>
                 <span className={`truncate ${isActive ? "font-semibold text-cobalt" : isDone ? "text-ink" : "text-faint"}`}>
                   {PHASES[p]}
+                  {p === "search" && multiRound && (
+                    <span className="tnum font-normal">
+                      {isActive ? `, round ${round}` : isDone && donePhases.has(p) ? `, ${round} round${round === 1 ? "" : "s"}` : ""}
+                    </span>
+                  )}
                 </span>
               </div>
               {isActive && (
@@ -227,7 +259,7 @@ export default function ResearchFeed({
           <ul className="mb-5 flex flex-wrap gap-x-8 gap-y-2 text-sm text-graphite">
             {steps
               .map((s, i) => ({ s, p: stepPhases[i] }))
-              .filter(({ s }) => s.kind !== "search")
+              .filter(({ s }) => s.kind !== "search" && !(s.kind === "llm" && ROUND.test(s.label)))
               .map(({ s, p }, i) => (
                 <li key={i} className="row-in flex items-center gap-2">
                   {s.kind === "verify" ? (
@@ -250,7 +282,7 @@ export default function ResearchFeed({
             {running && active && (
               <li className="flex items-center gap-2 font-medium text-cobalt">
                 <span className="pulse-dot h-1.5 w-1.5 rounded-full bg-cobalt" />
-                {ACTIVITY[active]}
+                {active === "search" && round > 1 ? `Round ${round}: Telem is searching for what is still open` : ACTIVITY[active]}
               </li>
             )}
           </ul>
@@ -263,15 +295,17 @@ export default function ResearchFeed({
               <span>Engines that answered, with latency</span>
               <span className="text-right">Pages</span>
             </div>
-            {(["search2", "search1"] as PhaseId[]).map((round) => {
-              const rows = searchSteps.filter((x) => x.p === round).reverse();
-              if (rows.length === 0) return null;
+            {roundNumbers.map((n) => {
+              const rows = searchSteps.filter((x) => x.r === n).reverse();
+              const note = roundNotes.get(n);
               return (
-                <div key={round}>
-                  {depth === "deep" && (
-                    <p className="mt-4 text-sm font-medium text-graphite">
-                      {round === "search2" ? "Round 2: follow-up searches for the gaps" : "Round 1"}
-                      <span className="tnum ml-2 font-normal text-faint">{rows.length} {rows.length === 1 ? "query" : "queries"}</span>
+                <div key={n}>
+                  {multiRound && (
+                    <p className="mt-4 flex flex-wrap items-baseline gap-x-2 text-sm font-medium text-graphite">
+                      <span className="text-ink">Round {n}</span>
+                      <span className="font-normal">{n === 1 ? "the planned searches" : "follow-up searches for what was still open"}</span>
+                      <span className="tnum font-normal text-faint">{rows.length} {rows.length === 1 ? "query" : "queries"}</span>
+                      {note && <span className="row-in tnum ml-auto text-cobalt">{note[0].toUpperCase() + note.slice(1)}</span>}
                     </p>
                   )}
                   <ol>

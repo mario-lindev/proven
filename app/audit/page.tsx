@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { AuditCheck, AuditClaim, AuditEvent, AuditSummary } from "@/lib/brain/audit";
 import AuditClaimCard from "@/components/AuditClaimCard";
 import ErrorBox from "@/components/ErrorBox";
@@ -10,6 +10,7 @@ import { errMsg } from "@/components/http";
 type Done = { summary: AuditSummary; trust_score: number; ms: number };
 
 const looksLikeUrl = (s: string) => /^(https?:\/\/)?[a-z0-9-]+(\.[a-z0-9-]+)+(\/\S*)?$/i.test(s);
+const EXAMPLES = ["https://ramp.com", "https://www.rippling.com", "https://www.notion.com"];
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
 
 export default function AuditPage() {
@@ -25,9 +26,9 @@ export default function AuditPage() {
 
   const closeTrail = useCallback(() => setTrailId(null), []);
 
-  async function run(e?: React.FormEvent) {
+  async function run(e?: React.FormEvent, given?: string) {
     e?.preventDefault();
-    const value = input.trim();
+    const value = (given ?? input).trim();
     if (!value || running) return;
     const run = ++runRef.current;
     setRunning(true);
@@ -77,6 +78,24 @@ export default function AuditPage() {
     }
   }
 
+  // Deep link from the Chrome extension: /audit?url=<encoded>&go=1 fills the box and starts the audit.
+  const deepLinked = useRef(false);
+  useEffect(() => {
+    if (deepLinked.current) return;
+    deepLinked.current = true;
+    const q = new URLSearchParams(window.location.search);
+    const u = q.get("url")?.trim();
+    if (!u) return;
+    setInput(u);
+    if (q.get("go") === "1") run(undefined, u);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  function pick(u: string) {
+    setInput(u);
+    run(undefined, u);
+  }
+
   const got = Object.values(checks);
   const counts: AuditSummary = done?.summary ?? {
     supported: got.filter((c) => c.verdict === "supported").length,
@@ -123,6 +142,22 @@ export default function AuditPage() {
           </button>
         </div>
       </form>
+
+      {claims.length === 0 && !running && (
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="mr-1 text-graphite">Try</span>
+          {EXAMPLES.map((u) => (
+            <button
+              key={u}
+              type="button"
+              onClick={() => pick(u)}
+              className="serif border border-rule bg-surface px-4 py-1.5 text-[1.05rem] hover:border-ink"
+            >
+              {u.replace(/^https:\/\/(www\.)?/, "")}
+            </button>
+          ))}
+        </div>
+      )}
 
       {error && <ErrorBox message={error} />}
 

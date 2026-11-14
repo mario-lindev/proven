@@ -23,32 +23,42 @@ export default function Contradictions({ memo, onSource }: { memo: Memo; onSourc
       return <SourceChip key={id} n={n + 1} source={src} onClick={() => onSource?.(src)} />;
     });
 
+  const high = list.filter((c) => c.severity === "high").length;
+
   return (
-    <section className="avoid-break">
-      <h2 className="mb-2 flex items-baseline gap-2 border-b-2 border-ink pb-2 text-lg font-semibold">
-        Claims vs. reality
-        <span className="tnum text-sm font-normal text-graphite">{list.length}</span>
-      </h2>
-      <p className="mb-4 text-sm text-graphite">Where the company&apos;s own account and independent sources disagree.</p>
+    <section className="avoid-break border-t-4 border-pass pt-5">
+      <div className="mb-5 flex flex-wrap items-end justify-between gap-x-8 gap-y-2">
+        <div>
+          <h2 className="serif text-[2.1rem] font-semibold leading-tight tracking-tight">Claims vs. reality</h2>
+          <p className="mt-1 text-graphite">
+            Where the company&apos;s own account and independent sources disagree. Every side cites its source.
+          </p>
+        </div>
+        <p className="tnum text-right text-graphite">
+          <span className="serif text-[2.1rem] font-semibold leading-none text-pass">{list.length}</span>{" "}
+          {list.length === 1 ? "contradiction" : "contradictions"}
+          {high > 0 ? `, ${high} high severity` : ""}
+        </p>
+      </div>
       <ul className="space-y-4">
         {list.map((c, i) => {
           const s = SEVERITY[c.severity] ?? SEVERITY.low;
           return (
-            <li key={i} className={`avoid-break border border-rule border-l-4 bg-surface ${s.line}`}>
+            <li key={i} className={`avoid-break border border-rule border-l-[6px] bg-surface ${s.line}`}>
               <div className="grid md:grid-cols-2">
-                <div className="px-5 py-4">
-                  <p className="mb-1.5 text-sm text-graphite">The company says</p>
-                  <p className="serif text-[1.12rem] leading-[1.5]">
+                <div className="px-6 py-5">
+                  <p className="mb-2 text-sm font-semibold text-graphite">The company says</p>
+                  <p className="serif text-[1.3rem] leading-[1.45]">
                     {c.claim}
                     {chips(c.claim_source_ids)}
                   </p>
                 </div>
-                <div className={`border-t border-rule-soft px-5 py-4 md:border-l md:border-t-0 ${s.bg}`}>
-                  <p className="mb-1.5 flex items-center justify-between gap-3 text-sm text-graphite">
+                <div className={`border-t border-rule-soft px-6 py-5 md:border-l md:border-t-0 ${s.bg}`}>
+                  <p className="mb-2 flex items-center justify-between gap-3 text-sm font-semibold text-graphite">
                     <span>Independent sources say</span>
-                    <span className={`font-semibold ${s.text}`}>{s.label} severity</span>
+                    <span className={`shrink-0 border px-2 py-px ${s.line} ${s.text}`}>{s.label} severity</span>
                   </p>
-                  <p className="serif text-[1.12rem] leading-[1.5]">
+                  <p className="serif text-[1.3rem] leading-[1.45]">
                     {c.reality}
                     {chips(c.reality_source_ids)}
                   </p>

@@ -1,10 +1,11 @@
 // OWNER: Rishith. Company name -> sourced memo (AGENTS.md §8).
-import type { Line, Memo, Source, TrailRecorder } from "../types";
+import type { Contradiction, Line, Memo, Round, Source, TrailRecorder } from "../types";
 import { extract, normalizeUrl, searchAll } from "../search";
 import { rankSources, recordMemo } from "../learn";
 import { newId, newTrail, saveMemo } from "../store";
 import { askJSON } from "./claude";
 import { verifyLines } from "./verify";
+import { isOwn, researchUntilProven } from "./loop";
 
 const planSchema = {
   type: "object",
@@ -20,10 +21,24 @@ const lineSchema = {
   properties: { text: { type: "string" }, source_ids: { type: "array", items: { type: "string" } } },
 };
 
+const idList = { type: "array", items: { type: "string" } };
+const contradictionSchema = {
+  type: "object",
+  additionalProperties: false,
+  required: ["claim", "claim_source_ids", "reality", "reality_source_ids", "severity"],
+  properties: {
+    claim: { type: "string" },
+    claim_source_ids: idList,
+    reality: { type: "string" },
+    reality_source_ids: idList,
+    severity: { type: "string", enum: ["high", "medium", "low"] },
+  },
+};
+
 const memoSchema = {
   type: "object",
   additionalProperties: false,
-  required: ["verdict", "confidence", "summary", "facts", "risks", "open_questions"],
+  required: ["verdict", "confidence", "summary", "facts", "risks", "open_questions", "contradictions"],
   properties: {
     verdict: { type: "string", enum: ["pursue", "pass", "dig_deeper"] },
     confidence: { type: "number" },
@@ -31,6 +46,7 @@ const memoSchema = {
     facts: { type: "array", items: lineSchema },
     risks: { type: "array", items: lineSchema },
     open_questions: { type: "array", items: { type: "string" } },
+    contradictions: { type: "array", items: contradictionSchema },
   },
 };
 
@@ -68,26 +84,16 @@ export async function buildMemo(
   let sources = await searchAll(plan.queries.slice(0, deep ? 14 : 8), trail, { platforms: true });
   if (sources.length === 0) throw new Error(`No sources found for "${company}".`);
 
-  if (deep) {
-    // Round 2: look at what we found, search again for the gaps.
-    const gaps = await askJSON<{ queries: string[] }>({
-      label: "Find the gaps and follow up",
-      trail,
-      effort: "low",
-      system:
-        "You review first-round diligence search results. Name what an investor still can't answer " +
-        "(e.g. no revenue signal, no competitor named, unclear funding, claims only from the company itself) " +
-        "and return 4 to 6 new search queries that would fill those gaps. Prefer independent sources over the company's own site.",
-      user: `Subject: ${company}\n\nFound so far:\n${sources.map((s) => `- ${s.title} (${s.url})`).join("\n")}`,
-      schema: planSchema,
-    });
-    const more = await searchAll(gaps.queries.slice(0, 6), trail, { platforms: true }).catch(() => [] as Source[]);
-    const seen = new Set(sources.map((s) => s.url));
-    const added = more.filter((s) => !seen.has(s.url));
-    sources = [...sources, ...added].slice(0, 30).map((s, i) => ({ ...s, id: `s${i + 1}` }));
-  }
+  // Deep: keep researching until the investor-critical questions are answered (or the time budget runs out).
+  let rounds: Round[] | undefined;
+  let ownDomains: string[] = [];
+  let ownUrls = new Set<string>();
+  if (deep) ({ sources, rounds, ownDomains, ownUrls } = await researchUntilProven(company, plan.queries, sources, trail));
 
-  sources = rankSources(sources, trail);
+  sources = rankSources(sources, trail).map((s) => ({
+    ...s,
+    own: ownUrls.has(s.url) || isOwn(s.url, company, ownDomains),
+  }));
 
   let pages: { url: string; text: string }[] = [];
   const firstUrls = sources.slice(0, deep ? 8 : 4).map((s) => s.url);
@@ -104,11 +110,11 @@ export async function buildMemo(
     .map((s) => {
       const page = pages.find((p) => p.url === s.url);
       const body = page ? page.text.slice(0, 4000) : s.snippet;
-      return `[${s.id}] ${s.title} (${s.url}, via ${s.engine}${s.published ? `, ${s.published}` : ""})\n${body}`;
+      return `[${s.id}] ${s.own ? "COMPANY'S OWN" : "INDEPENDENT"}: ${s.title} (${s.url}, via ${s.engine}${s.published ? `, ${s.published}` : ""})\n${body}`;
     })
     .join("\n\n");
 
-  const draft = await askJSON<Omit<Memo, "id" | "company" | "sources" | "trail_id" | "created_at">>({
+  const draft = await askJSON<Omit<Memo, "id" | "company" | "sources" | "trail_id" | "created_at"> & { contradictions: Contradiction[] }>({
     label: "Write the memo",
     trail,
     system:
@@ -117,7 +123,13 @@ export async function buildMemo(
       "If you cannot cite a source for a line, leave the line out. Do not guess numbers. " +
       "verdict: pursue (strong, low risk), dig_deeper (promising but open questions), pass (serious risks). " +
       `confidence 0 to 1. summary 2 to 3 sentences. ${deep ? "6 to 12 facts, 3 to 8 risks, 3 to 6" : "4 to 8 facts, 2 to 6 risks, 2 to 5"} open questions an investor should ask. ` +
-      "Name competitors explicitly when sources show them. Prefer independent sources over the company's own claims and say so when a fact is only self-reported.",
+      "Name competitors explicitly when sources show them. Prefer independent sources over the company's own claims and say so when a fact is only self-reported. " +
+      "contradictions (0 to 5): each source is marked COMPANY'S OWN (its site, or a press release it issued) or INDEPENDENT. " +
+      "List the places where what the company says about itself conflicts with what independent sources say, or where independent sources " +
+      "covering the same point do not bear it out. claim: what the company says, citing the sources where it says it (its own, or an independent " +
+      "source quoting it). reality: what independent sources say, citing at least one INDEPENDENT source. " +
+      "severity high (changes the investment case), medium, or low. Only list a contradiction the sources clearly show; " +
+      "an empty list is the right answer when there is none. Never invent one.",
     user: `Subject: ${company}${context ? `\nContext: ${context}` : ""}\n\nSources:\n${sourceBlock}`,
     schema: memoSchema,
   });
@@ -153,8 +165,20 @@ export async function buildMemo(
     // Recorded in the trail by verifyLines.
   }
 
+  // Same hard rule for contradictions: both sides must cite sources that exist, and the reality side an independent one.
+  const independent = new Set(sources.filter((s) => !s.own).map((s) => s.id));
+  const contradictions = (draft.contradictions ?? [])
+    .map((c) => ({
+      ...c,
+      claim_source_ids: c.claim_source_ids.filter((id) => ids.has(id)),
+      reality_source_ids: c.reality_source_ids.filter((id) => ids.has(id)),
+    }))
+    .filter((c) => c.claim_source_ids.length > 0 && c.reality_source_ids.some((id) => independent.has(id)))
+    .slice(0, 5);
+
   const used = new Set<string>();
   [...facts, ...risks].forEach((l) => l.source_ids.forEach((id) => used.add(id)));
+  contradictions.forEach((c) => [...c.claim_source_ids, ...c.reality_source_ids].forEach((id) => used.add(id)));
 
   const memo: Memo = {
     id: newId("memo"),
@@ -169,6 +193,8 @@ export async function buildMemo(
     trail_id: trail.id,
     created_at: new Date().toISOString(),
     ...(verification ? { verification } : {}),
+    ...(rounds ? { rounds } : {}),
+    contradictions,
   };
   recordMemo(memo, sources, trail);
   saveMemo(memo);

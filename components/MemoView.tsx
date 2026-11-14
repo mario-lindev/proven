@@ -126,7 +126,7 @@ export default function MemoView({ memo, trail: preloaded }: { memo: Memo; trail
   }
 
   return (
-    <article className="space-y-10">
+    <article className="memo-surface space-y-10">
       <p className="print-only text-sm text-graphite">
         Proven memo, {fmtTime(memo.created_at)}. Every line cites a numbered source listed at the end.
       </p>
@@ -232,7 +232,7 @@ export default function MemoView({ memo, trail: preloaded }: { memo: Memo; trail
 
           <section>
             <SectionTitle title="Sources" count={memo.sources.length} />
-            <div className="space-y-5">
+            <div className="memo-summary space-y-5">
               {byEngine.map(([engine, items]) => (
                 <div key={engine} className="avoid-break">
                   <p className="mb-1.5 flex items-center gap-2 text-sm">

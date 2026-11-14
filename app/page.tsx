@@ -139,9 +139,9 @@ export default function Home() {
   return (
     <div className="space-y-10">
       {idle && (
-        <div className="max-w-[52rem] pt-6">
-          <h1 className="serif text-[3.6rem] font-semibold leading-[1.04] tracking-tight md:text-[4.4rem]">
-            Know what is true before you commit.
+        <div className="hero-intro max-w-[52rem] pt-6">
+          <p className="eyebrow">● &nbsp; EVIDENCE BEFORE CONVICTION</p><h1 className="hero-title">
+            Your next decision.<br /><span>Better informed.</span>
           </h1>
           <p className="mt-5 max-w-[40rem] text-[1.2rem] leading-relaxed text-graphite">
             Name a startup, vendor or market. Telem routes each search to the engines that fit it, Tavily reads the
@@ -150,8 +150,8 @@ export default function Home() {
         </div>
       )}
 
-      <form onSubmit={submit} className={`no-print ${idle ? "max-w-[52rem]" : ""}`} aria-label="Research a company">
-        <div className={`flex border-2 bg-surface transition-colors focus-within:border-cobalt ${idle ? "border-ink" : "border-rule"}`}>
+      <form onSubmit={submit} className={`research-form no-print ${idle ? "max-w-[52rem]" : ""}`} aria-label="Research a company">
+        <div className={`search-entry flex border-2 bg-surface transition-colors focus-within:border-cobalt ${idle ? "border-ink" : "border-rule"}`}>
           <label htmlFor="company" className="sr-only">
             Company, vendor or market
           </label>
@@ -159,7 +159,7 @@ export default function Home() {
             id="company"
             value={company}
             onChange={(e) => setCompany(e.target.value)}
-            placeholder="Company, vendor or market"
+            placeholder="Enter a company, vendor, or market…"
             autoFocus={idle}
             autoComplete="off"
             className={`serif min-w-0 flex-1 bg-transparent px-5 outline-none placeholder:text-faint focus-visible:outline-none ${
@@ -171,7 +171,7 @@ export default function Home() {
             disabled={!company.trim() || running}
             className={`shrink-0 bg-ink font-semibold text-white hover:bg-cobalt disabled:bg-faint ${idle ? "px-9 text-xl" : "px-6 text-lg"}`}
           >
-            {running ? "Researching" : "Research"}
+            {running ? "Researching…" : <>Build memo <span aria-hidden="true">↗</span></>}
           </button>
         </div>
 

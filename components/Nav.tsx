@@ -1,61 +1,15 @@
 "use client";
-
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
-
-const links = [
-  { href: "/", label: "Research" },
-  { href: "/live", label: "Live Room" },
-];
-
 export default function Nav() {
   const path = usePathname();
-  const [mock, setMock] = useState(false);
-
-  useEffect(() => {
-    fetch("/api/health", { cache: "no-store" })
-      .then((r) => r.json())
-      .then((h: { mock?: boolean }) => setMock(!!h.mock))
-      .catch(() => {});
-  }, []);
-
-  return (
-    <header className="no-print border-b border-rule bg-surface">
-      <div className="mx-auto flex max-w-[1240px] items-center justify-between gap-4 px-5 py-4 md:px-10">
-        <div className="flex items-center gap-4">
-          <Link href="/" className="flex items-baseline gap-3" aria-label="Proven home">
-            <span className="serif text-[1.75rem] font-semibold leading-none tracking-tight">Proven</span>
-            <span className="hidden text-sm text-graphite lg:inline">Research where every line cites its source</span>
-          </Link>
-          {mock && (
-            <span
-              title="The server is running with MOCK=1. Results are fixtures, not real research."
-              className="rounded-md border-2 border-dig bg-dig-soft px-2.5 py-0.5 text-sm font-semibold text-dig"
-            >
-              Demo data
-            </span>
-          )}
-        </div>
-        <nav className="flex gap-1" aria-label="Main">
-          {links.map((l) => {
-            const active = l.href === "/" ? path === "/" || path.startsWith("/memo") : path.startsWith(l.href);
-            return (
-              <Link
-                key={l.href}
-                href={l.href}
-                aria-current={active ? "page" : undefined}
-                className={`relative px-4 py-2 font-medium transition-colors ${
-                  active ? "text-ink" : "text-graphite hover:text-ink"
-                }`}
-              >
-                {l.label}
-                {active && <span className="absolute inset-x-4 -bottom-[17px] h-[2px] bg-ink" />}
-              </Link>
-            );
-          })}
-        </nav>
-      </div>
-    </header>
-  );
+  return <header className="app-nav"><div className="nav-inner">
+    <Link href="/" className="brand" aria-label="Proven home"><span className="brand-mark" aria-hidden="true">p</span>proven<span className="brand-dot">.</span></Link>
+    <nav aria-label="Main navigation" className="nav-tabs">
+      {[{ href: "/", label: "Research" }, { href: "/live", label: "Live Room" }].map(link =>
+        <Link key={link.href} href={link.href} aria-current={path === link.href ? "page" : undefined} className={path === link.href ? "nav-tab active" : "nav-tab"}>
+          {link.href === "/live" && <span className="live-dot" aria-hidden="true" />}{link.label}
+        </Link>)}
+    </nav><span className="nav-caption">Clarity. With receipts.</span>
+  </div></header>;
 }

@@ -1,0 +1,10 @@
+{
+  "engines": [
+    { "name": "exa", "memos": 3, "returned": 24, "cited": 11, "supported": 9, "score": 0.2941 },
+    { "name": "tavily", "memos": 3, "returned": 30, "cited": 10, "supported": 7.5, "score": 0.2125 },
+    { "name": "apify_linkedin", "memos": 2, "returned": 6, "cited": 2, "supported": 1, "score": 0.125 },
+    { "name": "brave", "memos": 3, "returned": 18, "cited": 5, "supported": 2, "score": 0.1071 }
+  ],
+  "memos": 3,
+  "updated_at": "2026-11-14T12:00:00.000Z"
+}

@@ -287,9 +287,9 @@ If a checkpoint slips by more than 15 minutes, cut scope (§12), don't push the 
 
 | Who | Now working on | Last pushed | Blocked on |
 |---|---|---|---|
-| Rishith | Integrated main: brain (deep 2-round memo + live), search layer, UI, docs, Chrome extension (Meet/Zoom captions → side panel). PRs #1 and #2 closed in favor of main: **pull main before your next change**. Next: first real-key run | 12:50 extension | keys |
-| Aarav | Search layer first version merged (Telem + Tavily, offline checks pass). Next: run `npx tsx --env-file=.env.local scripts/try-search.ts` with real keys and fix any shape differences | 12:20 | keys |
-| Mario | First UI merged (memo, trail drawer, watch, Live Room) + docs/ drafts (Devpost, slides, demo script, judge Q&A). Next: own polish, extension testing on a real Meet call, fill [MEASURE]/[FILL] placeholders | 12:35 | |
+| Rishith | Real keys live (1:15). Phase 2 lead: merging verifier, learner, ui, qa agents; wiring learning into the memo; demo run. **Pull main.** | 1:25 PRD phase 2 | |
+| Aarav | **Now (no code conflicts):** with your own keys in `.env.local`, run `TELEM_DILIGENCE=1 npx tsx --env-file=.env.local scripts/try-search.ts` and post which diligence providers (sec_edgar, coresignal_company, fetchlayer_reddit, patsnap, uspto_applications) return results and how fast. If they work, say [DONE] and Rishith turns it on. Then: set up the Devpost project page (team, title "Proven", tagline, tracks) and paste `docs/DEVPOST.md` in at 3:45. | 12:20 | |
+| Mario | **Now:** load `extension/` in Chrome (README, 4 steps), start a real Google Meet with Aarav, captions on, say "We have no competitors" and "Stripe processes over a trillion dollars a year". Post what the side panel showed (screenshot). Then: build the slide deck from `docs/SLIDES.md` and record the backup demo video at 3:15 following `docs/DEMO_SCRIPT.md`. Don't edit `app/`, `components/`, `lib/` until 3:15 (agents are working there). | 12:35 | |
 
 ## 12. Cut list (if behind, cut from the bottom up)
 

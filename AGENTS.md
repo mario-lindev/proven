@@ -6,6 +6,31 @@ Read this first, every time. This file is for people (Rishith, Aarav, Mario) and
 
 ---
 
+## PHASE 2 (from 1:20 PM): proof + learning. Read this before anything else.
+
+**Status at 1:20 PM:** all three APIs are live (keys on Rishith's machine). A real quick memo (Figma) took 51 s: 8 facts, 5 risks, 16 sources, every line cited. Telem routing works: each query gets a topic and an ordered provider list (exa, brave, parallel, seltz, you, perplexity, ceramic…). Fixed: the platform batch hung 20 s on every query because `fetchlayer_tiktok` hangs ~45 s; TikTok and Quora are out, Reddit is in.
+
+**Competition:** another team is building a recursive self-learning agent with Telem as its first layer. Our answer: **Proven learns too, but only from what it can prove.** Their loop rewards itself; ours rewards a source only when the exact quote behind a memo line is found in it.
+
+**Two new features (contract already in `lib/types.ts`):**
+1. **Verify every line** (`lib/brain/verify.ts`, wired into `lib/brain/memo.ts`): after the memo is written, Claude re-reads each fact and risk against the text of the sources it cites and returns the exact supporting quote. Lines with no quote are dropped in code. Each kept line carries `evidence: Evidence[]`; the memo carries `verification {checked, kept, dropped, ms}`; the trail gets a `verify` step. UI: hover a line to see the quote; "12 of 14 lines verified, 2 dropped".
+2. **Learn which engines prove things** (`lib/learn.ts`, `GET /api/engines` → `EngineBoard`): after each memo, per engine count results returned, cited, and backed by a verified quote; persist to `.data/engines.json`. Feed it back: rank candidate sources by consensus + learned engine score before choosing which pages to read (and the top sources for Live Room), recorded as a `learn` trail step. UI: a "What Proven learned" page with the engine leaderboard, and the feed says "Ranked with what Proven learned from N memos".
+
+**Pitch line:** "Telem picks the engines for each question. Proven checks every line against the page it came from, and learns which engines' answers hold up."
+
+**Who does what now (agents run in worktrees; Rishith merges):**
+| Agent | Owns | Done when |
+|---|---|---|
+| verifier | `lib/brain/verify.ts`, `lib/brain/memo.ts`, `lib/brain/live.ts` | real memo returns evidence on every kept line; dropped count is honest |
+| learner | `lib/learn.ts`, `app/api/engines/` | `/api/engines` shows real stats after a memo; `rankSources` + `recordMemo` exported for the lead to wire in |
+| ui | `app/` pages, `components/` | evidence quotes, verification summary, topic chips, `/engines` page, all from real data |
+| qa | `docs/`, `.data/` (runs only) | real timings and costs measured, bugs reported, demo memos warmed |
+| Aarav, Mario | check §11 for your line | |
+
+**New timeline:** 2:30 verify + learn merged · 3:00 UI merged, full real run · 3:15 feature freeze, warm demo memos · 3:45 video recorded · 4:00 Devpost submitted (deadline 4:15).
+
+---
+
 ## 0. Start here (everyone, first 5 minutes)
 
 1. `git clone https://github.com/mario-lindev/proven && cd proven`

@@ -14,7 +14,10 @@ export type Source = {
   published?: string;    // ISO date if known
 };
 
-export type Line = { text: string; source_ids: string[] };   // every memo line cites sources
+// Proof for one memo line: the exact quote in a cited source that backs it (found by the verify pass).
+export type Evidence = { source_id: string; quote: string; verdict: "supported" | "partial" };
+
+export type Line = { text: string; source_ids: string[]; evidence?: Evidence[] };   // every memo line cites sources
 
 export type Memo = {
   id: string;
@@ -28,6 +31,8 @@ export type Memo = {
   sources: Source[];
   trail_id: string;
   created_at: string;
+  // Verify pass: every fact and risk re-checked against its sources' text; unsupported lines are dropped.
+  verification?: { checked: number; kept: number; dropped: number; ms: number };
 };
 
 export type ClaimCheck = {
@@ -40,7 +45,7 @@ export type ClaimCheck = {
 };
 
 export type TrailStep = {
-  kind: "search" | "fetch" | "extract" | "llm";
+  kind: "search" | "fetch" | "extract" | "llm" | "verify" | "learn";
   label: string;         // "Search: Acme competitors"
   query?: string;
   engines?: Engine[];    // which engines answered, how fast
@@ -82,3 +87,16 @@ export type TrailRecorder = {
   id: string;
   step: (s: Omit<TrailStep, "at"> & { at?: string }) => void;
 };
+
+// What Proven learned: per engine, how often its results end up as verified evidence in memos.
+// score = (supported + 1) / (returned + 10), a smoothed "verified yield" used to rank sources before reading.
+export type EngineStat = {
+  name: string;
+  memos: number;      // memos this engine returned results in
+  returned: number;   // results it returned that became candidate sources
+  cited: number;      // of those, cited by a memo line
+  supported: number;  // of those, backed by a verified quote (Evidence verdict "supported")
+  score: number;
+};
+// GET /api/engines
+export type EngineBoard = { engines: EngineStat[]; memos: number; updated_at: string };

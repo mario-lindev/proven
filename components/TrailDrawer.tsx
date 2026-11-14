@@ -33,6 +33,8 @@ const KIND: Record<TrailStep["kind"], string> = {
   fetch: "Fetch",
   extract: "Read pages",
   llm: "Claude",
+  verify: "Verify",
+  learn: "Learn",
 };
 
 export default function TrailDrawer({

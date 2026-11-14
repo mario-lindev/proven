@@ -1,6 +1,6 @@
 // Telem REST: search (batch), fetch, monitors. Docs: https://docs.telem.ai/api/
 import type { Engine, WatchUpdate } from "../types";
-import { clip, errorText, needKey, normalizeUrl, postJSON, type Hit } from "./http";
+import { clip, errorText, getJSON, needKey, normalizeUrl, postJSON, type Hit } from "./http";
 
 // Hackathon keys work on hack.telem.ai (https://hack.telem.ai/doc). Override with TELEM_BASE_URL.
 const BASE = `${(process.env.TELEM_BASE_URL ?? "https://hack.telem.ai/api").replace(/\/+$/, "")}/v1`;
@@ -264,4 +264,70 @@ export async function telemCreateMonitor(query: string): Promise<TelemMonitor> {
 export async function telemPollMonitor(monitorId: string): Promise<TelemSearchResponse> {
   const key = needKey("TELEM_API_KEY");
   return postJSON<TelemSearchResponse>("Telem poll monitor", `${BASE}/monitors/${encodeURIComponent(monitorId)}/poll`, key, {});
+}
+
+// ---------- monitor agent (docs: Monitors; /poll is the legacy read) ----------
+
+export type TelemChange = {
+  seq?: number;
+  kind?: string; // entity_added, value_changed, fact_status_changed, alert, run, plan_changed
+  subject?: { entity_id?: string; name?: string } | null;
+  before?: unknown;
+  after?: unknown; // carries the quote and url
+  at?: string;
+};
+export type TelemChangesPage = { changes?: TelemChange[]; items?: TelemChange[]; next_cursor?: number | null; watermark?: number };
+
+const KIND_LABEL: Record<string, string> = {
+  entity_added: "New",
+  value_changed: "Changed",
+  fact_status_changed: "Status changed",
+  alert: "Alert",
+};
+
+function pick(o: unknown, keys: string[]): string {
+  if (!o || typeof o !== "object") return "";
+  for (const k of keys) {
+    const v = (o as Record<string, unknown>)[k];
+    if (typeof v === "string" && v.trim()) return v;
+  }
+  return "";
+}
+
+// Agent changes -> WatchUpdates. Skips bookkeeping kinds (run, plan_changed) and changes with no source url.
+export function parseTelemChanges(page: TelemChangesPage): { updates: WatchUpdate[]; next_cursor?: number } {
+  const updates: WatchUpdate[] = [];
+  for (const c of page.changes ?? page.items ?? []) {
+    if (!c.kind || c.kind === "run" || c.kind === "plan_changed") continue;
+    const url = pick(c.after, ["url", "source_url"]) || pick(c.before, ["url", "source_url"]);
+    if (!url) continue;
+    const name = c.subject?.name?.trim();
+    const value = typeof c.after === "string" ? c.after : pick(c.after, ["value", "name", "title", "text"]);
+    const quote = pick(c.after, ["quote", "evidence", "summary", "snippet"]);
+    updates.push({
+      at: c.at ?? new Date().toISOString(),
+      title: clip([KIND_LABEL[c.kind] ?? c.kind, name || value].filter(Boolean).join(": "), 300),
+      url,
+      summary: clip(quote || value, 500),
+    });
+  }
+  const next = page.next_cursor ?? page.watermark;
+  return { updates, ...(typeof next === "number" ? { next_cursor: next } : {}) };
+}
+
+// Run the monitor's agent now, outside its schedule (202). 409 tick_in_progress means one is already running.
+export async function telemTickMonitor(monitorId: string): Promise<{ job_id?: string; already_running?: boolean }> {
+  const key = needKey("TELEM_API_KEY");
+  try {
+    return await postJSON<{ job_id?: string }>("Telem run monitor", `${BASE}/monitors/${encodeURIComponent(monitorId)}/agent/ticks`, key, {});
+  } catch (err) {
+    if ((err as { status?: number }).status === 409 && /tick_in_progress/.test((err as Error).message)) return { already_running: true };
+    throw err;
+  }
+}
+
+export async function telemMonitorChanges(monitorId: string, cursor?: number): Promise<TelemChangesPage> {
+  const key = needKey("TELEM_API_KEY");
+  const q = typeof cursor === "number" ? `?cursor=${cursor}` : "";
+  return getJSON<TelemChangesPage>("Telem monitor changes", `${BASE}/monitors/${encodeURIComponent(monitorId)}/agent/changes${q}`, key);
 }

@@ -70,6 +70,8 @@ export async function POST(req: Request) {
 }
 
 async function mockMemo(company: string): Promise<Memo> {
-  const m = await fixture<Memo>("memo");
+  // Fixture text says "Acme Robotics"; swap in the typed name so mock demos read naturally.
+  const raw = JSON.stringify(await fixture<Memo>("memo")).replace(/Acme Robotics|Acme/g, company.replace(/["\\]/g, ""));
+  const m = JSON.parse(raw) as Memo;
   return { ...m, id: newId("memo"), company, created_at: new Date().toISOString() };
 }

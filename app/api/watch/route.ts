@@ -9,7 +9,11 @@ export async function POST(req: Request) {
   try {
     const { company } = (await req.json()) as { company?: string };
     if (!company?.trim()) return fail("company is required", 400);
-    if (isMock()) return NextResponse.json({ ...(await fixture<Watch>("watch")), company });
+    if (isMock()) {
+      const w: Watch = { ...(await fixture<Watch>("watch")), id: newId("w"), company: company.trim() };
+      store.watches.set(w.id, w);
+      return NextResponse.json(w);
+    }
     const { monitor_id } = await watch(company.trim());
     const w: Watch = { id: newId("w"), company: company.trim(), monitor_id, updates: [] };
     store.watches.set(w.id, w);

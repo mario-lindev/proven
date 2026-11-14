@@ -29,17 +29,19 @@
     }
    ],
    "urls": [
+    "https://example.com/acme-series-a",
     "https://example.com/acme-robotics-funding-round-investors/1",
     "https://example.com/acme-robotics-funding-round-investors/2",
     "https://example.com/acme-robotics-funding-round-investors/3",
-    "https://example.com/acme-robotics-funding-round-investors/4",
-    "https://example.com/acme-robotics-funding-round-investors/5",
-    "https://example.com/acme-robotics-funding-round-investors/6",
-    "https://example.com/acme-robotics-funding-round-investors/7"
+    "https://example.com/acme-robotics-funding-round-investors/4"
    ],
    "telem_session_id": "ad6461b0-8a0f-4385-9d48-46aa47ad871c",
    "at": "2026-11-14T12:00:02.000Z",
-   "ms": 1438
+   "ms": 1438,
+   "routing": [
+    "exa",
+    "linkup"
+   ]
   },
   {
    "kind": "search",
@@ -68,17 +70,21 @@
     }
    ],
    "urls": [
+    "https://example.com/rival-a",
+    "https://example.com/rival-b",
     "https://example.com/acme-robotics-competitors-warehouse-pick/1",
     "https://example.com/acme-robotics-competitors-warehouse-pick/2",
     "https://example.com/acme-robotics-competitors-warehouse-pick/3",
-    "https://example.com/acme-robotics-competitors-warehouse-pick/4",
-    "https://example.com/acme-robotics-competitors-warehouse-pick/5",
-    "https://example.com/acme-robotics-competitors-warehouse-pick/6",
-    "https://example.com/acme-robotics-competitors-warehouse-pick/7"
+    "https://example.com/acme-robotics-competitors-warehouse-pick/4"
    ],
    "telem_session_id": "ad6461b0-8a0f-4385-9d48-46aa47ad871c",
    "at": "2026-11-14T12:00:02.000Z",
-   "ms": 720
+   "ms": 720,
+   "routing": [
+    "exa",
+    "brave",
+    "linkup"
+   ]
   },
   {
    "kind": "search",
@@ -102,6 +108,7 @@
     }
    ],
    "urls": [
+    "https://example.com/acme-layoffs",
     "https://example.com/acme-robotics-layoffs-2026/1",
     "https://example.com/acme-robotics-layoffs-2026/2",
     "https://example.com/acme-robotics-layoffs-2026/3",
@@ -109,7 +116,11 @@
    ],
    "telem_session_id": "ad6461b0-8a0f-4385-9d48-46aa47ad871c",
    "at": "2026-11-14T12:00:02.000Z",
-   "ms": 1483
+   "ms": 1483,
+   "routing": [
+    "brave",
+    "tavily_web"
+   ]
   },
   {
    "kind": "search",
@@ -133,16 +144,19 @@
     }
    ],
    "urls": [
+    "https://example.com/reddit-acme",
     "https://example.com/acme-robotics-customer-reviews-reddit/1",
     "https://example.com/acme-robotics-customer-reviews-reddit/2",
     "https://example.com/acme-robotics-customer-reviews-reddit/3",
-    "https://example.com/acme-robotics-customer-reviews-reddit/4",
-    "https://example.com/acme-robotics-customer-reviews-reddit/5",
-    "https://example.com/acme-robotics-customer-reviews-reddit/6"
+    "https://example.com/acme-robotics-customer-reviews-reddit/4"
    ],
    "telem_session_id": "ad6461b0-8a0f-4385-9d48-46aa47ad871c",
    "at": "2026-11-14T12:00:02.000Z",
-   "ms": 1249
+   "ms": 1249,
+   "routing": [
+    "reddit",
+    "brave"
+   ]
   },
   {
    "kind": "search",
@@ -166,6 +180,7 @@
     }
    ],
    "urls": [
+    "https://example.com/acme-jobs",
     "https://example.com/acme-robotics-hiring-linkedin-field-engi/1",
     "https://example.com/acme-robotics-hiring-linkedin-field-engi/2",
     "https://example.com/acme-robotics-hiring-linkedin-field-engi/3",
@@ -173,7 +188,11 @@
    ],
    "telem_session_id": "ad6461b0-8a0f-4385-9d48-46aa47ad871c",
    "at": "2026-11-14T12:00:02.000Z",
-   "ms": 1178
+   "ms": 1178,
+   "routing": [
+    "linkedin",
+    "exa"
+   ]
   },
   {
    "kind": "search",
@@ -206,7 +225,11 @@
    ],
    "telem_session_id": "ad6461b0-8a0f-4385-9d48-46aa47ad871c",
    "at": "2026-11-14T12:00:03.000Z",
-   "ms": 1345
+   "ms": 1345,
+   "routing": [
+    "brave",
+    "tavily_web"
+   ]
   },
   {
    "kind": "search",
@@ -239,7 +262,11 @@
    ],
    "telem_session_id": "ad6461b0-8a0f-4385-9d48-46aa47ad871c",
    "at": "2026-11-14T12:00:03.000Z",
-   "ms": 1017
+   "ms": 1017,
+   "routing": [
+    "brave",
+    "tavily_web"
+   ]
   },
   {
    "kind": "search",
@@ -272,7 +299,11 @@
    ],
    "telem_session_id": "ad6461b0-8a0f-4385-9d48-46aa47ad871c",
    "at": "2026-11-14T12:00:03.000Z",
-   "ms": 1320
+   "ms": 1320,
+   "routing": [
+    "brave",
+    "tavily_web"
+   ]
   },
   {
    "kind": "search",
@@ -311,7 +342,12 @@
    ],
    "telem_session_id": "ad6461b0-8a0f-4385-9d48-46aa47ad871c",
    "at": "2026-11-14T12:00:03.000Z",
-   "ms": 953
+   "ms": 953,
+   "routing": [
+    "exa",
+    "brave",
+    "linkup"
+   ]
   },
   {
    "kind": "search",
@@ -346,7 +382,11 @@
    ],
    "telem_session_id": "ad6461b0-8a0f-4385-9d48-46aa47ad871c",
    "at": "2026-11-14T12:00:03.000Z",
-   "ms": 1537
+   "ms": 1537,
+   "routing": [
+    "brave",
+    "tavily_web"
+   ]
   },
   {
    "kind": "llm",
@@ -387,7 +427,11 @@
    ],
    "telem_session_id": "ad6461b0-8a0f-4385-9d48-46aa47ad871c",
    "at": "2026-11-14T12:00:08.000Z",
-   "ms": 1310
+   "ms": 1310,
+   "routing": [
+    "brave",
+    "tavily_web"
+   ]
   },
   {
    "kind": "search",
@@ -419,7 +463,11 @@
    ],
    "telem_session_id": "ad6461b0-8a0f-4385-9d48-46aa47ad871c",
    "at": "2026-11-14T12:00:09.000Z",
-   "ms": 1248
+   "ms": 1248,
+   "routing": [
+    "brave",
+    "tavily_web"
+   ]
   },
   {
    "kind": "search",
@@ -458,7 +506,12 @@
    ],
    "telem_session_id": "ad6461b0-8a0f-4385-9d48-46aa47ad871c",
    "at": "2026-11-14T12:00:09.000Z",
-   "ms": 1141
+   "ms": 1141,
+   "routing": [
+    "exa",
+    "brave",
+    "linkup"
+   ]
   },
   {
    "kind": "search",
@@ -489,7 +542,11 @@
    ],
    "telem_session_id": "ad6461b0-8a0f-4385-9d48-46aa47ad871c",
    "at": "2026-11-14T12:00:09.000Z",
-   "ms": 965
+   "ms": 965,
+   "routing": [
+    "exa",
+    "linkup"
+   ]
   },
   {
    "kind": "extract",

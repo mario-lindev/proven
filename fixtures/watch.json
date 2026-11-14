@@ -1,0 +1,8 @@
+{
+  "id": "w_demo",
+  "company": "Acme Robotics",
+  "monitor_id": "mon_demo",
+  "updates": [
+    { "at": "2026-11-14T13:05:00.000Z", "title": "Acme Robotics signs a 3PL partner", "url": "https://example.com/acme-partner", "summary": "New partnership with a third-party logistics firm." }
+  ]
+}

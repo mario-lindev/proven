@@ -1,0 +1,15 @@
+{
+  "checks": [
+    {
+      "id": "chk_demo",
+      "claim": "We have no competitors.",
+      "verdict": "contradicted",
+      "note": "Found 3 funded competitors: Rival A ($60M), Rival B ($45M), Rival C.",
+      "sources": [
+        { "id": "s4", "url": "https://example.com/rival-a", "title": "Rival A raises $60M", "engine": "tavily", "snippet": "Rival A, a warehouse robotics startup..." },
+        { "id": "s5", "url": "https://example.com/rival-b", "title": "Rival B Series B", "engine": "exa", "snippet": "Rival B closed a $45M Series B..." }
+      ],
+      "trail_id": "tr_demo"
+    }
+  ]
+}

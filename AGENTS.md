@@ -186,7 +186,7 @@ searchAll(queries: string[], trail: TrailRecorder, opts?: { platforms?: boolean 
 extract(urls: string[], trail: TrailRecorder): Promise<{ url: string; text: string }[]>
 watch(company: string): Promise<{ monitor_id: string }>
 pollWatch(monitor_id: string): Promise<WatchUpdate[]>
-newTrail(): TrailRecorder   // .step(TrailStep) and .id; stores in lib/store.ts
+// newTrail() lives in lib/store.ts (import it from "../store"), not here.
 ```
 
 How `searchAll` works:
@@ -252,7 +252,7 @@ If a checkpoint slips by more than 15 minutes, cut scope (§12), don't push the 
 
 | Who | Now working on | Last pushed | Blocked on |
 |---|---|---|---|
-| Rishith | | | |
+| Rishith | Scaffold done: types, store, mock API routes, fixtures, lib/brain (memo + live). Next: test brain with real keys once searchAll lands | 11:58 scaffold | Aarav: searchAll |
 | Aarav | | | |
 | Mario | | | |
 

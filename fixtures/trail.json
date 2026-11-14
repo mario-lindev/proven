@@ -1,0 +1,9 @@
+{
+  "id": "tr_demo",
+  "steps": [
+    { "kind": "llm", "label": "Plan the research", "at": "2026-11-14T12:00:00.000Z", "ms": 1800 },
+    { "kind": "search", "label": "Search: Acme Robotics competitors", "query": "Acme Robotics competitors", "engines": [ { "name": "exa", "latency_ms": 1019, "n_results": 5 }, { "name": "brave", "latency_ms": 868, "n_results": 5 }, { "name": "tavily", "latency_ms": 1240, "n_results": 5 } ], "urls": ["https://example.com/rival-a", "https://example.com/rival-b"], "telem_session_id": "ad6461b0-8a0f-4385-9d48-46aa47ad871c", "at": "2026-11-14T12:00:02.000Z", "ms": 1240 },
+    { "kind": "extract", "label": "Read 5 pages", "urls": ["https://example.com/acme-series-a"], "at": "2026-11-14T12:00:04.000Z", "ms": 2100 },
+    { "kind": "llm", "label": "Write the memo", "at": "2026-11-14T12:00:06.000Z", "ms": 9000 }
+  ]
+}

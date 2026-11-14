@@ -1,62 +1,69 @@
-# Judge Q&A: the 10 hardest questions
+# Judge Q&A: the hard questions
 
-Short, honest answers. If we don't know, say "we haven't measured that yet" and say how we would. Never make up a number on stage.
+Judges are early-stage investors. Short, honest answers. If we don't know, say "we haven't measured that yet" and how we would. Never make up a number on stage.
 
 ---
 
-## 1. How do you know it's accurate? What stops it from hallucinating?
+## 1. How do you know it's accurate? What stops hallucination?
 
-Three layers. Claude only sees the sources we found, and the prompt says to use only those and to leave out any line it cannot cite. The output must match a strict JSON schema, so every fact and risk comes with source ids. Then our code deletes any line whose source ids don't exist, before it reaches the screen.
+Three layers. Claude only sees the sources we found, and the prompt says to use only those and to drop any line it can't cite. The output has to match a strict JSON schema, so every fact and risk carries source ids. Then code removes any citation to an id that doesn't exist and drops any line left without one, before it reaches the screen.
 
-What it does not do yet: check that the cited page actually says what the line says. The model can still misread a source. That's why every line is clickable: you can check it in one click. A second pass that checks each line against its source text is the next thing we build.
+On the retrieval side, pages that several engines found rank first, so one engine's odd result doesn't lead the memo.
 
-We spot-checked [MEASURE: number of lines checked] lines by hand across [MEASURE: number of memos] memos; [MEASURE: number that matched their source] matched their source. (If we didn't do this, say: "We haven't measured accuracy yet. We'd build a test set of claims with known answers.")
+What it doesn't do yet: check that the cited page says what the line says. Claude can still misread a source. That's why every line is one click from its page and its search. A second pass that checks each line against its source text is next.
 
-## 2. Why not just use ChatGPT or Perplexity?
+We spot-checked [MEASURE: lines checked by hand] lines across [MEASURE: memos checked] memos; [MEASURE: lines that matched their source] matched. If we didn't do this: "We haven't measured accuracy yet. We'd build a test set of claims with known answers."
 
-A chat assistant answers a question. Proven gives a fixed output an investor can use: a verdict, facts, risks and questions, where every line has a source and you can see the whole research trail, down to which engine answered which query. Lines without sources are removed by code, not by trust. Live Room checks a pitch while you're in the meeting, and Watch keeps tracking the company afterwards. A careful person could get part of this from a chat tool, one question at a time. We do the whole job in one step and leave a record you can audit.
+## 2. Why not ChatGPT or Perplexity?
 
-## 3. Where does the data come from? Is it legal?
+They answer a question. Proven does a job: a verdict, facts, risks and questions to ask, where every line has a source and a trail down to which engine answered which query. Uncited lines are removed by code. It reaches LinkedIn, TikTok, X and Trustpilot through Telem's platform engines. It checks a pitch during the meeting, on a Meet or Zoom call. And Watch keeps tracking the company. You could get parts of this from a chat tool, one question at a time, with no record.
 
-Only public web pages, found through two search APIs: Telem and Tavily. We don't log in to any site or scrape anything ourselves. Platform coverage like LinkedIn comes through Telem under its terms. We only research companies and public information, never private individuals.
+## 3. What's the moat? Anyone can call these APIs.
 
-Honest gap: we haven't had a lawyer review this yet. Before we sell to funds we would, especially for platform data and for how long we store it.
+Today it's small, and we won't pretend otherwise. What builds one:
+- **Workflow.** Memos, trails and watches per company become a fund's research history.
+- **Feedback data.** When users mark a line right or wrong, we learn which engines are reliable for which question. Telem's per-engine output makes that measurable. That data is ours.
+- **The live check.** Being in the meeting, on the call, is a habit a report tool doesn't build.
 
-## 4. What's your moat? Anyone can call these APIs.
+## 4. Why is this hard to build without Telem?
 
-Today, the moat is small, and we won't pretend otherwise. What builds one over time:
-- **Workflow.** If funds keep their memos, trails and watches in Proven, the history per company is hard to move.
-- **Feedback data.** Every time a user marks a line or claim check right or wrong, we learn which sources and engines are reliable for which questions. That data is ours.
-- **The audit trail as a record.** A memo with its full trail can go into an investment committee packet. That's a habit, not a feature.
+Per-query engine routing, a cross-engine merge, platform access (LinkedIn, TikTok, X, Trustpilot, WeChat), date filters, per-engine latency and errors, one session per task, and monitor agents that find changes. Each is a separate integration or system. Telem gives them through one API, and its per-engine output is what our trail is made of.
 
-## 5. How will you price it? Why would a fund pay?
+## 5. What if Telem goes down or raises prices?
 
-Per seat for funds, per report for companies. [DECIDE: price per seat per month] per seat and [DECIDE: price per report] per report are our starting guesses; we haven't tested prices with buyers yet. A fund pays because a first-pass check that takes an analyst hours takes Proven [MEASURE: seconds per deep memo] seconds, and the output can be shown to partners with sources.
+Every query also goes to Tavily in parallel. If every Telem call fails, the memo still runs on Tavily results and the trail shows the Telem error; our offline tests cover that case (`scripts/check-parse.ts`). All provider code is in `lib/search/` behind a few functions. Without Telem we'd lose routing, platform reach and monitors, so the memo gets weaker, but the product still works.
 
-## 6. Who buys first?
+## 6. What does one memo cost?
 
-Seed and early-stage funds and accelerators that see a lot of pitches with small teams. They feel the problem most: many first meetings, few analysts. Second, corporate development and procurement teams checking vendors, who would buy per report. We have [VALIDATE: number of investors or buyers we have actually talked to, or say "not yet"] conversations so far.
+Calls per memo, from the code:
+- **Quick:** 2 Claude calls (plan, write). Up to 3 Telem search calls (general, news, platforms). 6 to 8 Tavily searches. One Tavily extract of 4 pages, with Telem fetch only for pages Tavily missed.
+- **Deep:** 3 Claude calls (plan, find gaps, write). Two rounds of up to 3 Telem search calls each. 14 to 20 Tavily searches. One extract of 8 pages.
+- **Live claim check:** 1 Claude call to find claims, then per claim (at most 2): up to 2 Telem search calls, 2 to 3 Tavily searches, 1 Claude call to judge.
 
-## 7. What if Telem goes down, raises prices, or goes away?
+Telem bills per engine that runs, and platform engines have their own meters.
 
-Every search goes to Telem and Tavily in parallel, and all provider code sits in one folder (`lib/search/`) behind four functions. If one engine or provider fails, the trail records the error and the other results still come through. [VERIFY: confirm searchAll still returns Tavily results when Telem errors.]
+Measured: quick [MEASURE: dollars per quick memo], deep [MEASURE: dollars per deep memo], live check [MEASURE: dollars per live claim check] (read the Anthropic, Telem and Tavily usage pages before and after one run). If we don't have it: "We haven't measured it yet; we'll read it off the usage dashboards."
 
-But we chose Telem on purpose. Batch search with per-query routing, per-engine latency and errors, platform reach, and monitors would take us months to build ourselves. If Telem went away we'd lose speed and coverage, not the product.
+## 7. How fast is it?
 
-## 8. What does one memo cost you?
+Quick memo [MEASURE: seconds per quick memo], deep memo [MEASURE: seconds per deep memo], live claim check [MEASURE: seconds per live claim check]. The screen shows the elapsed time on every run, so these come from real runs.
 
-A quick memo is two Claude calls (plan and write), one Telem batch search with 6 to 8 queries, 6 to 8 Tavily searches, and one extract of 4 pages. A deep memo adds a third Claude call (find the gaps), a second Telem batch with 4 to 6 queries, 4 to 6 more Tavily searches, and extracts 8 pages. Measured cost: quick [MEASURE: cost per quick memo in dollars], deep [MEASURE: cost per deep memo in dollars] (read the Anthropic, Telem and Tavily usage pages before and after one memo). One live claim check is one claim-finding call, one Telem batch with 2 to 3 queries, 2 to 3 Tavily searches and one judging call: [MEASURE: cost per live claim check].
+## 8. Who pays, and how much?
 
-If we don't have the number: "We haven't measured it yet. It's a handful of API calls per memo, and we'll know the exact cost from the usage dashboards."
+Funds per seat, companies per report. [DECIDE: price per seat per month] per seat and [DECIDE: price per report] per report are starting guesses; we haven't tested prices with buyers. A fund pays because a first-pass check that takes an analyst hours takes Proven one run ([MEASURE: seconds per deep memo] for a deep memo), and the output can go to partners with its sources.
 
-## 9. What about privacy? You're recording pitches.
+## 9. Who buys first, and how do you reach them?
 
-We don't record or store audio. Live Room uses Chrome's built-in speech recognition, which sends audio to Google to turn it into text. We send the last two sentences of text to our server. From there, the claim goes to Claude, and short search queries go to Telem and Tavily. Memos and trails live in memory and are gone when the server restarts; there's no database yet.
+Seed funds and accelerators: many first meetings, few analysts. Then corporate development and procurement teams checking vendors, per report. We start founder-led: free memos on companies a fund is actually looking at, and the trail sells it. We've had [VALIDATE: number of investor or buyer conversations, or say "none yet"] conversations so far. No paying customer or pilot yet.
 
-For real use: the founder in the room should know Live Room is on, and a fund would need settings for what is kept and for how long. A self-hosted speech model would keep audio off third-party servers.
+## 10. Privacy. You're listening to pitches.
 
-## 10. How do you get your first customers?
+We only research companies and public information, never private individuals. All sources are public web pages found through Telem and Tavily; we don't log in to any site.
 
-Founder-led sales to small funds and accelerators: we run free memos on companies they're actually looking at, and let the trail sell itself. Investors talk to each other, so a few funds that use it can bring more. Events like this one put us in front of investors directly. For companies, we start with startups buying their first vendors, who do this checking by hand today.
+Proven never receives audio. Live Room uses Chrome's speech recognition, which may run on Google's servers; the extension reads the call's captions and sends only caption text. We send the last two sentences to our server; the claim goes to Claude and short queries go to Telem and Tavily. Memos and trails are saved as files on our server so share links work; there is no user database.
 
-What we don't have yet: any paying customer or pilot. Getting [DECIDE: number] pilots is the next step.
+For real use: the founder should know checks are on, and a fund needs settings for what is kept and for how long. We haven't had a legal review yet; we would before selling, especially for platform data and retention.
+
+## 11. What if a founder's claim is true but Proven says Contradicted?
+
+Every card shows the note and the pages it used, and **See the searches behind this** shows the queries. The investor judges, not Proven. Amber **Unclear** is the default when evidence is thin; it won't guess. We'd track overturned verdicts as part of the accuracy test set.

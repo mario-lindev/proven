@@ -157,12 +157,18 @@ export async function buildMemo(
       .replace(/\s{2,}/g, " ")
       .replace(/\s+([.,;:])/g, "$1")
       .trim();
+  // The writer sometimes cites "[s3]", "S3" or "3"; all mean s3.
+  const normId = (id: string) => {
+    const m = String(id).match(/(\d+)/);
+    return m ? `s${m[1]}` : String(id).trim().toLowerCase();
+  };
   const keep = (lines: Line[]) =>
     lines
-      .map((l) => ({ ...l, text: noIds(l.text), source_ids: l.source_ids.filter((id) => ids.has(id)) }))
+      .map((l) => ({ ...l, text: noIds(l.text), source_ids: [...new Set(l.source_ids.map(normId))].filter((id) => ids.has(id)) }))
       .filter((l) => l.source_ids.length > 0);
-  let facts = keep(draft.facts);
-  let risks = keep(draft.risks);
+  let facts = keep(draft.facts ?? []);
+  let risks = keep(draft.risks ?? []);
+  if (facts.length + risks.length === 0) throw new Error(`The memo for "${company}" came back with no cited lines. Run it again.`);
 
   // Verify every line against the text of the sources it cites; a line with no quote found in them is dropped.
   // If the verify pass fails, the memo is kept as written, with no `verification` (the trail step says why).

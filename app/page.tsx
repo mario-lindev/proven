@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import type { Memo, MemoEvent, TrailStep } from "@/lib/types";
 import ErrorBox from "@/components/ErrorBox";
 import MemoView from "@/components/MemoView";
-import RecentMemos from "@/components/RecentMemos";
+import Landing, { type Numbers } from "@/components/home/Landing";
 import ResearchFeed, { feedStats } from "@/components/ResearchFeed";
 import { errMsg, fmtMs } from "@/components/http";
 import RouteScene, { GEO } from "@/components/ascii/RouteScene";
@@ -32,7 +32,6 @@ const ENTRIES = [
   { href: "/live", title: "Live Room", note: "claims checked as they are spoken" },
 ];
 
-type TelemNumbers = { queries: number; engines: number; pct: number | null };
 
 export default function Home() {
   const [company, setCompany] = useState("");
@@ -43,7 +42,8 @@ export default function Home() {
   const [historyKey, setHistoryKey] = useState(0);
   const abortRef = useRef<AbortController | null>(null);
   const deepLinked = useRef(false);
-  const [numbers, setNumbers] = useState<TelemNumbers | null>(null);
+  const [numbers, setNumbers] = useState<Numbers | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     fetch("/api/telem", { cache: "no-store" })
@@ -51,11 +51,18 @@ export default function Home() {
       .then((d: { ready?: boolean; queries?: number; engines?: unknown[]; proof?: { verified?: number; via_telem?: number } }) => {
         if (!d.ready || !d.queries) return;
         const v = d.proof?.verified ?? 0;
-        setNumbers({
+        const base: Numbers = {
           queries: d.queries,
           engines: d.engines?.length ?? 0,
           pct: v > 0 ? Math.round(((d.proof?.via_telem ?? 0) / v) * 100) : null,
-        });
+          memos: null,
+          verified: v > 0 ? Math.round(v) : null,
+        };
+        setNumbers(base);
+        fetch("/api/engines", { cache: "no-store" })
+          .then((r) => r.json())
+          .then((b: { memos?: number }) => typeof b.memos === "number" && b.memos > 0 && setNumbers({ ...base, memos: b.memos }))
+          .catch(() => {});
       })
       .catch(() => {});
   }, []);
@@ -171,6 +178,7 @@ export default function Home() {
         </label>
         <input
           id="company"
+          ref={inputRef}
           value={company}
           onChange={(e) => setCompany(e.target.value)}
           placeholder="Company, vendor or market"
@@ -305,35 +313,14 @@ export default function Home() {
       {!idle && form}
 
       {idle && (
-        <div className="relative grid gap-12 border-t border-rule pt-10 lg:grid-cols-[minmax(0,1fr)_26rem]">
-          <ol className="grid gap-8 sm:grid-cols-3">
-            {[
-              ["Plan", "Claude breaks the question into searches: funding, rivals, hiring, lawsuits, sentiment.",
-                "Deep mode then searches again for whatever is still unanswered, up to 4 rounds.",
-              ],
-              [
-                "Route",
-                "Telem sends each query to the engines best suited to it, including LinkedIn, X and Trustpilot.",
-                "Pages from engines whose answers held up in past memos are read first.",
-              ],
-              [
-                "Prove",
-                "The memo keeps only lines with a source. Open the trail to see every search behind it.",
-                "Each line is checked against its page; lines without a quote are dropped.",
-              ],
-            ].map(([t, d, extra], i) => (
-              <li key={t}>
-                <h3 className="display flex items-baseline gap-3 text-[2rem]">
-                  <span className="tnum font-mono text-[0.8rem] tracking-normal text-graphite">0{i + 1}</span>
-                  {t}
-                </h3>
-                <p className="mt-2 leading-relaxed text-graphite">{d}</p>
-                {extra && <p className="mt-2 leading-relaxed text-ink">{extra}</p>}
-              </li>
-            ))}
-          </ol>
-          <RecentMemos refreshKey={historyKey} />
-        </div>
+        <Landing
+          numbers={numbers}
+          refreshKey={historyKey}
+          onStart={() => {
+            window.scrollTo({ top: 0, behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+            inputRef.current?.focus({ preventScroll: true });
+          }}
+        />
       )}
 
       {run && (

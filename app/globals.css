@@ -133,6 +133,24 @@ body {
   animation: rise-in 0.9s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
+/* Landing sections reveal once as they scroll in. */
+[data-reveal] {
+  opacity: 0;
+  transform: translateY(22px);
+  transition: opacity 0.9s cubic-bezier(0.22, 1, 0.36, 1), transform 0.9s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.2s;
+}
+[data-reveal].is-in {
+  opacity: 1;
+  transform: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-reveal] {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}
+
 /* Rows that stream in get one short entrance. Nothing else moves on its own. */
 @keyframes row-in {
   from {

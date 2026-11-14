@@ -46,7 +46,7 @@ Read this first, every time. This file is for people (Rishith, Aarav, Mario) and
 
 ## 1. What we are building (one paragraph)
 
-Proven tells investors and companies whether a startup, vendor or market is worth pursuing, and shows the evidence behind every conclusion. Type a company name and get a one-page memo (pursue / pass / dig deeper) with fresh facts, risks and open questions, where every line links to its source. Click any line to see the research trail: which searches ran, which engines answered, which page it came from. **Live Room** listens to a pitch and checks claims as they are spoken (green / amber / red). **Watch** keeps tracking a company and reports changes.
+Proven tells investors and companies whether a startup, vendor or market is worth pursuing, and shows the evidence behind every conclusion. Type a company name and get a one-page memo (pursue / pass / dig deeper) with fresh facts, risks and open questions, where every line links to its source. Click any line to see the research trail: which searches ran, which engines answered, which page it came from. **Live Room** listens to a pitch and checks claims as they are spoken (green / amber / red). The **Chrome extension** does the same on a Google Meet or Zoom call by reading the call's live captions, in a side panel. **Watch** keeps tracking a company and reports changes.
 
 Sponsors:
 - **Tavily** searches the web and extracts page content.
@@ -69,7 +69,7 @@ Rules: must use **Telem and Tavily**. Teams up to 4.
 |---|---|---|
 | **Rishith**: lead, AI brain, integration | `lib/brain/`, `lib/types.ts`, `app/api/`, merging to `main`, the pitch | Memo + claim checks come back as valid JSON matching `lib/types.ts`, every line has `source_ids` |
 | **Aarav**: search layer | `lib/search/` (Telem, Tavily, trail, monitors), `fixtures/` | `searchAll()`, `extract()`, trail recording and `watch()` work with real keys and return the shapes in §6 |
-| **Mario**: product, UI, demo | `app/` pages and `components/`, Live Room mic, the Devpost page, the demo video, slides | The 3-minute demo runs end to end in the browser; Devpost submitted by 4:00 |
+| **Mario**: product, UI, demo | `app/` pages and `components/`, Live Room mic, the Chrome extension (`extension/`), the Devpost page, the demo video, slides | The 3-minute demo runs end to end in the browser; Devpost submitted by 4:00 |
 
 Rules for ownership:
 - **Only edit files you own.** Need a change in someone else's area? Ask in chat; they make it or say "go ahead".
@@ -169,11 +169,13 @@ export type Watch = { id: string; company: string; monitor_id: string; updates: 
 
 | Route | Body | Returns | Used by |
 |---|---|---|---|
-| `POST /api/memo` | `{ company: string, context?: string }` | `Memo` | home page |
+| `POST /api/memo` | `{ company: string, context?: string, depth?: "quick" \| "deep" }` (default deep: two search rounds, 60 to 120 s) | `Memo` | home page |
 | `POST /api/live` | `{ text: string }` (latest ~2 sentences of transcript) | `{ checks: ClaimCheck[] }` (empty if no factual claim) | Live Room |
 | `GET /api/trail/[id]` | none | `Trail` | trail drawer |
 | `POST /api/watch` | `{ company: string }` | `Watch` | Watch button |
 | `GET /api/watch/[id]` | none | `Watch` (with new updates) | watch panel |
+
+All `/api/*` routes send CORS headers (`middleware.ts`) so the Chrome extension can call them.
 
 Errors: `{ error: string }` with status 4xx/5xx. UI shows the message, never a blank screen.
 

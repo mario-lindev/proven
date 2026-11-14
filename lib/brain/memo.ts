@@ -32,27 +32,50 @@ const memoSchema = {
   },
 };
 
-export async function buildMemo(company: string, context?: string): Promise<Memo> {
+export type Depth = "quick" | "deep";
+
+export async function buildMemo(company: string, context?: string, depth: Depth = "deep"): Promise<Memo> {
   const trail = newTrail();
+  const deep = depth === "deep";
 
   const plan = await askJSON<{ queries: string[] }>({
     label: "Plan the research",
     trail,
     effort: "low",
     system:
-      "You plan web research for investor and vendor diligence. Return 6 to 10 short search queries. " +
+      `You plan web research for investor and vendor diligence. Return ${deep ? "10 to 14" : "6 to 8"} short search queries. ` +
       "Cover: what the company does and its traction, funding and investors, direct competitors including stealth and overseas ones, " +
-      "hiring signals (LinkedIn), customer sentiment (Reddit, TikTok, reviews), lawsuits, layoffs or security incidents, and news from the last 6 months.",
+      "hiring signals (LinkedIn), customer sentiment (Reddit, TikTok, reviews), lawsuits, layoffs or security incidents, and news from the last 6 months." +
+      (deep ? " Also cover: founders and team background, pricing and business model, market size, key customers or partners, and regulatory risk." : ""),
     user: `Subject: ${company}${context ? `\nContext: ${context}` : ""}`,
     schema: planSchema,
   });
 
-  const sources = await searchAll(plan.queries.slice(0, 10), trail, { platforms: true });
+  let sources = await searchAll(plan.queries.slice(0, deep ? 14 : 8), trail, { platforms: true });
   if (sources.length === 0) throw new Error(`No sources found for "${company}".`);
+
+  if (deep) {
+    // Round 2: look at what we found, search again for the gaps.
+    const gaps = await askJSON<{ queries: string[] }>({
+      label: "Find the gaps and follow up",
+      trail,
+      effort: "low",
+      system:
+        "You review first-round diligence search results. Name what an investor still can't answer " +
+        "(e.g. no revenue signal, no competitor named, unclear funding, claims only from the company itself) " +
+        "and return 4 to 6 new search queries that would fill those gaps. Prefer independent sources over the company's own site.",
+      user: `Subject: ${company}\n\nFound so far:\n${sources.map((s) => `- ${s.title} (${s.url})`).join("\n")}`,
+      schema: planSchema,
+    });
+    const more = await searchAll(gaps.queries.slice(0, 6), trail, { platforms: true }).catch(() => [] as Source[]);
+    const seen = new Set(sources.map((s) => s.url));
+    const added = more.filter((s) => !seen.has(s.url));
+    sources = [...sources, ...added].slice(0, 30).map((s, i) => ({ ...s, id: `s${i + 1}` }));
+  }
 
   let pages: { url: string; text: string }[] = [];
   try {
-    pages = await extract(sources.slice(0, 5).map((s) => s.url), trail);
+    pages = await extract(sources.slice(0, deep ? 8 : 4).map((s) => s.url), trail);
   } catch {
     // Extract is optional; the memo falls back to search snippets.
   }
@@ -73,7 +96,8 @@ export async function buildMemo(company: string, context?: string): Promise<Memo
       "Every fact and every risk must cite the ids of the sources that support it in source_ids. " +
       "If you cannot cite a source for a line, leave the line out. Do not guess numbers. " +
       "verdict: pursue (strong, low risk), dig_deeper (promising but open questions), pass (serious risks). " +
-      "confidence 0 to 1. summary 2 to 3 sentences. 4 to 8 facts, 2 to 6 risks, 2 to 5 open questions an investor should ask.",
+      `confidence 0 to 1. summary 2 to 3 sentences. ${deep ? "6 to 12 facts, 3 to 8 risks, 3 to 6" : "4 to 8 facts, 2 to 6 risks, 2 to 5"} open questions an investor should ask. ` +
+      "Name competitors explicitly when sources show them. Prefer independent sources over the company's own claims and say so when a fact is only self-reported.",
     user: `Subject: ${company}${context ? `\nContext: ${context}` : ""}\n\nSources:\n${sourceBlock}`,
     schema: memoSchema,
   });

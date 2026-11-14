@@ -4,7 +4,8 @@ import { newTrail, store } from "../lib/store";
 
 async function main() {
   const trail = newTrail();
-  const sources = await searchAll(["Anthropic competitors", "Anthropic funding 2026"], trail);
+  // Exercises all three Telem batches: general, recent (published_after) and platforms (pinned platform providers).
+  const sources = await searchAll(["Anthropic competitors", "Anthropic funding 2026", "Anthropic latest news", "Anthropic hiring on LinkedIn"], trail, { platforms: true });
   console.log(`\n=== ${sources.length} sources ===`);
   for (const s of sources) {
     console.log(`[${s.id}] (${s.engine}) ${s.title}\n    ${s.url}${s.published ? `  ${s.published}` : ""}\n    ${s.snippet.slice(0, 160)}`);

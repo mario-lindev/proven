@@ -2,8 +2,8 @@
 // Feeds hard-coded sample responses (shapes from docs.telem.ai / docs.tavily.com) through the mappers,
 // then runs searchAll / extract / pollWatch against a stubbed fetch. No network, no real keys.
 import assert from "node:assert/strict";
-import { extract, mergeHits, normalizeUrl, pollWatch, searchAll, watch } from "../lib/search";
-import { parseTelemFetch, parseTelemPoll, parseTelemSearch, type TelemSearchResponse } from "../lib/search/telem";
+import { PLATFORM_PROVIDERS, extract, mergeHits, normalizeUrl, pollWatch, recentSince, searchAll, wantsPlatforms, wantsRecent, watch } from "../lib/search";
+import { SEARCH_FIELDS, parseTelemFetch, parseTelemPoll, parseTelemSearch, type TelemSearchResponse } from "../lib/search/telem";
 import { parseTavilyExtract, parseTavilySearch, topicFor, type TavilySearchResponse } from "../lib/search/tavily";
 import { newTrail, store } from "../lib/store";
 
@@ -15,7 +15,7 @@ const ok = (name: string) => {
 
 const telemSample: TelemSearchResponse = {
   session_id: "sess-123",
-  routing: [{ providers: ["exa", "brave"] }],
+  routing: [{ providers: ["brave", "exa"] }, { providers: ["linkedin"] }],
   preprocessor_runs: [
     {
       preprocessor_name: "exa",
@@ -27,9 +27,9 @@ const telemSample: TelemSearchResponse = {
       output_payload: {
         results: [
           { rank: 2, url: "https://example.com/b", title: "B from exa", summary: "exa summary b" },
-          { rank: 1, url: "https://www.Example.com/a/", title: "A from exa", summary: "exa summary a", published_date: "2026-10-01" },
+          { rank: 1, url: "https://www.Example.com/a/", title: "A from exa", summary: "exa summary a", publish_date: "2026-10-01" },
         ],
-        warnings: [],
+        warnings: [{ code: "count_clamped", message: "clamped" }, { code: "capability_gap", message: "no excerpt" }],
       },
     },
     {
@@ -42,7 +42,7 @@ const telemSample: TelemSearchResponse = {
       output_payload: {
         results: [
           { rank: 1, url: "https://example.com/a", title: "A again from brave" },
-          { rank: 2, url: "https://brave-only.com/x?utm_source=feed", title: "X", summary: "x".repeat(900) },
+          { rank: 2, url: "https://brave-only.com/x?utm_source=feed", title: "X", summary: "x".repeat(900), publish_date: "" },
         ],
         warnings: [],
       },
@@ -76,20 +76,33 @@ const tavilySample: TavilySearchResponse = {
   assert.deepEqual(
     p.perQuery[0].engines,
     [
-      { name: "exa", latency_ms: 812, n_results: 2 },
+      { name: "exa", latency_ms: 812, n_results: 2, warnings: ["count_clamped"] }, // capability_gap left out
       { name: "brave", latency_ms: 301, n_results: 2 },
     ],
   );
   assert.deepEqual(p.perQuery[1].engines, [{ name: "linkedin", latency_ms: 50, n_results: 0, error: "provider_error: rate limited" }]);
+  assert.deepEqual(p.perQuery[0].routing, ["brave", "exa"]);
+  assert.deepEqual(p.perQuery[1].routing, ["linkedin"]);
   const q0 = p.perQuery[0].hits;
-  assert.equal(q0.length, 4);
-  assert.equal(q0[0].title, "A from exa"); // rank 1 first, exa run before brave run
+  // example.com/a found by exa AND brave -> one hit, first (consensus), credited to brave (routed ahead of exa),
+  // keeps exa's date + snippet. Then rank 2 ties broken by routing order: brave's X before exa's B.
+  assert.deepEqual(q0.map((h) => [h.url, h.engine]), [
+    ["https://www.Example.com/a/", "brave"],
+    ["https://brave-only.com/x?utm_source=feed", "brave"],
+    ["https://example.com/b", "exa"],
+  ]);
   assert.equal(q0[0].published, "2026-10-01");
-  assert.equal(q0[0].engine, "exa");
-  assert.equal(q0[1].engine, "brave");
-  assert.equal(q0[1].snippet, "");
-  assert.ok(q0[3].snippet.length <= 500, "snippet capped at 500");
-  ok("parseTelemSearch: engines per batch_index, rank order, error text, snippet cap");
+  assert.equal(q0[0].snippet, "exa summary a");
+  assert.equal(q0[1].published, undefined, 'publish_date "" means unknown');
+  assert.ok(q0[1].snippet.length <= 500, "snippet capped at 500");
+  ok("parseTelemSearch: engines + warnings per batch_index, routing per query, consensus/rank/routing order, publish_date");
+
+  const off = parseTelemSearch({ ...telemSample, routing: null }, 2);
+  assert.equal(off.perQuery[0].routing, undefined);
+  assert.deepEqual(off.perQuery[0].hits.map((h) => h.engine), ["exa", "exa", "brave"]); // no routing: run order credits exa
+  const short = parseTelemSearch({ ...telemSample, routing: [{ providers: ["exa"] }] }, 2);
+  assert.equal(short.perQuery[1].routing, undefined); // missing entry for a query -> no routing
+  ok("parseTelemSearch: routing null / missing entries");
 }
 
 // ---- Tavily search mapping ----
@@ -119,10 +132,10 @@ const tavilySample: TavilySearchResponse = {
   assert.deepEqual(
     sources.map((s) => [s.id, s.url, s.engine]),
     [
-      ["s1", "https://www.Example.com/a/", "exa"],
+      ["s1", "https://www.Example.com/a/", "brave"],
       ["s2", "https://tavily-one.com/p", "tavily"],
-      ["s3", "https://example.com/b#section", "tavily"], // round-robin: tavily list reaches /b before exa does
-      ["s4", "https://brave-only.com/x?utm_source=feed", "brave"],
+      ["s3", "https://brave-only.com/x?utm_source=feed", "brave"],
+      ["s4", "https://example.com/b#section", "tavily"], // round-robin: tavily list reaches /b before exa does
     ],
   );
   const many = mergeHits([Array.from({ length: 30 }, (_, i) => ({ url: `https://m.com/${i}`, title: `${i}`, engine: "exa", snippet: "" }))]);
@@ -151,6 +164,7 @@ const tavilySample: TavilySearchResponse = {
   assert.equal(u.length, 4); // dedupe is by exact URL here; the two spellings of example.com/a stay
   assert.equal(u[0].at, "2026-11-14T13:00:00Z"); // no date on the result -> poll time
   assert.equal(u[1].at, "2026-10-01"); // result's own date wins
+  assert.equal(u[3].at, "2026-11-14T13:00:00Z"); // publish_date "" -> poll time
   assert.deepEqual(Object.keys(u[0]).sort(), ["at", "summary", "title", "url"]);
   ok("parseTelemFetch / parseTavilyExtract / parseTelemPoll");
 }
@@ -186,8 +200,9 @@ async function e2e() {
   const telemCall = calls.find((c) => c.url === "https://hack.telem.ai/api/v1/search")!;
   assert.deepEqual(telemCall.body, {
     user_input: [{ query: queries[0] }, { query: queries[1] }],
-    search: { auto_routing: "accuracy", num_results: 5, tier: "default" },
+    search: { auto_routing: "accuracy", num_results: 5, fields: SEARCH_FIELDS },
   });
+  assert.equal(calls.filter((c) => c.url.endsWith("/v1/search")).length, 1, "no recent or platform batch for these queries");
   assert.equal(telemCall.auth, "Bearer test-telem");
   const tav = calls.filter((c) => c.url === "https://api.tavily.com/search");
   assert.equal(tav.length, 2);
@@ -201,9 +216,107 @@ async function e2e() {
   assert.equal(steps[0].query, queries[0]);
   assert.equal(steps[0].telem_session_id, "sess-123");
   assert.deepEqual(steps[0].engines!.map((e) => e.name), ["exa", "brave", "tavily"]);
+  assert.deepEqual(steps[0].routing, ["brave", "exa"]);
+  assert.deepEqual(steps[1].routing, ["linkedin"]);
+  assert.equal(steps[0].published_after, undefined);
   assert.deepEqual(steps[1].engines!.map((e) => [e.name, e.error ?? null]), [["linkedin", "provider_error: rate limited"], ["tavily", null]]);
   assert.ok(steps[0].urls!.length >= 4 && typeof steps[0].at === "string" && typeof steps[0].ms === "number");
-  ok("searchAll: request bodies, auth headers, merge, one trail step per query");
+  ok("searchAll: request bodies, auth headers, merge, one trail step per query, routing on steps");
+
+  // same trail again: the call joins the Telem session from the first response; extract's fetch joins it too
+  stub((url) => {
+    if (url.endsWith("/v1/search")) return { status: 200, json: telemSample };
+    if (url.endsWith("api.tavily.com/search")) return { status: 200, json: tavilySample };
+    if (url.endsWith("api.tavily.com/extract")) return { status: 200, json: { results: [], failed_results: [{ url: "https://z.com", error: "blocked" }] } };
+    if (url.endsWith("/v1/fetch")) return { status: 200, json: { session_id: "sess-123", preprocessor_runs: [{ batch_index: 0, output_payload: { fetched_results: [{ url: "https://z.com", content: "Z" }] } }] } };
+    throw new Error(`unexpected ${url}`);
+  });
+  await searchAll(["Anthropic pricing"], trail);
+  assert.equal((calls.find((c) => c.url.endsWith("/v1/search"))!.body as { session_id?: string }).session_id, "sess-123");
+  await extract(["https://z.com"], trail);
+  assert.equal((calls.find((c) => c.url.endsWith("/v1/fetch"))!.body as { session_id?: string }).session_id, "sess-123");
+  assert.equal(store.trails.get(trail.id)!.steps.at(-1)!.telem_session_id, "sess-123");
+  ok("searchAll / extract: later calls on a trail reuse its Telem session_id");
+
+  // recency + platforms: split into three batch calls, each mapped back to the right query
+  assert.ok(wantsRecent("Acme latest news") && !wantsRecent("Acme funding 2026"));
+  assert.ok(wantsPlatforms("Acme hiring on LinkedIn") && !wantsPlatforms("Acme pricing"));
+  const qs3 = ["Acme pricing", "Acme latest news", "Acme hiring on LinkedIn"];
+  const run = (name: string, batch_index: number, url: string) => ({
+    preprocessor_name: name, status: "succeeded", batch_index, latency_ms: 10, error: null,
+    output_payload: { results: [{ rank: 1, url, title: name, summary: name, publish_date: "2026-11-01" }], warnings: [] },
+  });
+  stub((url, body) => {
+    if (url.endsWith("api.tavily.com/search")) return { status: 200, json: { results: [] } };
+    const b = body as { user_input: { query: string }[]; search: { published_after?: string; providers?: { include: string[] } } };
+    const q = b.user_input.map((u) => u.query);
+    if (b.search.providers) {
+      assert.deepEqual(b.search.providers.include, PLATFORM_PROVIDERS);
+      assert.deepEqual(q, ["Acme hiring on LinkedIn"]);
+      return { status: 200, json: { session_id: "p1", routing: [{ providers: ["apify_linkedin", "socialdatax_x"] }], preprocessor_runs: [run("apify_linkedin", 0, "https://linkedin.com/posts/acme-hiring")] } };
+    }
+    if (b.search.published_after) {
+      assert.equal(b.search.published_after, recentSince());
+      assert.deepEqual(q, ["Acme latest news"]);
+      return { status: 200, json: { session_id: "r1", routing: [{ providers: ["exa"] }], preprocessor_runs: [run("exa", 0, "https://news.com/acme")] } };
+    }
+    assert.deepEqual(q, ["Acme pricing", "Acme hiring on LinkedIn"]);
+    return { status: 200, json: { session_id: "m1", routing: [{ providers: ["brave"] }, { providers: ["exa"] }], preprocessor_runs: [run("brave", 0, "https://acme.com/pricing"), run("exa", 1, "https://acme.com/careers")] } };
+  });
+  trail = newTrail();
+  sources = await searchAll(qs3, trail, { platforms: true });
+  assert.equal(calls.filter((c) => c.url.endsWith("/v1/search")).length, 3);
+  steps = store.trails.get(trail.id)!.steps;
+  assert.deepEqual(steps.map((s) => s.query), qs3);
+  assert.deepEqual(steps[0].routing, ["brave"]);
+  assert.deepEqual(steps[1].routing, ["exa"]);
+  assert.equal(steps[1].published_after, recentSince());
+  assert.equal(steps[0].published_after, undefined);
+  assert.deepEqual(steps[2].routing, ["exa", "apify_linkedin", "socialdatax_x"]);
+  assert.deepEqual(steps[2].engines!.map((e) => e.name), ["exa", "apify_linkedin", "tavily"]);
+  assert.ok(sources.some((s) => s.engine === "apify_linkedin" && s.url === "https://linkedin.com/posts/acme-hiring"));
+  assert.equal(sources.find((s) => s.url === "https://news.com/acme")!.published, "2026-11-01");
+  ok("searchAll: recency batch (published_after) and platform batch (pinned platform providers), routing per query");
+
+  // without opts.platforms: no platform batch
+  trail = newTrail();
+  stub((url, body) => {
+    if (url.endsWith("api.tavily.com/search")) return { status: 200, json: { results: [] } };
+    assert.equal((body as { search: { providers?: unknown } }).search.providers, undefined);
+    return { status: 200, json: { preprocessor_runs: [] } };
+  });
+  await searchAll(["Acme hiring on LinkedIn"], trail).catch(() => []);
+  assert.equal(calls.filter((c) => c.url.endsWith("/v1/search")).length, 1);
+  ok("searchAll: platform batch only with opts.platforms");
+
+  // a 422 on the rich body retries once with the docs' plain body; the step then claims no date filter
+  stub((url, body) => {
+    if (url.endsWith("api.tavily.com/search")) return { status: 200, json: { results: [] } };
+    const b = body as { search: { fields?: string[]; tier?: string } };
+    if (b.search.fields) return { status: 422, json: { detail: [{ loc: ["body", "search", "fields"], msg: "bad" }] } };
+    assert.equal(b.search.tier, "default");
+    return { status: 200, json: { routing: [{ providers: ["exa"] }], preprocessor_runs: [run("exa", 0, "https://news.com/acme")] } };
+  });
+  trail = newTrail();
+  sources = await searchAll(["Acme latest news"], trail);
+  assert.equal(calls.filter((c) => c.url.endsWith("/v1/search")).length, 2);
+  assert.equal(sources[0].url, "https://news.com/acme");
+  steps = store.trails.get(trail.id)!.steps;
+  assert.equal(steps[0].published_after, undefined);
+  assert.deepEqual(steps[0].routing, ["exa"]);
+  ok("telemSearch: 400/422 -> one retry with the plain body");
+
+  // platform batch fails -> its error is on the step, general results still come back
+  stub((url, body) => {
+    if (url.endsWith("api.tavily.com/search")) return { status: 200, json: { results: [] } };
+    if ((body as { search: { providers?: unknown } }).search.providers) return { status: 402, json: { detail: "out of credit" } };
+    return { status: 200, json: { preprocessor_runs: [run("exa", 0, "https://acme.com/careers")] } };
+  });
+  trail = newTrail();
+  sources = await searchAll(["Acme hiring on LinkedIn"], trail, { platforms: true });
+  assert.equal(sources.length, 1);
+  assert.deepEqual(store.trails.get(trail.id)!.steps[0].engines!.find((e) => e.name === "telem_platforms")!.error, "Telem search HTTP 402: out of credit");
+  ok("searchAll: platform batch failure is recorded, not fatal");
 
   // Telem down, Tavily up
   stub((url) => (url.includes("telem") ? { status: 401, json: { detail: "Missing API key" } } : { status: 200, json: tavilySample }));

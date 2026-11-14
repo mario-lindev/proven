@@ -52,7 +52,7 @@ export async function postJSON<T>(label: string, url: string, key: string, body?
   }
   if (!res.ok) {
     const msg = json !== undefined ? errorText(json) : text.slice(0, 300);
-    throw new Error(`${label} HTTP ${res.status}: ${msg || res.statusText}`);
+    throw Object.assign(new Error(`${label} HTTP ${res.status}: ${msg || res.statusText}`), { status: res.status });
   }
   if (json === undefined) throw new Error(`${label} returned non-JSON: ${text.slice(0, 200)}`);
   return json as T;
@@ -62,4 +62,18 @@ export async function postJSON<T>(label: string, url: string, key: string, body?
 export function clip(s: string | null | undefined, n: number): string {
   const t = (s ?? "").replace(/\s+/g, " ").trim();
   return t.length > n ? t.slice(0, n - 1).trimEnd() + "…" : t;
+}
+
+// Same page, different spelling: lower-case host, no www., no #hash, no utm_* params, no trailing slash.
+export function normalizeUrl(raw: string): string {
+  try {
+    const u = new URL(raw.trim());
+    u.hash = "";
+    u.hostname = u.hostname.toLowerCase().replace(/^www\./, "");
+    for (const k of [...u.searchParams.keys()]) if (/^utm_|^(ref|fbclid|gclid)$/i.test(k)) u.searchParams.delete(k);
+    const path = u.pathname.replace(/\/+$/, "");
+    return `${u.protocol}//${u.host}${path}${u.search}`;
+  } catch {
+    return raw.trim().replace(/\/+$/, "").toLowerCase();
+  }
 }

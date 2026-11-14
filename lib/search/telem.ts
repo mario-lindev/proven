@@ -1,4 +1,4 @@
-// Telem REST: search (batch), fetch, monitors. Docs: https://docs.telem.ai/api/
+// Telem REST: search (batch), fetch, monitors. Docs: https://hack.telem.ai/doc
 import type { Engine, WatchUpdate } from "../types";
 import { clip, errorText, getJSON, needKey, normalizeUrl, postJSON, type Hit } from "./http";
 

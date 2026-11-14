@@ -66,7 +66,11 @@ npm run dev                  # http://localhost:3000
 
 Offline, no keys: set `MOCK=1` in `.env.local` (or run `MOCK=1 npm run dev`). Every API route then returns fixtures from `fixtures/`, and a **Demo data** badge shows next to the logo. Never present mock results as real.
 
-Telem hackathon keys use `https://hack.telem.ai/api`; set `TELEM_BASE_URL` to change it.
+Sign in to the [Telem hackathon platform](https://hack.telem.ai/) to get your key. Set `TELEM_API_KEY` in the gitignored `.env.local` for local development, or in the server's environment settings for a deployment.
+
+- [Hackathon API docs](https://hack.telem.ai/doc)
+- SDK and REST base URL: `TELEM_BASE_URL=https://hack.telem.ai/api`
+- [Hackathon MCP endpoint](https://hack.telem.ai/mcp)
 
 ## Scripts
 

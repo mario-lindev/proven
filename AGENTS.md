@@ -116,7 +116,7 @@ Rules for ownership:
 
 - **Next.js (App Router) + TypeScript**, one repo, one `npm run dev`. API routes in `app/api/*`. Deploy on Vercel.
 - **Claude** through `@anthropic-ai/sdk`, model `claude-opus-5-5`. Structured output (`output_config.format` with a JSON schema) so the brain always returns JSON matching `lib/types.ts`. Live checks use `effort: "low"` for speed; the memo uses default effort.
-- **Telem** REST: `https://hack.telem.ai/api/v1/search`, `/v1/fetch`, `/v1/monitors` (details in §7). **Hackathon keys use `https://hack.telem.ai/api`** (docs: https://hack.telem.ai/doc); set `TELEM_BASE_URL` to change it.
+- **Telem** REST: `https://hack.telem.ai/api/v1/search`, `/v1/fetch`, `/v1/monitors` (details in §7). Get hackathon keys at https://hack.telem.ai/. Use the docs at https://hack.telem.ai/doc and set `TELEM_BASE_URL=https://hack.telem.ai/api` for SDKs and REST clients. The MCP endpoint is https://hack.telem.ai/mcp.
 - **Tavily** REST: `https://api.tavily.com/search`, `/extract`.
 - **Live Room speech:** the browser Web Speech API (`webkitSpeechRecognition`) in Chrome. No paid speech service.
 - **Storage:** in memory (a `Map` in `lib/store.ts`) for memos and trails. No database today.
@@ -235,7 +235,7 @@ Verified Telem facts (docs, today):
 - `routing` is one entry per query when auto-routing is on. Show it in the trail if present.
 - `/v1/fetch`: `{ "urls": [...], "options": { "tier": "default" } }`, **at most 5 URLs per call**, one document per URL in `preprocessor_runs[].output_payload.fetched_results[]`; failed URLs come back as their own rows.
 - Monitors: `POST /v1/monitors` `{ "query": "...", "options": { "frequency": "1h" }, "ttl": "30d" }`. **Fastest run is hourly** and there is no "fire now" for polls, so create the demo watch **early (by 1 PM)** so a real update exists by judging. `POST /v1/monitors/{id}/poll` returns results new since the last poll.
-- Hard-to-reach platforms (LinkedIn, TikTok, WeChat...): list in docs.telem.ai/resources/supported-platforms. Use them for the competitor and hiring queries. That is our "hard to build without Telem" proof.
+- Hard-to-reach platforms (LinkedIn, TikTok, WeChat...): list in hack.telem.ai/doc/resources/supported-platforms. Use them for the competitor and hiring queries. That is our "hard to build without Telem" proof.
 
 Tavily (check docs.tavily.com if anything fails): `POST https://api.tavily.com/search` `{ query, max_results, topic }`, `POST https://api.tavily.com/extract` `{ urls }`, key as `Authorization: Bearer`.
 

@@ -1,7 +1,7 @@
 // Proven side panel: transcript in, claim checks out.
 "use strict";
 
-const DEFAULT_BASE = "http://localhost:3000";
+const DEFAULT_BASE = "http://localhost:3313";
 const VERDICT = {
   supported: "Checks out",
   contradicted: "Contradicted",
@@ -145,7 +145,7 @@ async function pump() {
     const body = await api("/api/live", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text }),
+      body: JSON.stringify({ text, context: $("company").value.trim() || undefined }),
     });
     showError("");
     addChecks((body && body.checks) || []);
@@ -238,6 +238,34 @@ $("research").addEventListener("submit", (e) => {
   else window.open(url, "_blank", "noopener");
 });
 
+// ---------- audit this page ----------
+
+// Why the active tab can't be audited, or "" if it can.
+function auditBlock(url) {
+  if (!safeUrl(url)) return "Open a web page (http or https) in this window to audit it.";
+  try {
+    if (new URL(url).origin === new URL(state.base).origin) return "This is Proven itself. Open the page you want audited.";
+  } catch (_) {}
+  return "";
+}
+
+function auditUrl(url) {
+  return `${state.base}/audit?url=${encodeURIComponent(url)}&go=1`;
+}
+
+function renderAudit() {
+  const url = state.tab && state.tab.url;
+  const why = auditBlock(url);
+  $("audit").disabled = !!why;
+  $("auditHint").textContent = why || "Checks every claim on " + hostOf(url) + " against independent sources.";
+}
+
+$("audit").addEventListener("click", () => {
+  const url = state.tab && state.tab.url;
+  if (auditBlock(url)) return;
+  chrome.tabs.create({ url: auditUrl(url) });
+});
+
 // ---------- transcript ----------
 
 function onSentence(speaker, text) {
@@ -327,7 +355,7 @@ function card(c) {
       h("span", { class: "meta" }, c.at.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }))
     ),
     h("p", { class: "claim" }, `“${c.claim}”`),
-    c.note ? h("p", { class: "note" }, c.note) : null,
+    c.note ? noteLines(c.note) : null,
     sources.length
       ? h(
           "ul",
@@ -347,6 +375,13 @@ function card(c) {
     c.trail_id ? toggle : null,
     trailBox
   );
+}
+
+// The note, with a trailing ` Source says: "..."` split off as a quote line.
+function noteLines(note) {
+  const m = String(note).match(/^([\s\S]*?)\s*Source says:\s*["“]([\s\S]+?)["”]\s*$/);
+  if (!m) return h("p", { class: "note" }, note);
+  return [m[1] ? h("p", { class: "note" }, m[1]) : null, h("blockquote", { class: "quote" }, `“${m[2]}”`)];
 }
 
 function trailList(trail) {
@@ -499,10 +534,11 @@ $("mic").addEventListener("click", () => (state.micOn ? stopMic() : startMic()))
 async function refreshTab() {
   try {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    state.tab = tab ? { id: tab.id, site: siteOf(tab.url) } : null;
+    state.tab = tab ? { id: tab.id, url: tab.url || "", site: siteOf(tab.url) } : null;
   } catch (_) {
     state.tab = null;
   }
+  renderAudit();
   await pollStatus();
 }
 
@@ -581,20 +617,22 @@ function renderStatus() {
 }
 
 chrome.tabs.onActivated.addListener(refreshTab);
-chrome.tabs.onUpdated.addListener((_id, info) => info.status === "complete" && refreshTab());
+chrome.tabs.onUpdated.addListener((_id, info) => (info.status === "complete" || info.url) && refreshTab());
 setInterval(pollStatus, 3000);
 
 // ---------- settings ----------
 
-// GET /api/memos on base. Returns true, or a short failure message.
+// GET /api/health on base. Returns {ok, msg}: msg says real keys or demo data, or why it failed.
 async function ping(base) {
+  const fail = (msg) => ({ ok: false, msg: "Failed: " + msg });
   try {
-    const res = await fetch(base + "/api/memos", { cache: "no-store" });
-    if (!res.ok) return `Failed: server returned ${res.status}`;
+    const res = await fetch(base + "/api/health", { cache: "no-store" });
+    if (!res.ok) return fail(`server returned ${res.status}`);
     const body = await res.json().catch(() => null);
-    return body && Array.isArray(body.memos) ? true : "Failed: that URL is not a Proven server";
+    if (!body || body.ok !== true) return fail("that URL is not a Proven server");
+    return { ok: true, msg: body.mock ? "Connected (demo data)" : "Connected (real keys)" };
   } catch (_) {
-    return "Failed: can't reach it (server down, wrong URL, or CORS)";
+    return fail("can't reach it (server down, wrong URL, or CORS)");
   }
 }
 
@@ -607,7 +645,8 @@ $("save").addEventListener("click", async () => {
   $("base").value = state.base;
   await chrome.storage.local.set({ base: state.base });
   setServer("unknown");
-  ping(state.base).then((ok) => setServer(ok === true ? "ok" : "down"));
+  renderAudit();
+  ping(state.base).then((r) => setServer(r.ok ? "ok" : "down"));
   $("saved").textContent = "Saved";
   setTimeout(() => ($("saved").textContent = ""), 1500);
 });
@@ -615,9 +654,9 @@ $("save").addEventListener("click", async () => {
 $("test").addEventListener("click", async () => {
   const base = cleanBase($("base").value);
   $("saved").textContent = "Testing…";
-  const ok = await ping(base);
-  $("saved").textContent = ok === true ? "Connected" : ok;
-  if (base === state.base) setServer(ok === true ? "ok" : "down");
+  const r = await ping(base);
+  $("saved").textContent = r.msg;
+  if (base === state.base) setServer(r.ok ? "ok" : "down");
 });
 
 // ---------- start ----------
@@ -627,7 +666,7 @@ $("test").addEventListener("click", async () => {
   state.base = cleanBase(base);
   $("base").value = state.base;
   renderCards();
-  ping(state.base).then((ok) => setServer(ok === true ? "ok" : "down"));
+  ping(state.base).then((r) => setServer(r.ok ? "ok" : "down"));
   await refreshTab();
   setInterval(renderStatus, 1000);
 })();

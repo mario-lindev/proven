@@ -33,6 +33,7 @@
     const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
     // ---- fake chrome API ----
+    let tabUrl = "https://meet.google.com/abc-defg-hij";
     const listeners = [];
     const created = [];
     const store = { base: REAL || "http://test.local" };
@@ -40,7 +41,7 @@
       runtime: { onMessage: { addListener: (f) => listeners.push(f) }, getURL: (p) => p },
       storage: { local: { get: async () => ({ ...store }), set: async (o) => Object.assign(store, o) } },
       tabs: {
-        query: async () => [{ id: 7, url: "https://meet.google.com/abc-defg-hij" }],
+        query: async () => [{ id: 7, url: tabUrl }],
         sendMessage: async () => ({ site: "meet", region: false, mode: "none", lastCaptionAt: 0 }),
         create: (o) => created.push(o.url),
         onActivated: { addListener() {} },
@@ -51,6 +52,8 @@
 
     // ---- fake server (unless ?server=) ----
     const requests = [];
+    const contexts = [];
+    let healthMock = true;
     let serverDown = false;
     const realFetch = window.fetch.bind(window);
     const src = (n, url) => ({ id: "s" + n, url, title: "Source " + n, engine: "exa", snippet: "" });
@@ -60,15 +63,16 @@
         if (serverDown) throw new TypeError("Failed to fetch");
         const path = String(url).replace(store.base, "");
         const json = (b) => new Response(JSON.stringify(b), { status: 200, headers: { "Content-Type": "application/json" } });
-        if (path === "/api/memos") return json({ memos: [] });
+        if (path === "/api/health") return json({ ok: true, mock: healthMock, keys: {} });
         if (path === "/api/live") {
-          const { text } = JSON.parse(init.body);
+          const { text, context } = JSON.parse(init.body);
           requests.push(text);
+          contexts.push(context);
           const checks = [];
           if (/competitor/i.test(text))
             checks.push({ id: "c1", claim: "We have no competitors.", verdict: "contradicted", note: "Found 3 funded competitors", sources: [src(1, "https://www.crunchbase.com/x")], trail_id: "t1" });
           if (/revenue/i.test(text))
-            checks.push({ id: "c2", claim: "Our revenue grew 3x last year.", verdict: "supported", note: "Matches a TechCrunch report", sources: [src(2, "https://techcrunch.com/y")], trail_id: "t2" });
+            checks.push({ id: "c2", claim: "Our revenue grew 3x last year.", verdict: "supported", note: 'Matches a TechCrunch report. Source says: "Revenue tripled to $30M in 2025."', sources: [src(2, "https://techcrunch.com/y")], trail_id: "t2" });
           return json({ checks });
         }
         return new Response("{}", { status: 404 });
@@ -94,7 +98,8 @@
       await sleep(300);
 
       if (REAL) {
-        ok("ping real server", (await ping(REAL)) === true);
+        const pinged = await ping(REAL);
+        ok("ping real server (/api/health)", pinged.ok && /^Connected \((real keys|demo data)\)$/.test(pinged.msg), pinged);
         say("Alice", "We have no competitors at all.");
         for (let i = 0; i < 40 && !document.querySelector(".card"); i++) await sleep(250);
         ok("real server returns a contradicted card", !!document.querySelector(".card.contradicted"));
@@ -130,12 +135,17 @@
       ok("3 requests, duplicate skipped", requests.length === 3, requests);
       ok("2nd request carries previous sentence as context", requests[1] === "Hi, I'm the CEO of Acme Robotics. We have no competitors.", requests[1]);
       ok("3rd request = context + new", requests[2] === "We have no competitors. Our revenue grew 3x last year.", requests[2]);
+      ok("requests carry the company as context", contexts[1] === "Acme Robotics" && contexts[2] === "Acme Robotics", contexts);
 
       // 4. cards
       const cards = [...document.querySelectorAll("#cards .card")];
       ok("2 cards (repeat claim deduped)", cards.length === 2, cards.length);
       ok("newest first: supported on top", cards[0] && cards[0].classList.contains("supported"));
       ok("contradicted card is red", cards[1] && cards[1].classList.contains("contradicted"));
+      const q = cards[0] && cards[0].querySelector(".quote");
+      ok("Source says shown as a quote line", !!q && q.textContent === "“Revenue tripled to $30M in 2025.”", q && q.textContent);
+      ok("note keeps only the note", cards[0] && cards[0].querySelector(".note").textContent === "Matches a TechCrunch report.", cards[0] && cards[0].querySelector(".note").textContent);
+      ok("plain note has no quote line", cards[1] && !cards[1].querySelector(".quote") && cards[1].querySelector(".note").textContent === "Found 3 funded competitors");
       ok("card shows domain", cards[1] && /crunchbase\.com/.test(cards[1].querySelector(".domain").textContent));
       ok("counts", txt("nChecked") === "2" && txt("nSupported") === "1" && txt("nContradicted") === "1", [txt("nChecked"), txt("nSupported"), txt("nContradicted")]);
       ok("transcript has 4 lines", document.querySelectorAll("#transcript p").length === 4);
@@ -151,11 +161,37 @@
       ok("typed company not overwritten", document.getElementById("company").value === "Other Co");
       ok("suggestion offered", /Globex/.test(txt("heard")), txt("heard"));
 
+      // 5b. audit this page
+      const audit = document.getElementById("audit");
+      ok("audit enabled on an https page", !audit.disabled && /meet\.google\.com/.test(txt("auditHint")), txt("auditHint"));
+      tabUrl = "https://acme.com/pitch?a=1&b=2#team";
+      await refreshTab();
+      audit.click();
+      ok("audit opens Pitch Audit", created[2] === "http://test.local/audit?url=https%3A%2F%2Facme.com%2Fpitch%3Fa%3D1%26b%3D2%23team&go=1", created[2]);
+      tabUrl = "chrome://extensions/";
+      await refreshTab();
+      ok("audit disabled on a non-http page", audit.disabled && /http or https/.test(txt("auditHint")), txt("auditHint"));
+      tabUrl = "http://test.local/audit";
+      await refreshTab();
+      audit.click();
+      ok("audit disabled on Proven itself", audit.disabled && /Proven itself/.test(txt("auditHint")) && created.length === 3, [txt("auditHint"), created.length]);
+      tabUrl = "";
+      await refreshTab();
+      ok("audit disabled with no tab URL", audit.disabled);
+      tabUrl = "https://meet.google.com/abc-defg-hij";
+      await refreshTab();
+
       // 6. typed claim is always sent, alone
       document.getElementById("claim").value = "We have no competitors.";
       document.getElementById("typed").requestSubmit();
       await sleep(50);
       ok("typed claim sent alone", requests[requests.length - 1] === "We have no competitors.", requests[requests.length - 1]);
+      ok("context follows the edited company field", contexts[contexts.length - 1] === "Other Co", contexts[contexts.length - 1]);
+      document.getElementById("company").value = "";
+      document.getElementById("claim").value = "We are profitable.";
+      document.getElementById("typed").requestSubmit();
+      await sleep(50);
+      ok("no context when the company field is empty", contexts[contexts.length - 1] === undefined, contexts[contexts.length - 1]);
 
       // 7. server down
       serverDown = true;
@@ -169,7 +205,12 @@
       serverDown = false;
       document.getElementById("test").click();
       await sleep(100);
-      ok("test connection: ok", txt("saved") === "Connected", txt("saved"));
+      ok("test connection: demo data", txt("saved") === "Connected (demo data)", txt("saved"));
+      healthMock = false;
+      document.getElementById("test").click();
+      await sleep(100);
+      ok("test connection: real keys", txt("saved") === "Connected (real keys)", txt("saved"));
+      ok("default server is localhost:3313", DEFAULT_BASE === "http://localhost:3313" && cleanBase("") === "http://localhost:3313", DEFAULT_BASE);
       ok("server line back", txt("server") === "Proven server: test.local", txt("server"));
       ok("error banner cleared", document.getElementById("error").hidden);
       finish();

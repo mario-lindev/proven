@@ -65,6 +65,7 @@ input:focus, select:focus { outline: 2px solid var(--accent-soft); border-color:
 .research-row input { flex: 1 1 100%; }
 .research-row button { flex: 1; }
 .heard { margin-top: 6px; font-size: 13px; color: var(--muted); }
+.audit { width: 100%; margin-top: 8px; }
 .heard button { background: none; border: 0; color: var(--accent); padding: 0; text-decoration: underline; font-weight: 600; }
 
 /* claims */
@@ -83,6 +84,7 @@ input:focus, select:focus { outline: 2px solid var(--accent-soft); border-color:
 .meta { color: var(--muted); font-size: 12px; }
 .claim { font-size: 17px; font-weight: 650; margin: 4px 0; line-height: 1.35; }
 .note { margin: 0 0 8px; }
+.quote { margin: 0 0 8px; padding-left: 8px; border-left: 2px solid var(--line); color: var(--muted); font-size: 13.5px; font-style: italic; }
 .sources { list-style: none; padding: 0; margin: 0 0 6px; display: grid; gap: 4px; }
 .sources a { color: var(--ink); text-decoration: underline; text-decoration-color: #9ca3af; text-underline-offset: 2px; }
 .domain { color: var(--muted); font-size: 12.5px; margin-left: 6px; }

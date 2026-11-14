@@ -84,10 +84,10 @@ export default function TrailDrawer({
       aria-labelledby="trail-title"
       onCancel={(event) => { event.preventDefault(); onClose(); }}
       onClick={(event) => { if (event.target === event.currentTarget) onClose(); }}
-      className="no-print fixed inset-y-0 right-0 left-auto m-0 h-dvh max-h-none w-full max-w-[44rem] bg-surface text-ink shadow-2xl backdrop:bg-ink/35"
+      className="no-print fixed inset-y-0 right-0 left-auto m-0 h-dvh max-h-none w-full max-w-[44rem] overflow-hidden bg-surface text-ink shadow-2xl sm:rounded-l-2xl backdrop:bg-ink/35"
     >
       <aside className="drawer-in flex h-full flex-col">
-        <div className="border-b border-rule px-7 pb-5 pt-6">
+        <div className="border-b border-rule px-4 pb-4 pt-5 sm:px-7">
           <div className="flex items-start justify-between gap-4">
             <h2 id="trail-title" className="serif text-3xl font-semibold tracking-tight">
               How Proven reached this
@@ -101,7 +101,7 @@ export default function TrailDrawer({
             </button>
           </div>
           {trail && (
-            <dl className="tnum mt-4 grid grid-cols-4 gap-4">
+            <dl className="tnum mt-4 grid grid-cols-2 gap-x-4 gap-y-2 min-[390px]:grid-cols-4">
               {[
                 ["steps", steps.length],
                 ["queries", stats.queries],
@@ -116,10 +116,10 @@ export default function TrailDrawer({
             </dl>
           )}
           {focusSource && (
-            <div className="mt-4 border-l-2 border-cobalt bg-cobalt-soft px-4 py-3">
+            <div className="mt-4 rounded-lg bg-cobalt-soft px-4 py-3">
               <p className="text-sm text-graphite">Tracing the cited source</p>
               <p className="mt-0.5 font-medium">{focusSource.title}</p>
-              <p className="mt-0.5 flex items-center gap-1.5 text-sm text-graphite">
+              <p className="mt-0.5 flex items-center gap-1.5 break-all text-sm text-graphite">
                 <EngineDot name={focusSource.engine} />
                 {engineLabel(focusSource.engine)}, {domain(focusSource.url)}
               </p>
@@ -127,7 +127,7 @@ export default function TrailDrawer({
           )}
         </div>
 
-        <div ref={bodyRef} className="flex-1 overflow-y-auto px-7 py-6">
+        <div ref={bodyRef} className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto px-4 py-5 sm:px-7">
           {error && <ErrorBox message={error} />}
           {!error && !trail && <p className="text-graphite">Loading the trail.</p>}
           {trail && steps.length === 0 && <p className="text-graphite">No steps were recorded for this one.</p>}
@@ -141,7 +141,7 @@ export default function TrailDrawer({
                     key={i}
                     data-hit={hit}
                     className={`relative grid grid-cols-[2.25rem_minmax(0,1fr)] gap-3 pb-6 last:pb-0 ${
-                      hit ? "-mx-3 bg-cobalt-soft px-3 pt-3 ring-1 ring-cobalt/30" : ""
+                      hit ? "-mx-2 rounded-lg bg-cobalt-soft px-3 pt-3 ring-1 ring-cobalt/30" : ""
                     }`}
                   >
                     <span
@@ -227,7 +227,7 @@ export default function TrailDrawer({
 
                       {s.telem_session_id && (
                         <p className="mt-2 text-sm text-faint">
-                          Telem session <span className="font-mono">{s.telem_session_id}</span>
+                          Telem session <span className="break-all font-mono">{s.telem_session_id}</span>
                         </p>
                       )}
                     </div>

@@ -126,16 +126,16 @@ export default function ResearchFeed({
   const llms = steps.filter((s) => s.kind === "llm");
 
   return (
-    <section aria-label="Research progress" className="border border-rule bg-surface">
-      <header className="flex flex-wrap items-end justify-between gap-6 border-b border-rule px-6 py-5 md:px-8">
+    <section aria-label="Research progress" className="overflow-hidden rounded-2xl border border-rule bg-surface">
+      <header className="flex flex-wrap items-end justify-between gap-4 border-b border-rule px-4 py-5 sm:gap-6 sm:px-6 md:px-8">
         <div className="min-w-0">
           <p className="text-graphite">
             {running ? "Researching" : failed ? "Stopped researching" : "Researched"}{" "}
             <span className="text-ink">{depth === "deep" ? "in depth" : "quickly"}</span>
           </p>
-          <h2 className="serif mt-1 truncate text-4xl font-semibold tracking-tight">{company}</h2>
+          <h2 className="serif mt-1 break-words text-4xl font-semibold tracking-tight">{company}</h2>
         </div>
-        <dl className="grid grid-cols-4 gap-x-8 text-right">
+        <dl className="grid w-full grid-cols-4 gap-x-2 sm:w-auto sm:gap-x-6 sm:text-right">
           <Stat label="queries" value={stats.queries} />
           <Stat label="engines" value={stats.engines.size} />
           <Stat label="pages found" value={stats.urls} />
@@ -143,7 +143,7 @@ export default function ResearchFeed({
         </dl>
       </header>
 
-      <ol className="flex border-b border-rule" aria-label="Phases">
+      <ol className="grid grid-cols-2 gap-px bg-rule p-px lg:grid-cols-none lg:grid-flow-col lg:auto-cols-fr" aria-label="Phases">
         {phases.map((p, i) => {
           const isActive = active === p;
           const isDone = !isActive && (donePhases.has(p) || (!running && !failed));
@@ -151,8 +151,8 @@ export default function ResearchFeed({
             <li
               key={p}
               aria-current={isActive ? "step" : undefined}
-              className={`relative flex-1 overflow-hidden border-r border-rule-soft px-4 py-3 last:border-r-0 ${
-                isActive ? "bg-cobalt-soft" : ""
+              className={`relative min-w-0 overflow-hidden px-3 py-3 ${
+                isActive ? "bg-cobalt-soft" : "bg-surface"
               }`}
             >
               <div className="flex items-center gap-2 text-sm">
@@ -167,7 +167,7 @@ export default function ResearchFeed({
                 >
                   {i + 1}
                 </span>
-                <span className={`truncate ${isActive ? "font-semibold text-cobalt" : isDone ? "text-ink" : "text-faint"}`}>
+                <span className={`leading-tight ${isActive ? "font-semibold text-cobalt" : isDone ? "text-ink" : "text-faint"}`}>
                   {PHASES[p]}
                 </span>
               </div>
@@ -179,7 +179,7 @@ export default function ResearchFeed({
         })}
       </ol>
 
-      <div className="px-6 py-5 md:px-8">
+      <div className="px-4 py-5 sm:px-6 md:px-8">
         {stats.telemEngines.size > 0 && (
           <div className="mb-5 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
             <span className="text-graphite">Telem routed to</span>
@@ -285,7 +285,7 @@ export default function ResearchFeed({
         {stats.sessions.size > 0 && (
           <p className="mt-5 text-sm text-faint">
             Telem session{stats.sessions.size > 1 ? "s" : ""}{" "}
-            <span className="font-mono">{[...stats.sessions].join(", ")}</span>
+            <span className="break-all font-mono">{[...stats.sessions].join(", ")}</span>
           </p>
         )}
       </div>
@@ -297,7 +297,7 @@ function Stat({ label, value, live }: { label: string; value: number | string; l
   return (
     <div className="flex flex-col-reverse">
       <dt className="mt-1.5 text-sm text-graphite">{label}</dt>
-      <dd className={`tnum text-3xl font-medium leading-none ${live ? "text-cobalt" : ""}`}>{value}</dd>
+      <dd className={`tnum whitespace-nowrap text-xl font-medium leading-none sm:text-3xl ${live ? "text-cobalt" : ""}`}>{value}</dd>
     </div>
   );
 }

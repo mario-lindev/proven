@@ -35,7 +35,7 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${sans.variable} ${serif.variable} ${mono.variable} antialiased bg-paper text-ink`}>
         <Nav />
-        <main className="mx-auto w-full max-w-[1240px] px-5 pb-28 pt-10 md:px-10">{children}</main>
+        <main className="site-frame pb-16 pt-8 sm:pt-12">{children}</main>
       </body>
     </html>
   );

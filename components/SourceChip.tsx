@@ -42,7 +42,7 @@ export default function SourceChip({
         <span
           id={id}
           role="tooltip"
-          className="no-print absolute bottom-full left-1/2 z-30 mb-2 block w-[22rem] -translate-x-1/2 border border-rule bg-surface p-4 text-left font-sans shadow-[0_12px_32px_-12px_rgba(20,32,43,0.35)]"
+          className="no-print absolute bottom-full left-1/2 z-30 mb-2 hidden w-[20rem] rounded-xl sm:block -translate-x-1/2 border border-rule bg-surface p-4 text-left font-sans shadow-[0_12px_32px_-12px_rgba(20,32,43,0.35)]"
         >
           <span className="flex items-center justify-between gap-3 text-sm text-graphite">
             <span className="truncate">{domain(source.url)}</span>

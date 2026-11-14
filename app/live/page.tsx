@@ -24,10 +24,10 @@ type Recognition = {
 };
 type RecognitionCtor = new () => Recognition;
 
-const VERDICT: Record<ClaimCheck["verdict"], { label: string; text: string; bg: string; line: string; mark: string }> = {
-  supported: { label: "Checks out", text: "text-pursue", bg: "bg-pursue-soft", line: "border-pursue", mark: "bg-pursue-soft decoration-pursue" },
-  contradicted: { label: "Contradicted", text: "text-pass", bg: "bg-pass-soft", line: "border-pass", mark: "bg-pass-soft decoration-pass" },
-  unclear: { label: "Unclear", text: "text-dig", bg: "bg-dig-soft", line: "border-dig", mark: "bg-dig-soft decoration-dig" },
+const VERDICT: Record<ClaimCheck["verdict"], { label: string; text: string; mark: string }> = {
+  supported: { label: "Checks out", text: "text-pursue", mark: "bg-pursue-soft decoration-pursue" },
+  contradicted: { label: "Contradicted", text: "text-pass", mark: "bg-pass-soft decoration-pass" },
+  unclear: { label: "Unclear", text: "text-dig", mark: "bg-dig-soft decoration-dig" },
 };
 
 const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9 ]/g, "").trim();
@@ -215,12 +215,12 @@ export default function LiveRoom() {
     <div className="space-y-8">
       <header className="flex flex-wrap items-end justify-between gap-6">
         <div>
-          <h1 className="serif text-[3.4rem] font-semibold leading-none tracking-tight">Live Room</h1>
-          <p className="mt-3 max-w-[38rem] text-[1.15rem] text-graphite">
+          <h1 className="serif text-[clamp(2.4rem,5vw,3.6rem)] font-semibold leading-none tracking-[-0.035em]">Live Room</h1>
+          <p className="mt-3 max-w-[38rem] text-pretty text-base leading-relaxed text-graphite sm:text-lg">
             Proven listens to the pitch and checks each factual claim against the web while the founder is still talking.
           </p>
         </div>
-        <div className="flex items-center gap-5">
+        <div className="flex flex-wrap items-center gap-3">
           {listening && (
             <span className="flex items-center gap-3 text-lg font-medium text-pass" role="status">
               <span className="flex h-6 items-end gap-[3px]" aria-hidden>
@@ -236,11 +236,11 @@ export default function LiveRoom() {
               type="button"
               onClick={listening ? stop : start}
               disabled={supported === null}
-              className={`flex items-center gap-3 px-8 py-4 text-xl font-semibold text-white disabled:opacity-50 ${
-                listening ? "bg-pass hover:bg-pass/85" : "bg-ink hover:bg-cobalt"
+              className={`flex min-h-11 items-center gap-2.5 rounded-lg px-4 py-2.5 font-semibold text-white disabled:opacity-50 ${
+                listening ? "bg-pass hover:bg-pass/85" : "bg-cobalt hover:bg-ink"
               }`}
             >
-              <span className={`h-3 w-3 rounded-full ${listening ? "bg-white" : "bg-pass"}`} aria-hidden />
+              <span className="size-2 rounded-full bg-white" aria-hidden />
               {listening ? "Stop listening" : "Start listening"}
             </button>
           )}
@@ -248,7 +248,7 @@ export default function LiveRoom() {
       </header>
 
       {supported === false && (
-        <div className="border-l-4 border-dig bg-dig-soft px-5 py-4">
+        <div className="rounded-lg bg-dig-soft px-4 py-3">
           <span className="font-semibold text-dig">Use Chrome for the mic.</span> This browser has no speech recognition.
           You can still type claims below.
         </div>
@@ -256,21 +256,21 @@ export default function LiveRoom() {
 
       {error && <ErrorBox message={error} />}
 
-      <div className="grid gap-8 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)]">
-        <section aria-labelledby="transcript-title" className="flex min-w-0 flex-col border border-rule bg-surface">
-          <div className="flex items-baseline justify-between border-b border-rule px-6 py-3">
+      <div className="grid items-start gap-7 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)]">
+        <section aria-labelledby="transcript-title" className="flex min-w-0 flex-col rounded-2xl border border-rule bg-surface">
+          <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-b border-rule px-4 py-3 sm:px-5">
             <h2 id="transcript-title" className="font-semibold">
               Transcript
             </h2>
             <span className="text-sm text-graphite">Checked claims are marked in their verdict colour</span>
           </div>
-          <div ref={scrollRef} className="h-[46vh] min-h-[18rem] overflow-y-auto px-6 py-5" aria-live="off">
+          <div ref={scrollRef} className="h-[26vh] min-h-40 overflow-y-auto px-4 py-5 sm:h-[40vh] sm:min-h-56 sm:px-5" aria-live="off">
             {log.length === 0 && !interim ? (
-              <p className="serif text-[1.5rem] leading-relaxed text-faint">
+              <p className="serif max-w-[33ch] text-xl leading-relaxed text-graphite">
                 {listening ? "Listening. Start the pitch." : "Press Start listening and begin the pitch, or type a claim below."}
               </p>
             ) : (
-              <p className="serif text-[1.6rem] leading-[1.6]">
+              <p className="serif break-words text-xl leading-relaxed sm:text-2xl">
                 {log.slice(-30).map((l, i) => {
                   const c = matchCheck(l.text, checks);
                   const v = c ? VERDICT[c.verdict] ?? VERDICT.unclear : null;
@@ -293,7 +293,7 @@ export default function LiveRoom() {
               </p>
             )}
           </div>
-          <form onSubmit={submitTyped} className="flex border-t border-rule">
+          <form onSubmit={submitTyped} className="grid grid-cols-[minmax(0,1fr)_auto] gap-2 border-t border-rule p-3">
             <label htmlFor="typed" className="sr-only">
               Type a claim to check
             </label>
@@ -301,13 +301,13 @@ export default function LiveRoom() {
               id="typed"
               value={typed}
               onChange={(e) => setTyped(e.target.value)}
-              placeholder="Type a claim to check, e.g. We have no competitors"
-              className="min-w-0 flex-1 bg-transparent px-6 py-4 text-lg outline-none placeholder:text-faint"
+              placeholder="Type a claim to check"
+              className="min-w-0 rounded-lg border border-rule bg-surface px-3 py-2.5 text-base placeholder:text-faint focus:border-cobalt"
             />
             <button
               type="submit"
               disabled={!typed.trim() || typedBusy}
-              className="shrink-0 border-l border-rule px-7 text-lg font-semibold text-ink hover:bg-ink hover:text-white disabled:text-faint disabled:hover:bg-transparent"
+              className="action-primary px-4"
             >
               {typedBusy ? "Checking…" : "Check"}
             </button>
@@ -315,11 +315,11 @@ export default function LiveRoom() {
         </section>
 
         <section aria-labelledby="claims-title" className="min-w-0">
-          <div className="mb-4 flex items-baseline justify-between border-b-2 border-ink pb-2">
-            <h2 id="claims-title" className="text-lg font-semibold">
+          <div className="mb-4 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 border-b border-rule pb-3">
+            <h2 id="claims-title" className="serif text-2xl font-semibold tracking-tight">
               Claims checked
             </h2>
-            <span className="tnum flex gap-4 text-sm">
+            <span className="tnum flex flex-wrap gap-x-3 gap-y-1 text-sm">
               <span className="text-pass">{counts.contradicted} contradicted</span>
               <span className="text-dig">{counts.unclear} unclear</span>
               <span className="text-pursue">{counts.supported} check out</span>
@@ -328,24 +328,24 @@ export default function LiveRoom() {
 
           <div className="space-y-4" aria-live="polite">
             {pending > 0 && (
-              <div className="flex items-center gap-3 border border-dashed border-cobalt/50 bg-cobalt-soft px-5 py-4 text-cobalt">
+              <div className="flex items-center gap-3 rounded-lg bg-cobalt-soft px-4 py-3 text-cobalt">
                 <span className="pulse-dot h-2.5 w-2.5 rounded-full bg-cobalt" aria-hidden />
                 Searching the web for the latest claim
               </div>
             )}
             {notice && <p className="text-graphite">{notice}</p>}
             {checks.length === 0 && pending === 0 && !notice && !error && (
-              <p className="text-lg text-graphite">
+              <p className="max-w-[40ch] text-graphite">
                 No claims yet. When the founder states a fact, its check appears here with sources.
               </p>
             )}
             {checks.map((c) => {
               const v = VERDICT[c.verdict] ?? VERDICT.unclear;
               return (
-                <article key={c.id + c.claim} className={`row-in border-l-[6px] ${v.line} bg-surface px-6 py-5 shadow-[0_1px_0_#d8dee4]`}>
-                  <p className={`text-2xl font-semibold ${v.text}`}>{v.label}</p>
-                  <p className="serif mt-2 text-[1.45rem] font-medium leading-snug">&ldquo;{c.claim}&rdquo;</p>
-                  <p className="mt-2 text-lg leading-snug">{c.note}</p>
+                <article key={c.id + c.claim} className={`row-in rounded-xl border border-rule bg-surface px-4 py-4 sm:px-5`}>
+                  <p className={`text-sm font-semibold ${v.text}`}>{v.label}</p>
+                  <p className="serif mt-2 break-words text-[1.35rem] font-medium leading-snug">&ldquo;{c.claim}&rdquo;</p>
+                  <p className="mt-2 text-base leading-relaxed text-graphite">{c.note}</p>
                   {c.sources.length > 0 && (
                     <ul className="mt-4 space-y-1.5 border-t border-rule-soft pt-3">
                       {c.sources.map((s, i) => (

@@ -22,22 +22,15 @@ export default function Nav() {
 
   return (
     <header className="no-print border-b border-rule bg-surface">
-      <div className="mx-auto flex max-w-[1240px] items-center justify-between gap-4 px-5 py-4 md:px-10">
-        <div className="flex items-center gap-4">
-          <Link href="/" className="flex items-baseline gap-3" aria-label="Proven home">
-            <span className="serif text-[1.75rem] font-semibold leading-none tracking-tight">Proven</span>
-            <span className="hidden text-sm text-graphite lg:inline">Research where every line cites its source</span>
-          </Link>
-          {mock && (
-            <span
-              title="The server is running with MOCK=1. Results are fixtures, not real research."
-              className="rounded-md border-2 border-dig bg-dig-soft px-2.5 py-0.5 text-sm font-semibold text-dig"
-            >
-              Demo data
-            </span>
-          )}
-        </div>
-        <nav className="flex gap-1" aria-label="Main">
+      <div className="site-frame flex min-h-[3.8rem] flex-wrap items-center justify-between gap-x-3 gap-y-1 py-2">
+        <Link href="/" className="inline-flex min-h-10 items-center gap-2.5" aria-label="Proven home">
+          <svg aria-hidden="true" className="size-7 rounded-md bg-cobalt p-1 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M7 4h7l3 3v13H7z" />
+            <path d="m9.5 12.5 1.8 1.8 3.4-4" />
+          </svg>
+          <span className="serif text-[1.55rem] font-semibold leading-none tracking-[-0.03em]">Proven</span>
+        </Link>
+        <nav className="ml-auto flex items-center gap-1" aria-label="Main">
           {links.map((l) => {
             const active = l.href === "/" ? path === "/" || path.startsWith("/memo") : path.startsWith(l.href);
             return (
@@ -45,16 +38,23 @@ export default function Nav() {
                 key={l.href}
                 href={l.href}
                 aria-current={active ? "page" : undefined}
-                className={`relative px-4 py-2 font-medium transition-colors ${
-                  active ? "text-ink" : "text-graphite hover:text-ink"
+                className={`inline-flex min-h-10 items-center whitespace-nowrap rounded-lg px-2.5 text-sm font-medium transition-colors sm:px-4 ${
+                  active ? "bg-cobalt-soft text-cobalt" : "text-graphite hover:bg-paper hover:text-ink"
                 }`}
               >
                 {l.label}
-                {active && <span className="absolute inset-x-4 -bottom-[17px] h-[2px] bg-ink" />}
               </Link>
             );
           })}
         </nav>
+        {mock && (
+          <span
+            title="The server is running with MOCK=1 and returning sample data."
+            className="order-last basis-full text-xs font-medium text-dig sm:order-none sm:basis-auto"
+          >
+            Demo data
+          </span>
+        )}
       </div>
     </header>
   );

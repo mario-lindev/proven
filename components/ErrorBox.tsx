@@ -2,7 +2,7 @@ export default function ErrorBox({ message, onRetry }: { message: string; onRetr
   return (
     <div
       role="alert"
-      className="flex flex-wrap items-start justify-between gap-4 border-l-4 border-pass bg-pass-soft px-5 py-4"
+      className="flex flex-wrap items-start justify-between gap-4 rounded-xl bg-pass-soft px-5 py-4"
     >
       <div className="min-w-0">
         <p className="font-semibold text-pass">That didn&rsquo;t work</p>

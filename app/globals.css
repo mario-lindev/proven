@@ -1,18 +1,18 @@
 @import "tailwindcss";
 
 @theme inline {
-  --color-paper: #f3f5f7;
+  --color-paper: #f6f7fa;
   --color-surface: #ffffff;
   --color-ink: #14202b;
   --color-graphite: #5b6773;
-  --color-faint: #8c96a0;
+  --color-faint: #626f7c;
   --color-rule: #d8dee4;
   --color-rule-soft: #e8ecf0;
   --color-cobalt: #2c46c9;
   --color-cobalt-soft: #e9edfb;
   --color-pursue: #17704a;
   --color-pursue-soft: #e3f2ea;
-  --color-dig: #a8670b;
+  --color-dig: #865203;
   --color-dig-soft: #fbf0dc;
   --color-pass: #b2242c;
   --color-pass-soft: #fbe6e6;
@@ -23,13 +23,13 @@
 }
 
 html {
-  font-size: 17px;
+  font-size: 16px;
   -webkit-text-size-adjust: 100%;
 }
 
 body {
-  background: #f3f5f7;
-  color: #14202b;
+  background: var(--color-paper);
+  color: var(--color-ink);
   font-family: var(--font-plex-sans), system-ui, sans-serif;
 }
 
@@ -43,13 +43,50 @@ body {
 }
 
 :focus-visible {
-  outline: 2px solid #2c46c9;
+  outline: 2px solid var(--color-cobalt);
   outline-offset: 2px;
-  border-radius: 3px;
 }
 
 ::selection {
   background: #d6ddfa;
+}
+
+.site-frame {
+  width: min(100%, 75rem);
+  margin-inline: auto;
+  padding-inline: clamp(1rem, 4vw, 2.5rem);
+}
+
+.research-form {
+  padding: clamp(1rem, 3vw, 1.5rem);
+  border: 1px solid var(--color-rule);
+  border-radius: 1rem;
+  background: var(--color-surface);
+}
+
+.research-input {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.5rem;
+}
+
+.action-primary {
+  min-height: 2.75rem;
+  border-radius: 0.5rem;
+  background: var(--color-cobalt);
+  color: white;
+  font-weight: 600;
+  transition: background-color 150ms ease;
+}
+
+.action-primary:hover:not(:disabled) {
+  background: var(--color-ink);
+}
+
+.action-primary:disabled {
+  background: var(--color-cobalt-soft);
+  color: var(--color-graphite);
 }
 
 /* Rows that stream in get one short entrance. Nothing else moves on its own. */

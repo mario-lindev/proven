@@ -10,10 +10,10 @@ import { EngineDot, engineLabel, isTavily } from "./engines";
 import { domain, fmtDate, fmtMs, fmtTime } from "./http";
 import { feedStats } from "./ResearchFeed";
 
-export const VERDICT: Record<Memo["verdict"], { label: string; text: string; bg: string; bar: string; line: string }> = {
-  pursue: { label: "Pursue", text: "text-pursue", bg: "bg-pursue-soft", bar: "bg-pursue", line: "border-pursue" },
-  dig_deeper: { label: "Dig deeper", text: "text-dig", bg: "bg-dig-soft", bar: "bg-dig", line: "border-dig" },
-  pass: { label: "Pass", text: "text-pass", bg: "bg-pass-soft", bar: "bg-pass", line: "border-pass" },
+export const VERDICT: Record<Memo["verdict"], { label: string; text: string; bg: string; bar: string }> = {
+  pursue: { label: "Pursue", text: "text-pursue", bg: "bg-pursue-soft", bar: "bg-pursue" },
+  dig_deeper: { label: "Dig deeper", text: "text-dig", bg: "bg-dig-soft", bar: "bg-dig" },
+  pass: { label: "Pass", text: "text-pass", bg: "bg-pass-soft", bar: "bg-pass" },
 };
 
 type Focus = { urls: string[]; source: Source | null };
@@ -96,20 +96,20 @@ export default function MemoView({ memo, trail: preloaded }: { memo: Memo; trail
       <ul className="divide-y divide-rule-soft">
         {lines.map((l, i) => (
           <li key={i} className="avoid-break">
-            <div
-              role="button"
-              tabIndex={0}
-              onClick={() => openLine(l.source_ids)}
-              onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), openLine(l.source_ids))}
-              title="Show how Proven found this"
-              className="group -mx-3 flex cursor-pointer gap-3 px-3 py-3 transition-colors hover:bg-paper"
-            >
+            <div className="-mx-3 flex gap-3 rounded-lg px-3 py-3 transition-colors hover:bg-cobalt-soft/60 focus-within:bg-cobalt-soft/60">
               <span
                 aria-hidden
-                className={`mt-[0.6em] h-[7px] w-[7px] shrink-0 ${kind === "risk" ? "bg-pass" : "bg-ink"}`}
+                className={`mt-[0.6em] h-[7px] w-[7px] shrink-0 rounded-full ${kind === "risk" ? "bg-pass" : "bg-ink"}`}
               />
-              <p className="serif text-[1.18rem] leading-[1.55]">
-                {l.text}
+              <p className="serif min-w-0 break-words text-[1.18rem] leading-[1.55]">
+                <button
+                  type="button"
+                  onClick={() => openLine(l.source_ids)}
+                  title="Show how Proven found this"
+                  className="inline cursor-pointer text-left"
+                >
+                  {l.text}
+                </button>
                 {l.source_ids.map((id) => {
                   const n = index.get(id);
                   if (n === undefined) return null;
@@ -127,24 +127,24 @@ export default function MemoView({ memo, trail: preloaded }: { memo: Memo; trail
   }
 
   return (
-    <article className="space-y-10">
+    <article className="space-y-8">
       <p className="print-only text-sm text-graphite">
         Proven memo, {fmtTime(memo.created_at)}. Every line cites a numbered source listed at the end.
       </p>
 
-      <header className="grid gap-8 border-b border-rule pb-9 lg:grid-cols-[minmax(0,1fr)_20rem]">
+      <header className="grid gap-6 border-b border-rule pb-7 lg:grid-cols-[minmax(0,1fr)_20rem]">
         <div className="min-w-0">
-          <h1 className="serif break-words text-[3.4rem] font-semibold leading-[1.02] tracking-tight">{memo.company}</h1>
-          <p className="serif mt-5 max-w-[42rem] text-[1.4rem] leading-[1.5] text-ink/90">{memo.summary}</p>
+          <h1 className="serif break-words text-[clamp(2.4rem,5vw,3.6rem)] font-semibold leading-[1.02] tracking-[-0.035em]">{memo.company}</h1>
+          <p className="serif mt-4 max-w-[42rem] text-xl leading-relaxed text-ink/90 sm:text-[1.35rem]">{memo.summary}</p>
         </div>
-        <div className={`print-plain self-start border-l-4 ${v.line} ${v.bg} px-6 py-5`}>
+        <div className={`print-plain self-start rounded-2xl ${v.bg} px-5 py-4`}>
           <p className="text-graphite">Verdict</p>
-          <p className={`serif text-[2.9rem] font-semibold leading-tight ${v.text}`}>{v.label}</p>
+          <p className={`serif text-[2.5rem] font-semibold leading-tight ${v.text}`}>{v.label}</p>
           <div className="mt-3 flex items-baseline justify-between text-sm">
             <span className="text-graphite">Confidence</span>
             <span className="tnum text-lg font-semibold">{pct}%</span>
           </div>
-          <div className="mt-1.5 h-1.5 w-full bg-surface" role="meter" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100} aria-label="Confidence">
+          <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-surface" role="meter" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100} aria-label="Confidence">
             <div className={`h-full ${v.bar}`} style={{ width: `${pct}%` }} />
           </div>
           <p className="mt-3 text-sm text-graphite">
@@ -158,7 +158,7 @@ export default function MemoView({ memo, trail: preloaded }: { memo: Memo; trail
         <button
           type="button"
           onClick={() => setFocus({ urls: [], source: null })}
-          className="rounded-md bg-ink px-4 py-2 font-medium text-white hover:bg-ink/85"
+          className="action-primary px-4 py-2"
         >
           How Proven reached this
         </button>
@@ -171,7 +171,7 @@ export default function MemoView({ memo, trail: preloaded }: { memo: Memo; trail
       </div>
 
       <div className="memo-grid grid gap-12 lg:grid-cols-[minmax(0,1fr)_22rem]">
-        <div className="min-w-0 space-y-10">
+        <div className="min-w-0 space-y-8">
           <section className="avoid-break">
             <SectionTitle title="Facts" count={memo.facts.length} />
             {lineList(memo.facts, "fact")}
@@ -199,7 +199,7 @@ export default function MemoView({ memo, trail: preloaded }: { memo: Memo; trail
 
         <aside className="min-w-0 space-y-8">
           {trail && stats && (
-            <section className="no-print border border-rule bg-surface p-5">
+            <section className="no-print rounded-xl border border-rule bg-surface p-5">
               <h3 className="font-semibold">The research behind it</h3>
               <dl className="tnum mt-3 grid grid-cols-3 gap-3">
                 {[
@@ -286,7 +286,7 @@ export default function MemoView({ memo, trail: preloaded }: { memo: Memo; trail
 
 function SectionTitle({ title, count }: { title: string; count: number }) {
   return (
-    <h2 className="mb-2 flex items-baseline gap-2 border-b-2 border-ink pb-2 text-lg font-semibold">
+    <h2 className="serif mb-2 flex items-baseline gap-2 border-b border-rule pb-2 text-2xl font-semibold tracking-tight">
       {title}
       <span className="tnum text-sm font-normal text-graphite">{count}</span>
     </h2>

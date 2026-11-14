@@ -142,108 +142,114 @@ export default function Home() {
 
   return (
     <div className="space-y-10">
-      {idle && (
-        <div className="max-w-[52rem] pt-6">
-          <h1 className="serif text-[3.6rem] font-semibold leading-[1.04] tracking-tight md:text-[4.4rem]">
-            Know what is true before you commit.
-          </h1>
-          <p className="mt-5 max-w-[40rem] text-[1.2rem] leading-relaxed text-graphite">
-            Name a startup, vendor or market. Telem routes each search to the engines that fit it, Tavily reads the
-            pages, and Claude writes a one-page memo where every line cites its source.
-          </p>
-        </div>
-      )}
+      <div className={idle ? "grid items-start gap-9 lg:grid-cols-[minmax(0,1fr)_19rem] lg:gap-12" : ""}>
+        <div className="min-w-0">
+          {idle && (
+            <header className="mb-7">
+              <h1 className="serif max-w-[16ch] text-balance text-[clamp(2.4rem,5vw,4.25rem)] font-semibold leading-[1.02] tracking-[-0.035em]">
+                Know what is true before you commit.
+              </h1>
+              <p className="mt-4 max-w-[35rem] text-pretty text-base leading-relaxed text-graphite sm:text-lg">
+                Name a startup, vendor or market. Telem routes each search, Tavily reads the pages, and Claude writes a memo with a source for every line.
+              </p>
+            </header>
+          )}
 
-      <form onSubmit={submit} className={`no-print ${idle ? "max-w-[52rem]" : ""}`} aria-label="Research a company">
-        <div className={`flex border-2 bg-surface transition-colors focus-within:border-cobalt ${idle ? "border-ink" : "border-rule"}`}>
-          <label htmlFor="company" className="sr-only">
-            Company, vendor or market
-          </label>
-          <input
-            id="company"
-            value={company}
-            onChange={(e) => setCompany(e.target.value)}
-            placeholder="Company, vendor or market"
-            autoFocus={idle}
-            autoComplete="off"
-            className={`serif min-w-0 flex-1 bg-transparent px-5 outline-none placeholder:text-faint focus-visible:outline-none ${
-              idle ? "py-4 text-[1.9rem]" : "py-2.5 text-[1.4rem]"
-            }`}
-          />
-          <button
-            type="submit"
-            disabled={!company.trim() || running}
-            className={`shrink-0 bg-ink font-semibold text-white hover:bg-cobalt disabled:bg-faint ${idle ? "px-9 text-xl" : "px-6 text-lg"}`}
-          >
-            {running ? "Researching" : "Research"}
-          </button>
-        </div>
-
-        <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center">
-          <label htmlFor="context" className="sr-only">
-            Context, optional
-          </label>
-          <input
-            id="context"
-            value={context}
-            onChange={(e) => setContext(e.target.value)}
-            placeholder="Context, optional: what you are deciding, e.g. a Series B or a vendor contract"
-            className="min-w-0 flex-1 border border-rule bg-surface px-4 py-2.5 outline-none placeholder:text-faint focus:border-cobalt"
-          />
-          <div role="radiogroup" aria-label="Research depth" className="flex shrink-0 border border-rule bg-surface p-1">
-            {(["quick", "deep"] as Depth[]).map((d) => (
-              <button
-                key={d}
-                type="button"
-                role="radio"
-                aria-checked={depth === d}
-                onClick={() => setDepth(d)}
-                disabled={running}
-                className={`px-4 py-1.5 text-left font-medium ${depth === d ? "bg-ink text-white" : "text-graphite hover:text-ink"}`}
-              >
-                {d === "quick" ? "Quick" : "Deep"}
-                <span className={`ml-2 text-sm font-normal ${depth === d ? "text-white/70" : "text-faint"}`}>
-                  {d === "quick" ? "1 round" : "2 rounds"}
-                </span>
+          <form onSubmit={submit} className="no-print research-form" aria-label="Research a company">
+            <label htmlFor="company" className="block text-sm font-semibold">
+              Company, vendor or market
+            </label>
+            <div className="research-input mt-2">
+              <svg aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 size-5 -translate-y-1/2 text-faint" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round">
+                <circle cx="10.5" cy="10.5" r="6.5" />
+                <path d="m16 16 4 4" />
+              </svg>
+              <input
+                id="company"
+                value={company}
+                onChange={(e) => setCompany(e.target.value)}
+                placeholder="e.g. Stripe"
+                autoComplete="off"
+                className="w-full min-w-0 rounded-lg border border-rule bg-surface py-3 pr-3 pl-10 text-base placeholder:text-faint focus:border-cobalt"
+              />
+              <button type="submit" disabled={!company.trim() || running} className="action-primary whitespace-nowrap px-4 sm:px-6">
+                {running ? "Researching" : "Research"}
               </button>
-            ))}
-          </div>
+            </div>
+
+            <div className="mt-4 grid items-end gap-4 sm:grid-cols-[minmax(0,1fr)_auto]">
+              <div className="min-w-0">
+                <label htmlFor="context" className="mb-2 block text-sm font-semibold">
+                  Context <span className="font-normal text-graphite">(optional)</span>
+                </label>
+                <input
+                  id="context"
+                  value={context}
+                  onChange={(e) => setContext(e.target.value)}
+                  placeholder="e.g. Vendor contract"
+                  className="w-full rounded-lg border border-rule bg-surface px-3 py-2.5 text-base placeholder:text-faint focus:border-cobalt"
+                />
+              </div>
+              <fieldset className="min-w-0" disabled={running}>
+                <legend className="mb-2 text-sm font-semibold">Research depth</legend>
+                <div className="grid grid-cols-2 gap-1 rounded-lg bg-paper p-1">
+                  {(["quick", "deep"] as Depth[]).map((d) => (
+                    <label key={d} className="relative cursor-pointer">
+                      <input
+                        className="peer sr-only"
+                        type="radio"
+                        name="depth"
+                        value={d}
+                        checked={depth === d}
+                        onChange={() => setDepth(d)}
+                      />
+                      <span className="flex min-h-10 items-center justify-center gap-2 whitespace-nowrap rounded-md px-2.5 text-sm font-medium text-graphite peer-checked:bg-cobalt-soft peer-checked:text-cobalt peer-focus-visible:outline-2 peer-focus-visible:outline-cobalt peer-disabled:cursor-default">
+                        {d === "quick" ? "Quick" : "Deep"}
+                        <span className="hidden font-normal text-graphite xl:inline">{d === "quick" ? "1 round" : "2 rounds"}</span>
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
+            </div>
+
+            {idle && (
+              <div className="mt-4 flex flex-wrap items-center gap-1.5 border-t border-rule-soft pt-4">
+                <span className="mr-1 text-sm text-graphite">Try</span>
+                {EXAMPLES.map((ex) => (
+                  <button
+                    key={ex}
+                    type="button"
+                    onClick={() => pick(ex)}
+                    className="rounded-md border border-rule px-2.5 py-1.5 text-sm font-medium transition-colors hover:border-cobalt hover:bg-cobalt-soft hover:text-cobalt"
+                  >
+                    {ex}
+                  </button>
+                ))}
+              </div>
+            )}
+          </form>
         </div>
 
-        {idle && (
-          <div className="mt-6 flex flex-wrap items-center gap-2">
-            <span className="mr-1 text-graphite">Try</span>
-            {EXAMPLES.map((ex) => (
-              <button
-                key={ex}
-                type="button"
-                onClick={() => pick(ex)}
-                className="serif border border-rule bg-surface px-4 py-1.5 text-[1.05rem] hover:border-ink"
-              >
-                {ex}
-              </button>
-            ))}
-          </div>
-        )}
-      </form>
+        {idle && <RecentMemos refreshKey={historyKey} />}
+      </div>
 
       {idle && (
-        <div className="grid gap-12 border-t border-rule pt-10 lg:grid-cols-[minmax(0,1fr)_26rem]">
-          <ol className="grid gap-8 sm:grid-cols-3">
+        <section aria-labelledby="workflow-title" className="border-t border-rule pt-6">
+          <h2 id="workflow-title" className="serif text-2xl font-semibold tracking-tight">How research works</h2>
+          <ol className="mt-4 grid gap-5 sm:grid-cols-3 sm:gap-8">
             {[
-              ["Plan", "Claude breaks the question into searches: funding, rivals, hiring, lawsuits, sentiment."],
-              ["Route", "Telem sends each query to the engines best suited to it, including LinkedIn and Reddit."],
-              ["Prove", "The memo keeps only lines with a source. Open the trail to see every search behind it."],
-            ].map(([t, d], i) => (
-              <li key={t}>
-                <p className="tnum text-sm text-graphite">Step {i + 1}</p>
-                <h3 className="serif mt-1 text-2xl font-semibold">{t}</h3>
-                <p className="mt-2 leading-relaxed text-graphite">{d}</p>
+              ["Plan", "Claude breaks the question into searches for funding, competitors, hiring, lawsuits and sentiment."],
+              ["Route", "Telem sends each query to the search engines best suited to it, including LinkedIn and Reddit."],
+              ["Prove", "The memo keeps findings with sources. Open the trail to see the searches behind each finding."],
+            ].map(([title, description]) => (
+              <li key={title} className="border-l border-rule pl-4">
+                <h3 className="font-semibold">{title}</h3>
+                <p className="mt-1 max-w-[31ch] text-sm leading-relaxed text-graphite">{description}</p>
               </li>
             ))}
           </ol>
-          <RecentMemos refreshKey={historyKey} />
-        </div>
+        </section>
       )}
 
       {run && (

@@ -21,8 +21,8 @@ export default function RecentMemos({ refreshKey = 0 }: { refreshKey?: number })
   }, [refreshKey]);
 
   return (
-    <section aria-labelledby="recent-title">
-      <h2 id="recent-title" className="mb-2 flex items-baseline justify-between border-b-2 border-ink pb-2 text-lg font-semibold">
+    <section aria-labelledby="recent-title" className="min-w-0 border-t border-rule pt-5 lg:border-t-0 lg:border-l lg:pt-0 lg:pl-7">
+      <h2 id="recent-title" className="serif mb-2 flex items-baseline justify-between pb-1 text-2xl font-semibold tracking-tight">
         Recent memos
         {memos && memos.length > 0 && <span className="tnum text-sm font-normal text-graphite">{memos.length}</span>}
       </h2>
@@ -48,9 +48,9 @@ export default function RecentMemos({ refreshKey = 0 }: { refreshKey?: number })
               <li key={m.id}>
                 <Link
                   href={`/memo/${encodeURIComponent(m.id)}`}
-                  className="group grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-x-4 py-3.5"
+                  className="group grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-x-3 py-3"
                 >
-                  <span className="serif truncate text-[1.2rem] font-semibold group-hover:underline">{m.company}</span>
+                  <span className="serif truncate text-[1.2rem] font-semibold group-hover:text-cobalt group-hover:underline">{m.company}</span>
                   <span className={`text-sm font-semibold ${v.text}`}>
                     {v.label} <span className="tnum font-normal text-graphite">{Math.round(m.confidence * 100)}%</span>
                   </span>

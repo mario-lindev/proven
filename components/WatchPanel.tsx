@@ -107,7 +107,7 @@ export default function WatchPanel({ company }: { company: string }) {
   ])).values()].sort((first, second) => second.at.localeCompare(first.at));
 
   return (
-    <section className="border border-rule bg-surface p-5">
+    <section className="rounded-xl border border-rule bg-surface p-5">
       <div className="flex items-start justify-between gap-3">
         <div>
           <h3 className="flex items-center gap-2 font-semibold">
@@ -127,7 +127,7 @@ export default function WatchPanel({ company }: { company: string }) {
           type="button"
           onClick={start}
           disabled={starting}
-          className="mt-4 w-full rounded-md border-2 border-ink px-4 py-2 font-semibold hover:bg-ink hover:text-white disabled:opacity-60"
+          className="action-primary mt-4 w-full px-4 py-2"
         >
           {starting ? "Starting the watch" : "Watch this company"}
         </button>
@@ -166,7 +166,7 @@ export default function WatchPanel({ company }: { company: string }) {
             </ul>
           )}
           <p className="mt-2 text-xs text-faint">
-            Monitor <span className="font-mono">{watch.monitor_id}</span>
+            Monitor <span className="break-all font-mono">{watch.monitor_id}</span>
           </p>
         </div>
       )}

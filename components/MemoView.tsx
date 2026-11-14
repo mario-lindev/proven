@@ -1,5 +1,6 @@
 "use client";
 
+import SourceLink from "@/components/SourceLink";
 import { useCallback, useMemo, useState } from "react";
 import type { Line, Memo, Source, Trail } from "@/lib/types";
 import SourceChip from "./SourceChip";
@@ -245,14 +246,11 @@ export default function MemoView({ memo, trail: preloaded }: { memo: Memo; trail
                       <li key={s.id} className="grid grid-cols-[1.6rem_minmax(0,1fr)] gap-1.5">
                         <span className="tnum pt-0.5 text-sm font-semibold text-cobalt">{n}</span>
                         <div className="min-w-0">
-                          <a
-                            href={s.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
+                          <SourceLink url={s.url}
                             className="font-medium leading-snug hover:underline"
                           >
                             {s.title}
-                          </a>
+                          </SourceLink>
                           <p className="truncate text-sm text-graphite">
                             {domain(s.url)}
                             {s.published ? `, ${fmtDate(s.published)}` : ""}

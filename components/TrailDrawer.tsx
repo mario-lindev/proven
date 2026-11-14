@@ -1,5 +1,6 @@
 "use client";
 
+import SourceLink from "@/components/SourceLink";
 import { useEffect, useRef, useState } from "react";
 import type { Source, Trail, TrailStep } from "@/lib/types";
 import ErrorBox from "./ErrorBox";
@@ -205,15 +206,12 @@ export default function TrailDrawer({
                           <ul className="mt-2 space-y-1">
                             {s.urls.map((u) => (
                               <li key={u} className="truncate">
-                                <a
-                                  href={u}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
+                                <SourceLink url={u}
                                   className={`hover:underline ${focusUrls.includes(u) ? "font-semibold text-cobalt" : "text-ink"}`}
                                 >
                                   {domain(u)}
                                   <span className="text-faint">{u.replace(/^https?:\/\/[^/]+/, "")}</span>
-                                </a>
+                                </SourceLink>
                               </li>
                             ))}
                           </ul>

@@ -1,5 +1,6 @@
 "use client";
 
+import SourceLink from "@/components/SourceLink";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { ClaimCheck } from "@/lib/types";
 import ErrorBox from "@/components/ErrorBox";
@@ -330,9 +331,9 @@ export default function LiveRoom() {
                         <li key={s.id} className="grid grid-cols-[1.4rem_minmax(0,1fr)] gap-1">
                           <span className="tnum text-sm font-semibold text-cobalt">{i + 1}</span>
                           <div className="min-w-0">
-                            <a href={s.url} target="_blank" rel="noopener noreferrer" className="font-medium hover:underline">
+                            <SourceLink url={s.url} className="font-medium hover:underline">
                               {s.title}
-                            </a>
+                            </SourceLink>
                             <p className="flex items-center gap-1.5 truncate text-sm text-graphite">
                               <EngineDot name={s.engine} />
                               {engineLabel(s.engine)}, {domain(s.url)}

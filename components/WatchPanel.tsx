@@ -1,5 +1,6 @@
 "use client";
 
+import SourceLink from "@/components/SourceLink";
 import { useEffect, useRef, useState } from "react";
 import type { Watch } from "@/lib/types";
 import ErrorBox from "./ErrorBox";
@@ -109,9 +110,9 @@ export default function WatchPanel({ company }: { company: string }) {
             <ul className="divide-y divide-rule-soft border-t border-rule-soft">
               {updates.map((u) => (
                 <li key={JSON.stringify([u.at, u.url, u.title])} className="row-in py-3">
-                  <a href={u.url} target="_blank" rel="noopener noreferrer" className="font-medium leading-snug hover:underline">
+                  <SourceLink url={u.url} className="font-medium leading-snug hover:underline">
                     {u.title}
-                  </a>
+                  </SourceLink>
                   <p className="mt-0.5 text-sm text-graphite">
                     {domain(u.url)}, {timeAgo(u.at)}
                   </p>

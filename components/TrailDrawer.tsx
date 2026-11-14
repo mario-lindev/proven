@@ -117,7 +117,7 @@ export default function TrailDrawer({
               <p className="mt-0.5 font-medium">{focusSource.title}</p>
               <p className="mt-0.5 flex items-center gap-1.5 text-sm text-graphite">
                 <EngineDot name={focusSource.engine} />
-                {engineLabel(focusSource.engine)}, {domain(focusSource.url)}
+                <span>{`${engineLabel(focusSource.engine)}, ${domain(focusSource.url)}`}</span>
               </p>
               {focusEvidence && (
                 <p className="mt-2.5 border-t border-cobalt/15 pt-2.5">

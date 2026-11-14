@@ -97,6 +97,9 @@ export default function ImpactPage() {
           comparable past events at other companies, and shows what those stocks did next, each figure backed by a quote found in its source.
         </p>
         <p className="mt-2 font-semibold text-ink">{DISCLAIMER}</p>
+        {start && (
+          <p className="no-print fixed inset-x-0 bottom-0 z-20 border-t border-rule bg-surface py-2.5 text-center font-mono text-sm text-ink">{DISCLAIMER}</p>
+        )}
       </header>
 
       <form onSubmit={run} className="border border-rule bg-surface">
@@ -142,7 +145,7 @@ export default function ImpactPage() {
         <>
           <section aria-label="Event status" className="border-y-2 border-ink py-6">
             <div className="flex flex-wrap items-center gap-3">
-              <span className={`rounded-[3px] border-2 px-3 py-1 text-lg font-semibold ${reported ? "border-cobalt bg-cobalt-soft text-cobalt" : "border-dig bg-dig-soft text-dig"}`}>
+              <span className={`rounded-[4px] px-3.5 py-1.5 font-mono text-base font-medium uppercase tracking-[0.1em] text-white ${reported ? "bg-cobalt" : "bg-dig"}`}>
                 {reported ? "Reported" : "Hypothetical"}
               </span>
               <p className="text-graphite">{start.company}</p>
@@ -163,7 +166,7 @@ export default function ImpactPage() {
                     <a href={s.url} target="_blank" rel="noopener noreferrer" className="font-medium text-ink hover:underline">
                       {s.title || domain(s.url)}
                     </a>
-                    , {domain(s.url)}, via {engineLabel(s.engine)}
+                    <span className="-ml-1.5 truncate">, {domain(s.url)}, via {engineLabel(s.engine)}</span>
                   </li>
                 ))}
               </ul>

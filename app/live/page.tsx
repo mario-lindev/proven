@@ -6,6 +6,8 @@ import ErrorBox from "@/components/ErrorBox";
 import TrailDrawer from "@/components/TrailDrawer";
 import { EngineDot, engineLabel } from "@/components/engines";
 import { api, domain, errMsg } from "@/components/http";
+import AsciiStrip from "@/components/proof/AsciiStrip";
+import CheckNote from "@/components/proof/CheckNote";
 
 // Minimal Web Speech API types (not in TypeScript's DOM lib).
 type SpeechResult = { isFinal: boolean; 0: { transcript: string } };
@@ -266,15 +268,15 @@ export default function LiveRoom() {
             <h2 id="transcript-title" className="font-semibold">
               Transcript
             </h2>
-            <span className="text-sm text-graphite">Checked claims are marked in their verdict colour</span>
+            {listening ? (<AsciiStrip kind="wave" color="#2c46c9" label="Listening" className="h-7 w-44" />) : (<span className="text-sm text-graphite">Checked claims are marked in their verdict colour</span>)}
           </div>
-          <div ref={scrollRef} className="h-[46vh] min-h-[18rem] overflow-y-auto px-6 py-5" aria-live="off">
+          <div ref={scrollRef} className="h-[52vh] min-h-[20rem] overflow-y-auto px-7 py-6" aria-live="off">
             {log.length === 0 && !interim ? (
-              <p className="serif text-[1.5rem] leading-relaxed text-faint">
+              <p className="serif text-[1.9rem] leading-relaxed text-faint">
                 {listening ? "Listening. Start the pitch." : "Press Start listening and begin the pitch, or type a claim below."}
               </p>
             ) : (
-              <p className="serif text-[1.6rem] leading-[1.6]">
+              <p className="serif text-[2rem] leading-[1.55]">
                 {log.slice(-30).map((l, i) => {
                   const c = matchCheck(l.text, checks);
                   const v = c ? VERDICT[c.verdict] ?? VERDICT.unclear : null;
@@ -349,7 +351,7 @@ export default function LiveRoom() {
                 <article key={c.id + c.claim} className={`row-in border-l-[6px] ${v.line} bg-surface px-6 py-5 shadow-[0_1px_0_#d8dee4]`}>
                   <p className={`text-2xl font-semibold ${v.text}`}>{v.label}</p>
                   <p className="serif mt-2 text-[1.45rem] font-medium leading-snug">&ldquo;{c.claim}&rdquo;</p>
-                  <p className="mt-2 text-lg leading-snug">{c.note}</p>
+                  <CheckNote note={c.note} line={v.line} />
                   {c.sources.length > 0 && (
                     <ul className="mt-4 space-y-1.5 border-t border-rule-soft pt-3">
                       {c.sources.map((s, i) => (
@@ -361,7 +363,7 @@ export default function LiveRoom() {
                             </a>
                             <p className="flex items-center gap-1.5 truncate text-sm text-graphite">
                               <EngineDot name={s.engine} />
-                              {engineLabel(s.engine)}, {domain(s.url)}
+                              <span className="truncate">{`${engineLabel(s.engine)}, ${domain(s.url)}`}</span>
                             </p>
                           </div>
                         </li>

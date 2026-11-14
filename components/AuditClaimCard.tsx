@@ -3,6 +3,7 @@
 import type { AuditCheck, AuditClaim, AuditVerdict } from "@/lib/brain/audit";
 import { EngineDot, engineLabel } from "./engines";
 import { domain } from "./http";
+import AsciiStrip from "./proof/AsciiStrip";
 
 export const AUDIT_VERDICT: Record<AuditVerdict, { label: string; text: string; line: string; bg: string }> = {
   supported: { label: "Holds up", text: "text-pursue", line: "border-pursue", bg: "bg-pursue-soft" },
@@ -23,18 +24,25 @@ export default function AuditClaimCard({
   const v = check ? AUDIT_VERDICT[check.verdict] ?? AUDIT_VERDICT.unclear : null;
   const quoteSource = check?.quote ? check.sources.find((s) => s.id === check.quote_source_id) : undefined;
   return (
-    <article className={`row-in border-l-[6px] bg-surface px-6 py-5 shadow-[0_1px_0_#d8dee4] ${v ? v.line : "border-rule"}`}>
-      <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
+    <article
+      className={`row-in relative overflow-hidden rounded-lg border border-rule border-l-[6px] bg-surface px-6 py-5 ${v ? v.line : "border-l-rule"}`}
+    >
+      {!v && (
+        <AsciiStrip kind="scan" color="#2c46c9" label="" className="pointer-events-none absolute inset-x-0 top-0 h-3 w-full opacity-70" />
+      )}
+      <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-1">
         {v ? (
-          <p className={`text-2xl font-semibold ${v.text}`}>{v.label}</p>
+          <p className={`rounded-[4px] px-3 py-1 font-mono text-sm font-medium uppercase tracking-[0.08em] ${v.bg} ${v.text}`}>
+            {v.label}
+          </p>
         ) : (
-          <p className="flex items-center gap-3 text-xl font-medium text-cobalt" role="status">
-            <span className="pulse-dot h-2.5 w-2.5 rounded-full bg-cobalt" aria-hidden />
+          <p className="flex items-center gap-3 font-mono text-sm font-medium uppercase tracking-[0.08em] text-cobalt" role="status">
+            <span className="pulse-dot h-2 w-2 rounded-full bg-cobalt" aria-hidden />
             Checking against the web
           </p>
         )}
-        <span className="tnum text-sm text-graphite">
-          Claim {claim.index + 1}, {claim.category}
+        <span className="tnum font-mono text-xs text-graphite">
+          {String(claim.index + 1).padStart(2, "0")} / {claim.category}
         </span>
       </div>
 
@@ -48,7 +56,7 @@ export default function AuditClaimCard({
           <p className="mt-3 text-lg leading-snug">{check.note}</p>
           {check.quote && (
             <blockquote className={`mt-3 border-l-2 ${v.line} ${v.bg} px-4 py-3`}>
-              <p className="serif text-[1.15rem] leading-snug">&ldquo;{check.quote}&rdquo;</p>
+              <p className="font-mono text-[0.95rem] leading-[1.6]">&ldquo;{check.quote}&rdquo;</p>
               {quoteSource && (
                 <p className="mt-1 text-sm text-graphite">
                   Found word for word in {domain(quoteSource.url)}, an independent source
@@ -67,7 +75,7 @@ export default function AuditClaimCard({
                     </a>
                     <p className="flex items-center gap-1.5 truncate text-sm text-graphite">
                       <EngineDot name={s.engine} />
-                      {engineLabel(s.engine)}, {domain(s.url)}
+                      <span className="truncate">{`${engineLabel(s.engine)}, ${domain(s.url)}`}</span>
                     </p>
                   </div>
                   <span

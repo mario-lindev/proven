@@ -156,17 +156,27 @@ export default function MemoView({ memo, trail: preloaded }: { memo: Memo; trail
           <h1 className="serif break-words text-[3.4rem] font-semibold leading-[1.02] tracking-tight">{memo.company}</h1>
           <p className="serif mt-5 max-w-[42rem] text-[1.4rem] leading-[1.5] text-ink/90">{memo.summary}</p>
         </div>
-        <div className={`print-plain self-start border-l-4 ${v.line} ${v.bg} px-6 py-5`}>
-          <p className="text-graphite">Verdict</p>
-          <p className={`serif text-[2.9rem] font-semibold leading-tight ${v.text}`}>{v.label}</p>
-          <div className="mt-3 flex items-baseline justify-between text-sm">
-            <span className="text-graphite">Confidence</span>
-            <span className="tnum text-lg font-semibold">{pct}%</span>
+        <div className={`print-plain self-start overflow-hidden rounded-lg border-2 ${v.line} ${v.bg} px-6 py-5`}>
+          <p className="text-sm font-semibold text-graphite">Verdict</p>
+          <p className={`serif text-[3.6rem] font-semibold leading-[1.05] tracking-tight ${v.text}`}>{v.label}</p>
+          <div className="mt-4 flex items-baseline justify-between">
+            <span className="text-sm text-graphite">Confidence</span>
+            <span className={`tnum font-mono text-[1.9rem] font-medium leading-none ${v.text}`}>{pct}%</span>
           </div>
-          <div className="mt-1.5 h-1.5 w-full bg-surface" role="meter" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100} aria-label="Confidence">
-            <div className={`h-full ${v.bar}`} style={{ width: `${pct}%` }} />
+          <div
+            className="mt-2 grid grid-cols-20 gap-[3px]"
+            style={{ gridTemplateColumns: "repeat(20, minmax(0, 1fr))" }}
+            role="meter"
+            aria-valuenow={pct}
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-label="Confidence"
+          >
+            {Array.from({ length: 20 }, (_, i) => (
+              <span key={i} className={`h-3 rounded-[2px] ${i < Math.round(pct / 5) ? v.bar : "bg-surface"}`} />
+            ))}
           </div>
-          <p className="mt-3 text-sm text-graphite">
+          <p className="mt-4 text-sm text-graphite">
             {memo.sources.length} sources
             {stats ? `, ${stats.queries} queries across ${stats.engines.size} engines` : ""}
           </p>
@@ -415,13 +425,13 @@ function LineRow({
         <div
           id={pid}
           role="tooltip"
-          className="no-print pointer-events-none absolute left-7 top-full z-30 -mt-1 w-[min(38rem,calc(100%-1.75rem))] border border-rule bg-surface p-4 shadow-[0_12px_32px_-12px_rgba(20,32,43,0.35)]"
+          className="no-print pointer-events-none absolute left-7 top-full z-30 -mt-1 w-[min(38rem,calc(100%-1.75rem))] rounded-lg border border-rule bg-surface p-4 shadow-[0_12px_32px_-12px_rgba(20,32,43,0.35)]"
         >
           {evidence.length > 0 ? (
             <>
               <p className="flex items-center gap-1.5 text-sm font-medium text-pursue">
                 <Check className="h-3.5 w-3.5" />
-                Checked against the text of {evidence.length === 1 ? "its source" : `${evidence.length} sources`}
+                Found word for word in {evidence.length === 1 ? "its source" : `${evidence.length} sources`}
               </p>
               <ul className="mt-3 space-y-3.5">
                 {evidence.map((e, i) => {
@@ -430,7 +440,7 @@ function LineRow({
                   return (
                     <li key={i}>
                       <blockquote
-                        className={`serif border-l-2 pl-3 text-[1.05rem] leading-snug text-ink ${
+                        className={`rounded-r-[4px] border-l-[3px] bg-paper px-3 py-2.5 font-mono text-[0.86rem] leading-[1.6] text-ink ${
                           e.verdict === "supported" ? "border-pursue" : "border-dig"
                         }`}
                       >

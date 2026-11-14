@@ -66,10 +66,10 @@ export default function SourceChip({
                 }`}
               >
                 <Check className="h-3.5 w-3.5" />
-                {quote.verdict === "supported" ? "Quote that backs this line" : "Quote that partly backs this line"}
+                {quote.verdict === "supported" ? "Found word for word, backs this line" : "Found word for word, partly backs this line"}
               </span>
               <span
-                className={`serif mt-1 block border-l-2 pl-3 text-[1rem] leading-snug text-ink ${
+                className={`mt-1.5 block rounded-r-[4px] border-l-[3px] bg-paper px-3 py-2 font-mono text-[0.82rem] leading-[1.55] text-ink ${
                   quote.verdict === "supported" ? "border-pursue" : "border-dig"
                 }`}
               >

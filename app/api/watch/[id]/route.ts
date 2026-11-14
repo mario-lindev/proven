@@ -20,6 +20,7 @@ async function mockWatch(id: string): Promise<Watch> {
   const w = store.watches.get(id);
   if (w) return w;
   const f = await fixture<Watch>("watch");
+  f.updates = f.updates.map((u) => ({ ...u, title: u.title.replace(/Acme Robotics/g, "the company") }));
   const fresh = { ...f, id, updates: [...f.updates] };
   store.watches.set(id, fresh);
   return fresh;

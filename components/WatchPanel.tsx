@@ -28,6 +28,26 @@ export default function WatchPanel({ company }: { company: string }) {
     return () => clearInterval(t);
   }, [watchId]);
 
+  const [running, setRunning] = useState(false);
+
+  // Run the Telem monitor's agent now, then read what it found a few seconds later.
+  async function checkNow() {
+    if (!watch) return;
+    setRunning(true);
+    setError(null);
+    const url = `/api/watch/${encodeURIComponent(watch.id)}`;
+    try {
+      setWatch(await api<Watch>(url, {}));
+      await new Promise((r) => setTimeout(r, 6000));
+      setWatch(await api<Watch>(url));
+      setCheckedAt(new Date());
+    } catch (e) {
+      setError(errMsg(e));
+    } finally {
+      setRunning(false);
+    }
+  }
+
   async function start() {
     setStarting(true);
     setError(null);
@@ -93,6 +113,14 @@ export default function WatchPanel({ company }: { company: string }) {
               ))}
             </ul>
           )}
+          <button
+            type="button"
+            onClick={checkNow}
+            disabled={running}
+            className="mt-3 w-full rounded-md border border-ink px-4 py-1.5 text-sm font-semibold hover:bg-ink hover:text-white disabled:opacity-60"
+          >
+            {running ? "Telem agent is checking" : "Check now"}
+          </button>
           <p className="mt-2 text-xs text-faint">
             Monitor <span className="font-mono">{watch.monitor_id}</span>
           </p>

@@ -10,7 +10,8 @@ export async function POST(req: Request) {
     const { company } = (await req.json()) as { company?: string };
     if (!company?.trim()) return fail("company is required", 400);
     if (isMock()) {
-      const w: Watch = { ...(await fixture<Watch>("watch")), id: newId("w"), company: company.trim() };
+      const f = await fixture<Watch>("watch");
+      const w: Watch = { ...f, id: newId("w"), company: company.trim(), updates: f.updates.map((u) => ({ ...u, title: u.title.replace(/Acme Robotics/g, company.trim()) })) };
       store.watches.set(w.id, w);
       return NextResponse.json(w);
     }

@@ -39,7 +39,7 @@ export async function POST(req: Request) {
       };
       try {
         if (isMock()) {
-          const t: Trail = await fixture<Trail>("trail");
+          const t = JSON.parse(JSON.stringify(await fixture<Trail>("trail")).replace(/Acme Robotics|Acme/g, safeName(company))) as Trail;
           const trail = newTrail();
           send({ type: "start", trail_id: trail.id, company, depth });
           for (const s of t.steps) {
@@ -71,7 +71,9 @@ export async function POST(req: Request) {
 
 async function mockMemo(company: string): Promise<Memo> {
   // Fixture text says "Acme Robotics"; swap in the typed name so mock demos read naturally.
-  const raw = JSON.stringify(await fixture<Memo>("memo")).replace(/Acme Robotics|Acme/g, company.replace(/["\\]/g, ""));
+  const raw = JSON.stringify(await fixture<Memo>("memo")).replace(/Acme Robotics|Acme/g, safeName(company));
   const m = JSON.parse(raw) as Memo;
   return { ...m, id: newId("memo"), company, created_at: new Date().toISOString() };
 }
+
+const safeName = (company: string) => company.replace(/["\\]/g, "");

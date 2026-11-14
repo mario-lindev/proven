@@ -1,20 +1,25 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import type { TrailStep } from "@/lib/types";
-import { EngineBar, EngineDot, engineLabel, splitEngines } from "./engines";
+import { Check, EngineBar, EngineDot, TopicChip, engineLabel, splitEngines } from "./engines";
 import { domain, fmtMs } from "./http";
 
 type Depth = "quick" | "deep";
-type PhaseId = "plan" | "search1" | "gaps" | "search2" | "read" | "write";
+// "rank" (a learn step before the memo is written) belongs to reading and has no box of its own.
+type PhaseId = "plan" | "search1" | "gaps" | "search2" | "rank" | "read" | "write" | "verify" | "learn";
 
 const PHASES: Record<PhaseId, string> = {
   plan: "Planning",
   search1: "Searching",
   gaps: "Finding gaps",
   search2: "Searching again",
+  rank: "Ranking",
   read: "Reading pages",
   write: "Writing",
+  verify: "Checking",
+  learn: "Learning",
 };
 
 const ACTIVITY: Record<PhaseId, string> = {
@@ -22,18 +27,22 @@ const ACTIVITY: Record<PhaseId, string> = {
   search1: "Telem is routing each query to its engines",
   gaps: "Claude is looking for gaps in what came back",
   search2: "Telem is running the follow-up searches",
+  rank: "Reading the best pages in full",
   read: "Reading the best pages in full",
   write: "Claude is writing the memo from these sources only",
+  verify: "Checking every line against its source",
+  learn: "Recording which engines' pages backed a verified line",
 };
 
 const ORDER: Record<Depth, PhaseId[]> = {
-  quick: ["plan", "search1", "read", "write"],
-  deep: ["plan", "search1", "gaps", "search2", "read", "write"],
+  quick: ["plan", "search1", "read", "write", "verify", "learn"],
+  deep: ["plan", "search1", "gaps", "search2", "read", "write", "verify", "learn"],
 };
 
 // Which phase each step belongs to, in order. A step arrives once it is finished.
 export function phaseOf(steps: TrailStep[]): PhaseId[] {
   let round = 1;
+  let written = false;
   return steps.map((s) => {
     if (s.kind === "llm") {
       const l = s.label.toLowerCase();
@@ -41,10 +50,19 @@ export function phaseOf(steps: TrailStep[]): PhaseId[] {
         round = 2;
         return "gaps";
       }
-      if (l.includes("write")) return "write";
+      if (l.includes("write")) {
+        written = true;
+        return "write";
+      }
       return "plan";
     }
     if (s.kind === "search") return round === 2 ? "search2" : "search1";
+    if (s.kind === "verify") {
+      written = true;
+      return "verify";
+    }
+    // A learn step before writing ranks the sources; after it, it records what this memo taught.
+    if (s.kind === "learn") return written ? "learn" : "rank";
     return "read";
   });
 }
@@ -101,9 +119,11 @@ export default function ResearchFeed({
   }, [running]);
 
   const elapsed = ((finishedAt ?? now) - startedAt) / 1000;
-  const phases = ORDER[depth];
   const stepPhases = phaseOf(steps);
   const donePhases = new Set(stepPhases);
+  // Checking and Learning wait in the bar while a run is going; once it ends they stay only if
+  // their steps really happened (older servers and memos have neither).
+  const phases = ORDER[depth].filter((p) => (p !== "verify" && p !== "learn") || running || donePhases.has(p));
   const last = stepPhases[stepPhases.length - 1];
 
   // The phase in progress: a search round stays active while results keep arriving;
@@ -112,10 +132,10 @@ export default function ResearchFeed({
   if (running) {
     if (!last) active = "plan";
     else if (last === "search1" || last === "search2") active = last;
+    else if (last === "rank") active = "read";
     else {
       const i = phases.indexOf(last);
-      active = phases[Math.min(i + 1, phases.length - 1)];
-      if (last === "write") active = null;
+      active = i >= 0 && i < phases.length - 1 ? phases[i + 1] : null;
     }
   }
 
@@ -151,7 +171,7 @@ export default function ResearchFeed({
             <li
               key={p}
               aria-current={isActive ? "step" : undefined}
-              className={`relative flex-1 overflow-hidden border-r border-rule-soft px-4 py-3 last:border-r-0 ${
+              className={`relative min-w-0 flex-auto overflow-hidden border-r border-rule-soft px-4 py-3 last:border-r-0 ${
                 isActive ? "bg-cobalt-soft" : ""
               }`}
             >
@@ -206,14 +226,24 @@ export default function ResearchFeed({
         {(llms.length > 0 || extracts.length > 0 || running) && (
           <ul className="mb-5 flex flex-wrap gap-x-8 gap-y-2 text-sm text-graphite">
             {steps
-              .filter((s) => s.kind !== "search")
-              .map((s, i) => (
+              .map((s, i) => ({ s, p: stepPhases[i] }))
+              .filter(({ s }) => s.kind !== "search")
+              .map(({ s, p }, i) => (
                 <li key={i} className="row-in flex items-center gap-2">
-                  <span className="h-1.5 w-1.5 rounded-full bg-ink" />
-                  <span className="text-ink">{s.label}</span>
+                  {s.kind === "verify" ? (
+                    <Check className="h-3.5 w-3.5 shrink-0 text-pursue" />
+                  ) : (
+                    <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${s.kind === "learn" ? "bg-cobalt" : "bg-ink"}`} />
+                  )}
+                  <span className={s.kind === "verify" ? "font-medium text-pursue" : "text-ink"}>{s.label}</span>
                   <span className="tnum">{fmtMs(s.ms)}</span>
                   {s.engines && s.engines.length > 0 && (
                     <span>via {s.engines.map((e) => engineLabel(e.name)).join(" and ")}</span>
+                  )}
+                  {p === "learn" && (
+                    <Link href="/engines" className="font-medium text-cobalt hover:underline">
+                      What Proven learned
+                    </Link>
                   )}
                 </li>
               ))}
@@ -254,8 +284,13 @@ export default function ResearchFeed({
                         >
                           <div className="min-w-0">
                             <p className="break-words font-mono text-[0.92rem] leading-snug">{s.query ?? s.label}</p>
-                            {s.routing && s.routing.length > 0 && (
-                              <p className="mt-1 text-sm text-cobalt">Router chose {s.routing.map(engineLabel).join(", ")}</p>
+                            {(s.topic || (s.routing && s.routing.length > 0)) && (
+                              <p className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-cobalt">
+                                {s.topic && <TopicChip topic={s.topic} />}
+                                {s.routing && s.routing.length > 0 && (
+                                  <span>Router chose {s.routing.map(engineLabel).join(", ")}</span>
+                                )}
+                              </p>
                             )}
                             {s.urls && s.urls.length > 0 && (
                               <p className="mt-1 truncate text-sm text-faint">

@@ -1,21 +1,30 @@
 "use client";
 
 import { useId, useState } from "react";
-import type { Source } from "@/lib/types";
-import { EngineDot, engineLabel, isTavily } from "./engines";
+import type { Evidence, Source } from "@/lib/types";
+import { Check, EngineDot, engineLabel, isTavily } from "./engines";
 import { domain, fmtDate } from "./http";
 
-// A numbered citation. Hover or focus previews the source; click opens the trail at that source.
+// A numbered citation. Hover or focus previews the source (and the quote from it that backs the line);
+// click opens the trail at that source.
 export default function SourceChip({
   n,
   source,
+  quote,
+  onOpenChange,
   onClick,
 }: {
   n: number;
   source: Source;
+  quote?: Evidence;
+  onOpenChange?: (open: boolean) => void;
   onClick: () => void;
 }) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpenState] = useState(false);
+  const setOpen = (v: boolean) => {
+    setOpenState(v);
+    onOpenChange?.(v);
+  };
   const id = useId();
   return (
     <span
@@ -49,8 +58,28 @@ export default function SourceChip({
             {source.published && <span className="tnum shrink-0">{fmtDate(source.published)}</span>}
           </span>
           <span className="serif mt-1.5 block text-[1.05rem] font-semibold leading-snug text-ink">{source.title}</span>
-          {source.snippet && (
-            <span className="mt-2 line-clamp-3 block text-sm leading-relaxed text-graphite">{source.snippet}</span>
+          {quote ? (
+            <span className="mt-2.5 block">
+              <span
+                className={`flex items-center gap-1.5 text-sm font-medium ${
+                  quote.verdict === "supported" ? "text-pursue" : "text-dig"
+                }`}
+              >
+                <Check className="h-3.5 w-3.5" />
+                {quote.verdict === "supported" ? "Quote that backs this line" : "Quote that partly backs this line"}
+              </span>
+              <span
+                className={`serif mt-1 block border-l-2 pl-3 text-[1rem] leading-snug text-ink ${
+                  quote.verdict === "supported" ? "border-pursue" : "border-dig"
+                }`}
+              >
+                &ldquo;{quote.quote}&rdquo;
+              </span>
+            </span>
+          ) : (
+            source.snippet && (
+              <span className="mt-2 line-clamp-3 block text-sm leading-relaxed text-graphite">{source.snippet}</span>
+            )
           )}
           <span className="mt-3 flex items-center gap-1.5 border-t border-rule-soft pt-2.5 text-sm">
             <EngineDot name={source.engine} />

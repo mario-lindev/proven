@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import type { Source, Trail, TrailStep } from "@/lib/types";
+import type { Evidence, Source, Trail, TrailStep } from "@/lib/types";
 import ErrorBox from "./ErrorBox";
-import { EngineBar, EngineDot, engineLabel, splitEngines } from "./engines";
+import { Check, EngineBar, EngineDot, TopicChip, engineLabel, splitEngines } from "./engines";
 import { api, domain, errMsg, fmtMs } from "./http";
 import { feedStats } from "./ResearchFeed";
 
@@ -41,12 +41,14 @@ export default function TrailDrawer({
   trailId,
   focusUrls = [],
   focusSource,
+  focusEvidence,
   trail: preloaded,
   onClose,
 }: {
   trailId: string | null;
   focusUrls?: string[];
   focusSource?: Source | null;
+  focusEvidence?: Evidence | null;
   trail?: Trail | null;
   onClose: () => void;
 }) {
@@ -117,6 +119,15 @@ export default function TrailDrawer({
                 <EngineDot name={focusSource.engine} />
                 {engineLabel(focusSource.engine)}, {domain(focusSource.url)}
               </p>
+              {focusEvidence && (
+                <p className="mt-2.5 border-t border-cobalt/15 pt-2.5">
+                  <span className="flex items-center gap-1.5 text-sm font-medium text-pursue">
+                    <Check className="h-3.5 w-3.5" />
+                    {focusEvidence.verdict === "supported" ? "Quote that backs the line" : "Quote that partly backs the line"}
+                  </span>
+                  <q className="serif mt-1 block text-[1.02rem] leading-snug">{focusEvidence.quote}</q>
+                </p>
+              )}
             </div>
           )}
         </div>
@@ -140,7 +151,15 @@ export default function TrailDrawer({
                   >
                     <span
                       className={`tnum flex h-7 w-7 items-center justify-center rounded-full text-xs font-semibold ${
-                        s.kind === "llm" ? "bg-ink text-white" : s.kind === "search" ? "border-2 border-cobalt text-cobalt" : "border-2 border-ink text-ink"
+                        s.kind === "llm"
+                          ? "bg-ink text-white"
+                          : s.kind === "verify"
+                            ? "bg-pursue text-white"
+                            : s.kind === "learn"
+                              ? "bg-cobalt text-white"
+                              : s.kind === "search"
+                                ? "border-2 border-cobalt text-cobalt"
+                                : "border-2 border-ink text-ink"
                       }`}
                     >
                       {i + 1}
@@ -159,7 +178,16 @@ export default function TrailDrawer({
                       </div>
                       {hit && (
                         <p className="mt-1 text-sm font-medium text-cobalt">
-                          {s.kind === "search" ? "This search found the cited source" : "This step read the cited page"}
+                          {s.kind === "search"
+                            ? "This search found the cited source"
+                            : s.kind === "verify"
+                              ? "This step found the quote in the cited page"
+                              : "This step read the cited page"}
+                        </p>
+                      )}
+                      {s.topic && (
+                        <p className="mt-1.5 flex items-center gap-2 text-sm text-graphite">
+                          Telem topic <TopicChip topic={s.topic} />
                         </p>
                       )}
                       {s.routing && s.routing.length > 0 && (

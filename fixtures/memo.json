@@ -5,13 +5,13 @@
   "confidence": 0.62,
   "summary": "Acme Robotics sells warehouse picking robots and raised a Series A in 2026. Demand signals are strong, but two well-funded competitors and a recent layoff need explaining before investing.",
   "facts": [
-    { "text": "Raised a $24M Series A in March 2026.", "source_ids": ["s1"] },
-    { "text": "Hiring 14 field engineers in Texas and Ohio, suggesting new warehouse deployments.", "source_ids": ["s2"] },
-    { "text": "Customers on Reddit praise pick speed but complain about setup time.", "source_ids": ["s3"] }
+    { "text": "Raised a $24M Series A in March 2026.", "source_ids": ["s1"], "evidence": [{ "source_id": "s1", "quote": "Acme Robotics announced a $24M Series A", "verdict": "supported" }] },
+    { "text": "Hiring 14 field engineers in Texas and Ohio, suggesting new warehouse deployments.", "source_ids": ["s2"], "evidence": [{ "source_id": "s2", "quote": "Field Engineer, Dallas TX", "verdict": "partial" }] },
+    { "text": "Customers on Reddit praise pick speed but complain about setup time.", "source_ids": ["s3"], "evidence": [{ "source_id": "s3", "quote": "Fast once running, but setup took us 6 weeks", "verdict": "supported" }] }
   ],
   "risks": [
-    { "text": "Two competitors raised larger rounds in the last 6 months.", "source_ids": ["s4", "s5"] },
-    { "text": "Laid off about 10% of staff in September 2026.", "source_ids": ["s6"] }
+    { "text": "Two competitors raised larger rounds in the last 6 months.", "source_ids": ["s4", "s5"], "evidence": [{ "source_id": "s5", "quote": "Rival B closed a $45M Series B", "verdict": "supported" }, { "source_id": "s4", "quote": "Rival A, a warehouse robotics startup", "verdict": "partial" }] },
+    { "text": "Laid off about 10% of staff in September 2026.", "source_ids": ["s6"], "evidence": [{ "source_id": "s6", "quote": "Acme Robotics laid off roughly 10%", "verdict": "supported" }] }
   ],
   "open_questions": [
     "What is revenue per deployed robot after the price cut?",
@@ -27,5 +27,6 @@
     { "id": "s6", "url": "https://example.com/acme-layoffs", "title": "Acme Robotics cuts staff", "engine": "tavily", "snippet": "Acme Robotics laid off roughly 10%...", "published": "2026-09-18" }
   ],
   "trail_id": "tr_demo",
-  "created_at": "2026-11-14T12:00:00.000Z"
+  "created_at": "2026-11-14T12:00:00.000Z",
+  "verification": { "checked": 7, "kept": 5, "dropped": 2, "ms": 6400 }
 }

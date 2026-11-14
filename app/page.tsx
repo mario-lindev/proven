@@ -1,56 +1,51 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import type { Memo } from "@/lib/types";
+import { useEffect, useRef, useState } from "react";
+import type { Memo, TrailStep } from "@/lib/types";
 import ErrorBox from "@/components/ErrorBox";
 import MemoView from "@/components/MemoView";
-import { api, errMsg } from "@/components/http";
+import { errMsg, fmtMs } from "@/components/http";
+import { streamMemo } from "@/components/memo-stream";
 
 type Depth = "quick" | "deep";
-
-// Each step: label and how long (ms) the timer stays on it before moving on.
-// The last step stays active until the memo arrives.
-const STEPS: Record<Depth, [string, number][]> = {
-  quick: [
-    ["Planning the research", 5000],
-    ["Searching across engines (Telem + Tavily)", 13000],
-    ["Reading the best sources", 14000],
-    ["Writing the memo", 0],
-  ],
-  deep: [
-    ["Planning the research", 8000],
-    ["Searching across engines (Telem + Tavily)", 22000],
-    ["Reading the best sources", 25000],
-    ["Following up on gaps", 30000],
-    ["Writing the memo", 0],
-  ],
-};
 
 export default function Home() {
   const [company, setCompany] = useState("");
   const [context, setContext] = useState("");
   const [depth, setDepth] = useState<Depth>("deep");
-  const [loading, setLoading] = useState<Depth | null>(null);
-  const [step, setStep] = useState(0);
+  const [subject, setSubject] = useState("");
+  const [steps, setSteps] = useState<TrailStep[]>([]);
+  const request = useRef<AbortController>(null);
   const [error, setError] = useState<string | null>(null);
   const [memo, setMemo] = useState<Memo | null>(null);
-  const [run, setRun] = useState(0);
+  useEffect(() => () => request.current?.abort(), []);
 
-  useEffect(() => {
-    if (!loading) return;
-    const steps = STEPS[loading];
-    let i = 0;
-    let t: ReturnType<typeof setTimeout>;
-    const next = () => {
-      if (i >= steps.length - 1) return;
-      t = setTimeout(() => {
-        i += 1;
-        setStep(i);
-        next();
-      }, steps[i][1]);
-    };
-    next();
-    return () => clearTimeout(t);
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    const name = company.trim();
+    if (!name || request.current) return;
+    const controller = new AbortController();
+    request.current = controller;
+    setError(null);
+    setSteps([]);
+    setSubject(name);
+    try {
+      const result = await streamMemo(
+        { company: name, context: context.trim() || undefined, depth },
+        controller.signal,
+        (step) => setSteps((previous) => [...previous, step]),
+      );
+      if (!controller.signal.aborted) setMemo(result);
+    } catch (err) {
+      if (!controller.signal.aborted) setError(errMsg(err));
+    } finally {
+      request.current = null;
+      if (!controller.signal.aborted) setSubject("");
+    }
+  }
+
+  const loading = Boolean(subject);
+  return () => clearTimeout(t);
   }, [loading]);
 
   async function submit(e: React.FormEvent) {
@@ -129,40 +124,27 @@ export default function Home() {
       </form>
 
       {loading && (
-        <section className="rounded-2xl border border-line p-8">
-          <p className="mb-5 text-muted">
-            Researching <span className="font-semibold text-foreground">{company.trim()}</span>.{" "}
-            {loading === "deep" ? "Deep runs take 1 to 2 minutes." : "This takes 30 to 60 seconds."}
+        <section className="rounded-2xl border border-line bg-soft p-5 sm:p-8" aria-labelledby="progress-title">
+          <h2 id="progress-title" className="break-words text-xl font-semibold">Researching {subject}</h2>
+          <p className="mt-1 text-sm text-muted" role="status">
+            {steps.length === 0 ? "Waiting for the first research step…" : `${steps.length} completed steps`}
           </p>
-          <ol className="space-y-4">
-            {STEPS[loading].map(([label], i) => {
-              const state = i < step ? "done" : i === step ? "active" : "todo";
-              return (
-                <li key={label} className="flex items-center gap-4 text-xl">
-                  <span
-                    className={`flex h-7 w-7 items-center justify-center rounded-full border-2 ${
-                      state === "done"
-                        ? "border-accent bg-accent"
-                        : state === "active"
-                          ? "animate-pulse border-accent"
-                          : "border-line"
-                    }`}
-                  >
-                    {state === "done" && <span className="h-2.5 w-2.5 rounded-full bg-white" />}
-                  </span>
-                  <span className={state === "todo" ? "text-muted/60" : state === "active" ? "font-semibold" : ""}>
-                    {label}
-                  </span>
+          {steps.length > 0 && (
+            <ol className="mt-4 divide-y divide-line">
+              {steps.slice(-6).map((step, index) => (
+                <li key={steps.length - Math.min(steps.length, 6) + index} className="flex items-baseline justify-between gap-3 py-2">
+                  <span className="min-w-0 break-words">{step.label}</span>
+                  <span className="shrink-0 text-sm text-muted tabular-nums">{fmtMs(step.ms)}</span>
                 </li>
-              );
-            })}
-          </ol>
+              ))}
+            </ol>
+          )}
         </section>
       )}
 
       {error && <ErrorBox message={error} />}
 
-      {memo && <MemoView key={run} memo={memo} />}
+      {!loading && memo && <MemoView key={memo.id} memo={memo} />}
     </div>
   );
 }

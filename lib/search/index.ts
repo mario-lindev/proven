@@ -58,7 +58,31 @@ export const recentSince = (now = new Date()) => new Date(now.getTime() - RECENT
 const g = globalThis as unknown as { __provenTelemSessions?: Map<string, string> };
 const telemSessions = (g.__provenTelemSessions ??= new Map<string, string>());
 
-type Group = { name: "main" | "recent" | "platforms"; idx: number[]; opts: TelemSearchOptions };
+// Opt-in diligence providers (TELEM_DILIGENCE=1). These names are in hack.telem.ai's live GET /v1/preprocessors
+// roster but not in the docs, and each is billed, so they are off by default. Each set gets its own batch,
+// pinned to those providers; failures land in the trail like the platform batch.
+export const DILIGENCE = [
+  {
+    name: "financials",
+    providers: ["sec_edgar", "coresignal_company"],
+    wants: (q: string) => /\b(funding|fund(ed|raise\w*)|raised?|series [a-z]|valuation|revenue|financials?|filings?|sec|10-k|10-q|s-1|8-k|ipo|investors?|acquisitions?|acquired|profit\w*|earnings|headcount|employees)\b/i.test(q),
+  },
+  {
+    name: "reddit",
+    providers: ["fetchlayer_reddit"],
+    wants: (q: string) => /\b(reviews?|customers?|sentiment|complain\w*|users?|reddit|community|opinions?|feedback|churn)\b/i.test(q),
+  },
+  {
+    name: "patents",
+    providers: ["patsnap", "uspto_applications"],
+    wants: (q: string) => /\b(patents?|intellectual property|ip|inventions?|technology|moat|r&d)\b/i.test(q),
+  },
+] as const;
+const MAX_DILIGENCE_QUERIES = 3;
+export const diligenceOn = () => process.env.TELEM_DILIGENCE === "1";
+
+type Group = { name: string; idx: number[]; opts: TelemSearchOptions };
+const GENERAL = new Set(["main", "recent"]);
 
 export async function searchAll(
   queries: string[],
@@ -71,16 +95,24 @@ export async function searchAll(
 
   // Telem search options apply to a whole batch, so queries are split into at most three batch calls:
   // general (auto-routed), recent (auto-routed + published_after) and platforms (auto-routed within the pinned
-  // platform providers, only with opts.platforms). Each query is in exactly one of main/recent.
+  // platform providers, only with opts.platforms), plus one per diligence set with TELEM_DILIGENCE=1.
+  // Each query is in exactly one of main/recent.
   const all = qs.map((_, i) => i);
   const recentIdx = all.filter((i) => wantsRecent(qs[i]));
   const mainIdx = all.filter((i) => !wantsRecent(qs[i]));
   const platformIdx = opts?.platforms ? all.filter((i) => wantsPlatforms(qs[i])).slice(0, MAX_PLATFORM_QUERIES) : [];
   const since = recentSince();
   const groups: Group[] = [
-    { name: "main" as const, idx: mainIdx, opts: { session_id } },
-    { name: "recent" as const, idx: recentIdx, opts: { session_id, published_after: since } },
-    { name: "platforms" as const, idx: platformIdx, opts: { session_id, providers: PLATFORM_PROVIDERS } },
+    { name: "main", idx: mainIdx, opts: { session_id } },
+    { name: "recent", idx: recentIdx, opts: { session_id, published_after: since } },
+    { name: "platforms", idx: platformIdx, opts: { session_id, providers: PLATFORM_PROVIDERS } },
+    ...(diligenceOn()
+      ? DILIGENCE.map((d) => ({
+          name: d.name,
+          idx: all.filter((i) => d.wants(qs[i])).slice(0, MAX_DILIGENCE_QUERIES),
+          opts: { session_id, providers: [...d.providers] },
+        }))
+      : []),
   ].filter((gr) => gr.idx.length > 0);
 
   const t0 = Date.now();
@@ -113,9 +145,9 @@ export async function searchAll(
   if (!session_id && firstSession) telemSessions.set(trail.id, firstSession);
 
   const tavilyErrs = tavilyS.map(errOf);
-  const generalFailed = parsed.filter((p) => p.gr.name !== "platforms").every((p) => !p.perQuery);
+  const generalFailed = parsed.filter((p) => GENERAL.has(p.gr.name)).every((p) => !p.perQuery);
   if (generalFailed && tavilyErrs.every(Boolean)) {
-    const telemErrs = [...new Set(parsed.filter((p) => p.gr.name !== "platforms").map((p) => p.err))].join("; ");
+    const telemErrs = [...new Set(parsed.filter((p) => GENERAL.has(p.gr.name)).map((p) => p.err))].join("; ");
     throw new Error(`All search providers failed. Telem: ${telemErrs}. Tavily: ${[...new Set(tavilyErrs)].join("; ")}`);
   }
 
@@ -131,7 +163,7 @@ export async function searchAll(
       const j = p.gr.idx.indexOf(i);
       if (j < 0) continue;
       ms = Math.max(ms, p.ms);
-      const label = p.gr.name === "platforms" ? "telem_platforms" : "telem";
+      const label = GENERAL.has(p.gr.name) ? "telem" : `telem_${p.gr.name}`;
       if (!p.perQuery) {
         engines.push({ name: label, latency_ms: p.ms, n_results: 0, error: p.err });
         continue;
@@ -156,7 +188,7 @@ export async function searchAll(
     lists.push(tavilyHits);
     ms = Math.max(ms, msOf(tv));
 
-    // Telem's ordered list first, then platform hits, then Tavily, round-robin so each is represented.
+    // Telem's ordered list first, then platform / diligence hits, then Tavily, round-robin so each is represented.
     const hits = interleave(lists);
     perQueryHits.push(hits);
     trail.step({

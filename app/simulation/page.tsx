@@ -1,6 +1,7 @@
 "use client";
 import { useMemo, useState } from "react";
 import "./simulation.css";
+import Link from "next/link";
 import SimulationCharts from "@/components/SimulationCharts";
 import { documents, features, trainModel } from "@/lib/search/simulation";
 
@@ -16,7 +17,7 @@ export default function Simulation() {
 
   return <div className="ml-shell">
     <aside className="ml-sidebar" aria-label="Simulation navigation">
-      <a href="/" className="ml-wordmark"><span>◈</span> Proven <small>LAB</small></a>
+      <Link href="/" className="ml-wordmark"><span>◈</span> Proven <small>LAB</small></Link>
       <p className="ml-nav-label">Workspace</p>
       <a href="#overview" className="ml-side-link">◫ &nbsp; Overview</a>
       <a href="#controls" className="ml-side-link">⌘ &nbsp; Experiment controls</a>

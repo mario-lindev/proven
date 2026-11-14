@@ -2,135 +2,172 @@
 
 Rishith talks. Mario drives the laptop. Aarav holds the timer and the backup video.
 
-Total 3:00. If we are behind at a checkpoint, skip ahead. Never run over. Button names below are the exact labels on screen.
+Total 3:00. If we are behind at a checkpoint, skip ahead. Never run over. Names in **bold** are the exact labels on screen.
+
+The order: problem, **Pitch Audit** live, a deep memo with **Claims vs. reality** and the trail, **What Proven learned**, one spoken claim in **Live Room**, business and ask. Watch is not in the live demo (see "Why Watch is cut").
 
 ---
 
-## Prep (by 3:45)
+## Prep (done by 3:45)
 
-**Warm the cache.** With real keys and `MOCK=0`, run deep memos for the demo companies so they show under **Recent memos** on the home page:
+**Run the server on port 3313 with real keys.**
 
 ```
-npx tsx --env-file=.env.local scripts/warm-cache.ts deep [FILL: demo company 1] [FILL: demo company 2] [FILL: demo company 3]
+npm run dev -- -p 3313
 ```
 
-Each line prints the verdict, counts, the time it took and `/memo/<id>`. Memos and their trails are saved in `.data/`, so they survive a server restart. Note the times: they are the real memo times for the slides.
+Open http://localhost:3313. The deployed copy is https://proven-tan.vercel.app. Demo from localhost, because the warmed memos and the learning board are files in `.data/` on this laptop.
 
-**Start the watch early.** Open the memo for [FILL: watched company], press **Watch this company**, then **Check now** once, at least 5 minutes before going on. In our test run (Stripe, 1:22 PM) the first update showed 45 s after **Check now** and the agent's 14 changes took about 3 minutes, so a press on stage will not bring new items inside the 20 s Watch beat. Leave that tab open and never reload it: the watch lives in the page and in server memory, so a reload or a server restart loses it from the screen (the Telem monitor itself keeps running).
+**Warm the deep memo.** It takes too long to run on stage (Builder.ai deep took 101.8 s).
+
+```
+npx tsx --env-file=.env.local scripts/warm-cache.ts deep "Builder.ai"
+```
+
+It prints the verdict, counts, time and `/memo/<id>`. Open that memo and check four things before you rely on it:
+- the verdict box says "N of N lines verified against their sources";
+- the **Researched until proven** box is there;
+- **Claims vs. reality** is there and has the lender line ($220m of 2024 sales told to lenders, about $55m in the audit) and the "Natasha" line (AI, against about 700 human engineers);
+- hovering a fact shows a quote.
+
+Each run is a new search, so a re-run can word things differently. If the new run is weaker, use the earlier one: [FILL: id of the Builder.ai deep memo to show]. Run warm-cache memos at least a minute apart: back to back, X, YouTube and WeChat returned rate-limit errors in 3 of 4 memos.
+
+**Pre-run the audit.** Open **Pitch Audit**, paste [DECIDE: audit URL, rippling.com or ramp.com], press **Audit the claims**, wait for the trust score. Leave that tab open and never reload it: an audit lives in the page only. This is the fallback if the live audit stalls. Our real runs: rippling.com gave 3 hold up, 2 contradicted, 3 unclear, trust score 56, in 23 s. ramp.com gave 5 hold up, 3 unclear, trust score 81, in 23.8 s. Rippling shows red; Ramp shows green and amber only. A new run can differ by a claim or two, so read the numbers off the screen, not from this page.
+
+**Fill the learning board.** **What Proven learned** needs memos behind it. The warm-cache runs do that. Check the page shows a leaderboard, not "Nothing learned yet".
 
 ## Before we go on (15 minutes before)
 
 Mario:
-- [ ] Chrome, not Safari. Live Room needs Chrome speech recognition.
+- [ ] Server answers on http://localhost:3313.
+- [ ] **No "Demo data" badge** next to the Proven logo. If it is there, the server runs with `MOCK=1` and every result is a fixture. Restart with `MOCK=0`. Never present mock data as real.
+- [ ] Real Chrome, not Safari and not an embedded or IDE browser. The mic only works in real Chrome.
 - [ ] Phone hotspot, not venue Wi-Fi.
-- [ ] **No "Demo data" badge** next to the Proven logo. If it is there, the server runs with `MOCK=1` and every result is a fixture: restart with `MOCK=0`. Never present mock data as real.
-- [ ] **No fixture memos under Recent memos.** Mock runs are saved to `.data/` too. At 1:25 PM the list had four "Stripe sells warehouse picking robots" memos (`memo_m0czv31o`, `memo_6pwu931r`, `memo_fcyp6prt`, `memo_1vpn6mcw`). Remove those files from `.data/memos/` before the demo, or never click them.
-- [ ] Tabs: 1 slides on slide 1. 2 Proven home, idle, with **Recent memos** visible. 3 Live Room, mic already allowed (press **Start listening**, allow, **Stop listening**). 4 a warmed deep memo for [FILL: demo company 1], drawer closed. 5 the memo tab with the watch running (see Prep). 6 backup video paused at 0:00.
+- [ ] Warm memos are under **Recent memos** on the home page, the Builder.ai deep memo among them.
+- [ ] Tabs, in order: 1 slides on slide 1. 2 **Pitch Audit**, empty, the URL on the clipboard. 3 the finished audit from prep. 4 home page with **Recent memos** visible. 5 the Builder.ai deep memo, drawer closed. 6 **What Proven learned**. 7 **Live Room**, mic already allowed (press **Start listening**, allow, **Stop listening**). 8 backup video paused at 0:00.
 - [ ] Browser zoom up so the back row can read it. Do Not Disturb on.
-- [ ] Warm the server: type one claim in Live Room ("Our market is $10B"), press **Check**.
-- [ ] Do not say "we have no competitors" within 90 seconds of going on. Live Room skips a claim it checked in the last 90 seconds.
-- [ ] Optional extension beat: Proven loaded in Chrome, a Meet call open with Aarav joined from his laptop, captions on (**CC**), the Proven side panel showing **Listening to Google Meet captions** with a green dot.
+- [ ] Do not say "we have no competitors" into Live Room within 90 seconds of going on. Live Room skips a claim it checked in the last 90 seconds.
+- [ ] Do not start a memo in the two minutes before going on. Memos and audits use the same engines, and some of them rate-limit.
 
 Rishith:
-- [ ] Know the warm-cache times for a deep memo: about 1 minute (54 s Stripe, 60 s Figma, measured 1:21 PM). A quick memo took 39 s with the verify pass (25 to 26 s before it), so it fits the 45 s memo beat with little spare. Deep memos warmed before 1:29 PM have no verification; re-warm them. Know one live check time: about 8 s (7 to 11 s over 9 checks).
-- [ ] Fallback company if no judge names one: [FILL: demo company 1].
+- [ ] Know the real times: audit 23 to 24 s for 8 claims; deep memo 101.8 s (so it is pre-warmed); live claim check about 8 s (6.7 to 10.6 s over 9 checks).
+- [ ] Know the two Builder.ai lines by heart.
 
 ---
 
 ## Run sheet
 
-### 0:00 to 0:15. Title and problem (slides 1 and 2)
+### 0:00 to 0:15. Problem (slides 1 and 2)
 
-**Rishith:** "We're Proven. Investors hear dozens of pitches a week. Founders say 'we have no competitors' or 'we grew 3x'. Someone checks that by hand, days later, or nobody does. A chatbot is fast, but you can't show your partners where each sentence came from."
+**Rishith:** "We're Proven. A founder's website says '50,000 customers' and 'the only platform that does this'. An investor checks that by hand, days later, or never. A chatbot will answer, but you can't show your partners where each sentence came from."
 
-**Mario:** slide 2 at "dozens of pitches". At "where each sentence came from", go to tab 3 and press **Start listening**.
+**Mario:** slide 2 at "50,000 customers". At "where each sentence came from", go to tab 2.
 
-### 0:15 to 1:00. Live Room (slide 3 is the backdrop if the app fails)
+### 0:15 to 0:55. Pitch Audit, live
 
-**On screen:** the transcript fills in; claim cards appear newest on top.
+**Mario:** paste the URL, press **Audit the claims**. The blue bar reads "Reading the pitch and picking out the claims that can be checked". Then up to 8 claim cards appear and fill in one by one.
 
-**Rishith** (slow, clear sentences, pause after each):
-- "Let me pitch you Proven while Proven listens."
-- "Investors spend hours checking pitch claims by hand."
-- "And the best part: we have no competitors."
-- Stop. Wait for the card. The blue "Searching the web for the latest claim" bar shows it is working.
-- On the red **Contradicted** card: "Red. While I talked it searched and found real competitors. Each one has a source." Mario points at the sources.
+**Rishith** (while it runs): "This is a real startup's website, read right now. Proven pulls out what the company says about itself: customers, funding, 'the only one'. Each claim is searched across Telem's engines and checked against sources the company does not control. The company repeating itself doesn't count."
 
-**Mario:** press **Stop listening** once the card is up.
+As cards turn: "Green is **Holds up**. Red is **Contradicted**. Amber is **Unclear**: it won't guess." Mario points at one card's quote and its **Independent** source tag. "That quote is on the independent page word for word. Our code checks that before it shows it."
+
+When the score lands (the line reads "Checked in N s"): "[read the scoreboard line]. Trust score [read it]. A search engine gives you ten links. This gives you a verdict per claim, with the quote."
 
 **If it fails:**
-- No words in the transcript after 5 s: type `Proven checks investor pitch claims live during the meeting. We have no competitors.` in the "Type a claim to check" box, press **Check**. Rishith: "Loud room, I'll type it." Type both sentences: a typed claim is checked alone, and `We have no competitors` by itself came back amber **Unclear** in our test ("Startup not identified"). With the product named it came back red **Contradicted** in 7.6 s.
-- No card after 15 s, or an error: tab 6, play the Live Room part muted ([FILL: Live Room timestamp in backup video]). Rishith narrates.
-- Amber **Unclear**: "Amber means not enough evidence either way. It won't guess." Move on.
+- No claims after 15 s, or an error box: tab 3. "Here is the same audit from a few minutes ago."
+- Still checking at 0:50: say "the last ones are still coming in" and move on. Do not wait.
+- No red card: say what is on screen. "Nothing contradicted on this one. Amber means independent sources don't settle it."
 
-### Optional 20 s. Extension on a Meet call (only if prep showed the green dot)
+### 0:55 to 1:50. Deep memo: Claims vs. reality, the quote, the trail
 
-Take these 20 s from the Memo beat below (start the memo on a warmed tab instead of a live run).
+**Mario:** tab 4, click Builder.ai under **Recent memos** (or go to tab 5).
 
-**Mario:** switch to the Meet tab. Aarav, as the founder, says: "We already have every top-ten bank as a customer."
+**Rishith:** "The audit takes 20 seconds. This is the deep version: a full memo. We ran this one earlier; it took about 100 seconds. Verdict, facts, risks, questions to ask the founder."
 
-**Rishith:** "Same check, on a real video call. It reads Meet's captions, no audio leaves the browser." Point at the card in the side panel. "And **Research this company** opens a full memo."
+**Mario:** point at "N of N lines verified against their sources" in the verdict box, then at **Researched until proven**.
 
-**If it fails:** say nothing about it and go to the memo.
+**Rishith:** "Deep mode doesn't stop after one search. It lists the questions an investor must have answered, searches again for the open ones, and stops when they're covered. Up to three extra rounds. [Read the rounds line off the box.]"
 
-### 1:00 to 1:45. Memo, with Telem routing live
+**Mario:** scroll to **Claims vs. reality**.
 
-**On screen:** tab 2, Proven home.
+**Rishith:** "This is the part we built for you. Left: **The company says**. Right: **Independent sources say**. Builder.ai told lenders it had $220 million in 2024 sales. The audit found about $55 million. It sold 'Natasha' as AI. Sources say about 700 human engineers did the work."
 
-**Rishith:** "Name a company. A startup or a vendor you've looked at." No answer in 3 s: "Let's do [FILL: demo company 1]."
+**Mario:** hover one fact. A box opens: "Checked against the text of ..." with the quote.
 
-**Mario:** type the name, choose **Quick** (1 round), press **Research**.
+**Rishith:** "Hover any line: the exact quote from the page that backs it. Code checks the quote is really in the page's text. A line with no quote is dropped before you see it."
 
-**Rishith** (over the research feed): "Claude planned the searches: funding, competitors, hiring, reviews, lawsuits, news. Each one goes to Telem. Watch this line: 'Router chose' is Telem picking different engines for each query. Hiring and review queries also go to Telem's platform engines: LinkedIn, X, Reddit, Trustpilot. News queries only keep the last year. That id at the bottom is the Telem session, which you can open in the Telem console."
+**Mario:** press **How Proven reached this**. Scroll to a search step.
 
-When the memo appears: "Verdict: [read it]. Every fact and risk has numbered sources. If Claude writes a line without a real source, our code deletes it."
+**Rishith:** "And how it got there. Each query, the **Telem topic** the router gave it, the engines **Telem routed to**, who answered and how fast. A funding query and a hiring query go to different engines. One deep memo used 16 engines through one Telem API, LinkedIn, Reddit and Trustpilot among them."
 
-**If it fails or is still running at 1:40:** switch to tab 4. Rishith: "That one is still searching. Here's a deep memo we ran earlier. Deep searches twice: round two goes after what round one couldn't answer." If tab 4 is lost: tab 2, press **New research**, click the company under **Recent memos**.
+**Mario:** close the drawer (Escape).
 
-Judge names a person: "We only research companies and public information, so let's do their company."
+**If it fails:** memo tab lost: tab 4, **Recent memos**, click it again. No **Claims vs. reality** section on the memo: show the hover quote and the trail, and say the Builder.ai lines without pointing. Drawer empty: skip it, go to tab 6.
 
-### 1:45 to 2:15. Trail
+### 1:50 to 2:15. What Proven learned
 
-**Mario:** click a source chip on the first risk. The drawer **How Proven reached this** opens at "This search found the cited source".
+**Mario:** tab 6 (**What Proven learned** in the top bar).
 
-**Rishith:** "This risk came from this page. Here's the query that found it, the engines Telem's router chose, every engine that answered and how fast, and the Telem session. Every line is provable. That's the name."
+**Rishith:** "Proven learns too, but only from what it can prove. After every memo it scores each engine: results returned, results a memo cited, results that backed a verified line. An engine gets credit only when its page holds a quote our code found. That score decides which pages get read first next time. A loop that grades its own answers can learn its own mistakes. This one can't give credit without proof."
 
-**Mario:** click the page link (opens a new tab), come back, **Close**.
+Mario points at the top row, the **Verified yield** column, and the "routed by Telem" label.
 
-**If it fails:** use tab 4 and press **How Proven reached this**. If that fails too, show the trail screenshot on slide 4.
+**If it fails** ("Nothing learned yet" or an error): say the same lines over slide 4. Do not show an empty board.
 
-### 2:15 to 2:35. Watch
+### 2:15 to 2:40. Live Room, one spoken claim
 
-**Mario:** tab 5. Press **Check now** (it shows "Telem agent is checking" for a few seconds).
+**Mario:** tab 7, press **Start listening**.
 
-**Rishith:** "And Proven keeps watching. This is a Telem monitor with an agent. Check now runs the agent this second instead of waiting an hour. Each change comes with its source."
+**Rishith** (slow, two sentences, then stop): "Investors spend hours checking pitch claims by hand. And the best part: we have no competitors."
 
-Only claim an update if one is on screen. If the panel says "No changes yet": "Nothing new since we started it. When something changes, it lands here with its source."
+Wait. The blue "Searching the web for the latest claim" bar shows it is working. This exact pair came back red in 6.7 s in our test.
 
-**If it fails:** skip to slide 5.
+On the red **Contradicted** card: "Same check, while I'm talking. It found real competitors, each with a source."
 
-### 2:35 to 2:50. Business (slide 5)
+**Mario:** **Stop listening**.
 
-**Rishith:** "Funds pay per seat. Companies pay per report for vendor checks. Analysts are slow, chat tools can't be audited, data platforms don't check a pitch live. Proven does all three."
+**If it fails:**
+- No words in the transcript after 4 s: type `Proven is an AI tool that checks investor pitch claims live during the meeting. We have no competitors.` in the "Type a claim to check" box and press **Check**. Type both sentences. `We have no competitors` by itself came back amber in our test, because no product was named. With the product named it came back red in 7.6 s.
+- No card by 2:35: "It's still searching; the audit you saw is the same check." Move on.
+- Amber **Unclear**: "Amber means not enough evidence either way." Move on.
 
-### 2:50 to 3:00. Team and ask (slide 6)
+**Alternative for this beat, only if prep showed it working:** the Chrome extension on a Google Meet call. [DECIDE: Live Room or the extension on Meet.] Aarav, as the founder on the call, says one claim; the card appears in the side panel. "It reads the call's captions. No audio leaves the browser."
 
-**Rishith:** "Rishith, Aarav, Mario. We built this today. [FILL: the ask, same as slide 6]. Thank you."
+### 2:40 to 3:00. Business and ask (slides 5 and 6)
 
-**Mario:** stay on the slide. Keep tab 4 one click away for trail questions.
+**Rishith:** "Funds pay per seat. Companies pay per report for vendor checks. We start with seed funds and accelerators: many pitches, few analysts. And Proven keeps watching a company after the memo, through a Telem monitor. We're Rishith, Aarav and Mario, and we built this today. [DECIDE: the ask, same as slide 6]. Thank you."
+
+**Mario:** slide 5 at "Funds pay", slide 6 at "We're Rishith". Stay on slide 6. Keep tab 5 one click away for questions.
 
 ---
 
+## Why Watch is cut from the live demo
+
+In our test the first update showed 45 s after **Check now**, and the agent's batch of changes took about 3 minutes. Nothing would arrive inside a 20-second beat. Watch gets one sentence in the business beat. If a judge asks, open a memo, show **Watch this company** and **Check now**, and say the first update takes about 45 seconds.
+
+## Timing risks (measured)
+
+| Risk | Measured | What we do |
+|---|---|---|
+| Pitch Audit run | 23 s and 23.8 s for 8 claims | Fits the 40 s beat. Finished audit ready in tab 3. |
+| Deep memo | 101.8 s (Builder.ai) | Never run on stage. Open from **Recent memos**. |
+| Quick memo | 39.4 s with the verify pass | Not in the demo. Only if a judge asks afterwards. |
+| Live claim check | median 8.1 s, 6.7 to 10.6 s | One claim only. Typed fallback ready. |
+| Watch update | 45 s to the first, about 3 min for the agent's batch | Cut. Mention only. |
+| One slow platform engine | Product Hunt took 15.1 s once and held a search round at 15.8 s | Another reason not to run a memo live. |
+| Rate limits | X, YouTube, WeChat returned 429 in 3 of 4 back-to-back memos | No memo runs in the two minutes before the demo. |
+
 ## If everything fails
 
-Play the backup video from the start, muted. Rishith narrates the same script and skips "name a company". Say once: "The network is down, so here's the run we recorded at [FILL: time the video was recorded] today." Apologize once only.
+Play the backup video from the start, muted ([LINK: backup video]). Rishith narrates the same script. Say once: "The network is down, so here's the run we recorded at [FILL: time the video was recorded] today." Apologize once only.
 
 ## Timing checkpoints (Aarav)
 
 | Time | Should be at | If behind |
 |---|---|---|
-| 0:15 | Live Room listening | Cut the problem lines |
-| 1:00 | Typing a company | Skip the judge ask, use tab 4 |
-| 1:45 | Opening the trail | Skip the page link |
-| 2:15 | Watch | Skip Watch, go to slide 5 |
-| 2:50 | Slide 6 | Say only "Thank you" |
+| 0:15 | **Audit the claims** pressed | Cut the problem lines |
+| 0:55 | Opening the Builder.ai memo | Leave the audit, even if two cards are still checking |
+| 1:25 | **Claims vs. reality** on screen | Skip the rounds box |
+| 1:50 | **What Proven learned** | Skip the trail drawer |
+| 2:15 | **Start listening** | Skip Live Room, go to slide 5 |
+| 2:40 | Slide 5 | Say only the price line and the ask |

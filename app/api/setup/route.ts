@@ -9,13 +9,24 @@ const NAMES = ["TELEM_API_KEY", "TAVILY_API_KEY", "ANTHROPIC_API_KEY"] as const;
 
 function allowed(req: Request) {
   if (process.env.VERCEL || process.env.NODE_ENV === "production") return false;
-  const host = (req.headers.get("host") ?? "").split(":")[0];
-  return host === "localhost" || host === "127.0.0.1";
+  const host = req.headers.get("host") ?? "";
+  if (!/^(localhost|127\.0\.0\.1)(:\d+)?$/.test(host)) return false;
+  const origin = req.headers.get("origin");
+  const fetchSite = req.headers.get("sec-fetch-site");
+  if (fetchSite && fetchSite !== "same-origin") return false;
+  return origin === null || origin === `http://${host}` || origin === `https://${host}`;
 }
 
 export async function POST(req: Request) {
   if (!allowed(req)) return fail("setup is only available on localhost in development", 403);
-  const body = (await req.json().catch(() => ({}))) as Partial<Record<(typeof NAMES)[number], string>>;
+  if (req.headers.get("content-type")?.split(";")[0].trim().toLowerCase() !== "application/json") {
+    return fail("setup expects a JSON request", 415);
+  }
+  const body: unknown = await req.json().catch(() => null);
+  if (!body || typeof body !== "object" || Array.isArray(body)) {
+    return fail("setup expects a JSON object", 400);
+  }
+  const keys = body as Record<string, unknown>;
   const path = join(process.cwd(), ".env.local");
   const example = join(process.cwd(), ".env.example");
   const configuredDefaults = new Map(
@@ -39,7 +50,9 @@ export async function POST(req: Request) {
     env.set(k, v);
   };
   for (const k of NAMES) {
-    const v = body[k]?.trim();
+    const raw = keys[k];
+    if (raw !== undefined && typeof raw !== "string") return fail(`${k} must be a string`, 400);
+    const v = raw?.trim();
     if (v) {
       if (/\s/.test(v)) return fail(`${k} has a space in it; paste just the key`, 400);
       put(k, v);

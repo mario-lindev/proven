@@ -8,6 +8,7 @@ const headers = {
 };
 
 export function middleware(req: NextRequest) {
+  if (req.nextUrl.pathname === "/api/setup") return NextResponse.next();
   if (req.method === "OPTIONS") return new NextResponse(null, { status: 204, headers });
   const res = NextResponse.next();
   Object.entries(headers).forEach(([k, v]) => res.headers.set(k, v));

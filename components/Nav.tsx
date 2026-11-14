@@ -8,6 +8,7 @@ const links = [
   { href: "/", label: "Research" },
   { href: "/live", label: "Live Room" },
   { href: "/audit", label: "Pitch Audit" },
+  { href: "/impact", label: "Event Impact" },
   { href: "/engines", label: "What Proven learned" },
 ];
 

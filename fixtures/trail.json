@@ -41,7 +41,8 @@
    "routing": [
     "exa",
     "linkup"
-   ]
+   ],
+   "topic": "finance_markets"
   },
   {
    "kind": "search",
@@ -84,7 +85,8 @@
     "exa",
     "brave",
     "linkup"
-   ]
+   ],
+   "topic": "companies"
   },
   {
    "kind": "search",
@@ -120,7 +122,8 @@
    "routing": [
     "brave",
     "tavily_web"
-   ]
+   ],
+   "topic": "news"
   },
   {
    "kind": "search",
@@ -156,7 +159,8 @@
    "routing": [
     "reddit",
     "brave"
-   ]
+   ],
+   "topic": "general"
   },
   {
    "kind": "search",
@@ -192,7 +196,8 @@
    "routing": [
     "linkedin",
     "exa"
-   ]
+   ],
+   "topic": "people_profiles"
   },
   {
    "kind": "search",
@@ -229,7 +234,8 @@
    "routing": [
     "brave",
     "tavily_web"
-   ]
+   ],
+   "topic": "news"
   },
   {
    "kind": "search",
@@ -266,7 +272,8 @@
    "routing": [
     "brave",
     "tavily_web"
-   ]
+   ],
+   "topic": "people_profiles"
   },
   {
    "kind": "search",
@@ -303,7 +310,8 @@
    "routing": [
     "brave",
     "tavily_web"
-   ]
+   ],
+   "topic": "companies"
   },
   {
    "kind": "search",
@@ -347,7 +355,8 @@
     "exa",
     "brave",
     "linkup"
-   ]
+   ],
+   "topic": "finance_markets"
   },
   {
    "kind": "search",
@@ -386,7 +395,8 @@
    "routing": [
     "brave",
     "tavily_web"
-   ]
+   ],
+   "topic": "news"
   },
   {
    "kind": "llm",
@@ -431,7 +441,8 @@
    "routing": [
     "brave",
     "tavily_web"
-   ]
+   ],
+   "topic": "financial_filings"
   },
   {
    "kind": "search",
@@ -467,7 +478,8 @@
    "routing": [
     "brave",
     "tavily_web"
-   ]
+   ],
+   "topic": "general"
   },
   {
    "kind": "search",
@@ -511,7 +523,8 @@
     "exa",
     "brave",
     "linkup"
-   ]
+   ],
+   "topic": "companies"
   },
   {
    "kind": "search",
@@ -546,7 +559,14 @@
    "routing": [
     "exa",
     "linkup"
-   ]
+   ],
+   "topic": "news"
+  },
+  {
+   "kind": "learn",
+   "label": "Ranked 20 sources with what Proven learned from 12 memos",
+   "at": "2026-11-14T12:00:10.000Z",
+   "ms": 4
   },
   {
    "kind": "extract",
@@ -577,6 +597,18 @@
    "label": "Write the memo",
    "at": "2026-11-14T12:00:15.000Z",
    "ms": 9000
+  },
+  {
+   "kind": "verify",
+   "label": "Checked 7 lines against their sources: 5 kept, 2 dropped",
+   "at": "2026-11-14T12:00:21.000Z",
+   "ms": 6400
+  },
+  {
+   "kind": "learn",
+   "label": "Learned from this memo: 6 engines updated",
+   "at": "2026-11-14T12:00:21.050Z",
+   "ms": 12
   }
  ]
 }

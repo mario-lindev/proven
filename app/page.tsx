@@ -228,13 +228,22 @@ export default function Home() {
           <ol className="grid gap-8 sm:grid-cols-3">
             {[
               ["Plan", "Claude breaks the question into searches: funding, rivals, hiring, lawsuits, sentiment."],
-              ["Route", "Telem sends each query to the engines best suited to it, including LinkedIn, X and Trustpilot."],
-              ["Prove", "The memo keeps only lines with a source. Open the trail to see every search behind it."],
-            ].map(([t, d], i) => (
+              [
+                "Route",
+                "Telem sends each query to the engines best suited to it, including LinkedIn, X and Trustpilot.",
+                "Pages from engines whose answers held up in past memos are read first.",
+              ],
+              [
+                "Prove",
+                "The memo keeps only lines with a source. Open the trail to see every search behind it.",
+                "Each line is checked against its page; lines without a quote are dropped.",
+              ],
+            ].map(([t, d, extra], i) => (
               <li key={t}>
                 <p className="tnum text-sm text-graphite">Step {i + 1}</p>
                 <h3 className="serif mt-1 text-2xl font-semibold">{t}</h3>
                 <p className="mt-2 leading-relaxed text-graphite">{d}</p>
+                {extra && <p className="mt-2 leading-relaxed text-ink">{extra}</p>}
               </li>
             ))}
           </ol>

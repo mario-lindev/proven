@@ -74,6 +74,27 @@ export function EngineBar({ e, scale, animate = false }: { e: Engine; scale: num
   );
 }
 
+// The topic Telem's router classified a query as, e.g. "people_profiles".
+export function TopicChip({ topic }: { topic: string }) {
+  return (
+    <span
+      title={`Telem's router classified this query as ${topic}`}
+      className="inline-flex items-center rounded-[3px] border border-cobalt/25 bg-cobalt-soft px-1.5 font-mono text-[0.78rem] leading-[1.45rem] text-cobalt"
+    >
+      {topic}
+    </span>
+  );
+}
+
+// A small check mark, drawn in currentColor.
+export function Check({ className = "h-3 w-3" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 12 12" aria-hidden className={className} fill="none" stroke="currentColor" strokeWidth="1.8">
+      <path d="M2.2 6.3 4.8 8.8 9.8 3.4" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 // Splits a search step's engines into the ones Telem routed to and Tavily.
 export function splitEngines(engines: Engine[] = []) {
   return {

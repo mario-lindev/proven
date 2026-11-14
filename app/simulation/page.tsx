@@ -1,5 +1,6 @@
 "use client";
 import { useMemo, useState } from "react";
+import RealModel from "@/components/RealModel";
 import SimulationCharts from "@/components/SimulationCharts";
 import { documents, features, trainModel } from "@/lib/search/simulation";
 
@@ -14,6 +15,7 @@ export default function Simulation() {
   }).sort((a, b) => enabled ? b.score - a.score : a.original - b.original);
 
   return <div className="space-y-8">
+    <RealModel />
     <header className="space-y-4">
       <span className="inline-block rounded-full border border-dig bg-dig-soft px-3 py-1 text-sm font-semibold text-dig">SIMULATION · SYNTHETIC DATA</span>
       <h1 className="serif text-4xl md:text-6xl">Teach search what matters.</h1>

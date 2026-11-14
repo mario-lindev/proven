@@ -1,7 +1,7 @@
 // OWNER: Rishith. Company name -> sourced memo (AGENTS.md §8).
 import type { Contradiction, Line, Memo, Round, Source, TrailRecorder } from "../types";
 import { extract, normalizeUrl, searchAll } from "../search";
-import { rankSources, recordMemo } from "../learn";
+import { queryHints, rankSources, recordMemo } from "../learn";
 import { newId, newTrail, saveMemo } from "../store";
 import { askJSON } from "./claude";
 import { verifyLines } from "./verify";
@@ -68,6 +68,7 @@ export async function buildMemo(
 ): Promise<Memo> {
   const deep = depth === "deep";
 
+  const hints = queryHints();
   const plan = await askJSON<{ queries: string[] }>({
     label: "Plan the research",
     trail,
@@ -77,7 +78,11 @@ export async function buildMemo(
       "Cover: what the company does and its traction, funding and investors, direct competitors including stealth and overseas ones, " +
       "hiring signals (LinkedIn), customer sentiment (Reddit, TikTok, reviews), lawsuits, layoffs or security incidents, and news from the last 6 months." +
       (deep ? " Also cover: founders and team background, pricing and business model, market size, key customers or partners, and regulatory risk." : ""),
-    user: `Subject: ${company}${context ? `\nContext: ${context}` : ""}`,
+    user:
+      `Subject: ${company}${context ? `\nContext: ${context}` : ""}` +
+      (hints.length
+        ? `\n\nQuery shapes that led to verified sources in past memos (reuse the ones that fit; {company} is the subject):\n${hints.map((h) => `- ${h}`).join("\n")}`
+        : ""),
     schema: planSchema,
   });
 

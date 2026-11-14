@@ -139,7 +139,7 @@ export async function researchUntilProven(
     if (stop) break;
 
     const more = await Promise.race([
-      searchAll(next, trail, { platforms: true }).catch(() => [] as Source[]),
+      searchAll(next, trail, { platforms: true, steer: true }).catch(() => [] as Source[]),
       new Promise<Source[]>((r) => setTimeout(() => r([]), Math.max(0, left() - 10_000)).unref?.()),
     ]);
     const seen = new Set(sources.map((s) => s.url));

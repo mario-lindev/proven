@@ -4,6 +4,10 @@
 // It only calls the existing endpoints; each panel links to the full page.
 import Link from "next/link";
 import { useState } from "react";
+import { EngineDot, engineLabel } from "@/components/engines";
+import { ActivityStrip, COBALT, INK, RUST, StreamBand, type Phase } from "@/components/flow/Ascii";
+import CountUp from "@/components/flow/CountUp";
+import PageHeader from "@/components/flow/PageHeader";
 import type { Memo, MemoEvent, TrailStep, Watch } from "@/lib/types";
 import type { AuditCheck, AuditClaim, AuditEvent, AuditSummary } from "@/lib/brain/audit";
 
@@ -37,6 +41,8 @@ const VERDICT: Record<Memo["verdict"], [string, string]> = {
   pass: ["Pass", "text-pass"],
 };
 const TONE = { supported: "text-pursue", contradicted: "text-pass", unclear: "text-dig" } as const;
+const MARK = { supported: "bg-pursue", contradicted: "bg-pass", unclear: "bg-dig" } as const;
+const EASE = "ease-[cubic-bezier(.22,1,.36,1)]";
 const WORD = { supported: "Holds up", contradicted: "Contradicted", unclear: "Unclear" } as const;
 
 export default function RunEverything() {
@@ -97,41 +103,57 @@ export default function RunEverything() {
   const done = Object.keys(checks).length;
   const high = memo?.contradictions?.filter((c) => c.severity === "high").length ?? 0;
 
+  const topics = [...new Set(searches.map((s) => s.topic).filter((t): t is string => Boolean(t)))];
+  const site = url.trim();
+  const auditPhase: Phase | "skipped" | "error" = !site ? "skipped" : auditErr ? "error" : audit ? "done" : running ? "running" : "done";
+  const memoPhase: Phase | "error" = memoErr ? "error" : memo ? "done" : running ? "running" : "done";
+  const watchPhase: Phase | "error" = watchErr ? "error" : watch ? "done" : running ? "running" : "done";
+  const bandPhase: Phase = running ? "running" : started ? "done" : "idle";
+
   return (
-    <div className="space-y-8">
-      <header className="max-w-[48rem]">
-        <h1 className="serif text-[3.2rem] font-semibold leading-[1.04] tracking-tight">Run everything</h1>
-        <p className="mt-4 text-[1.2rem] leading-relaxed text-graphite">
-          One click: audit what the company claims on its own site, research it with a quote behind every line, and
-          start a watch. All three run at once.
-        </p>
-      </header>
+    <div className="space-y-10">
+      <PageHeader
+        title="Run everything"
+        lede="One click audits what the company claims on its own site, researches it with a quote behind every line, and starts a watch. All three run at once."
+      >
+        <StreamBand phase={bandPhase} label="Three streams, audit, research and watch, merging into one result" className="h-28" />
+      </PageHeader>
 
       <form
         onSubmit={(e) => {
           e.preventDefault();
           run();
         }}
-        className="border border-rule bg-surface"
+        className="overflow-hidden rounded-[8px] border border-ink/80 bg-surface"
       >
         <div className="grid sm:grid-cols-[1fr_1.4fr_auto]">
-          <label className="block border-b border-rule px-5 py-4 sm:border-b-0 sm:border-r">
+          <label className="block border-b border-rule px-6 py-4 sm:border-b-0 sm:border-r">
             <span className="text-sm font-semibold">Company</span>
-            <input value={company} onChange={(e) => setCompany(e.target.value)} placeholder="Ramp" className="serif mt-1 block w-full bg-transparent text-xl outline-none placeholder:text-faint" />
+            <input value={company} onChange={(e) => setCompany(e.target.value)} placeholder="Ramp" className="serif mt-1 block w-full bg-transparent text-2xl outline-none placeholder:text-faint" />
           </label>
-          <label className="block border-b border-rule px-5 py-4 sm:border-b-0 sm:border-r">
+          <label className="block border-b border-rule px-6 py-4 sm:border-b-0 sm:border-r">
             <span className="text-sm font-semibold">Its website (for the audit, optional)</span>
-            <input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://ramp.com" className="serif mt-1 block w-full bg-transparent text-xl outline-none placeholder:text-faint" />
+            <input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://ramp.com" className="mt-1 block w-full bg-transparent font-mono text-xl outline-none placeholder:text-faint" />
           </label>
-          <button type="submit" disabled={!company.trim() || running} className="bg-ink px-8 py-4 text-lg font-semibold text-white disabled:opacity-50">
+          <button
+            type="submit"
+            disabled={!company.trim() || running}
+            className={`bg-ink px-10 py-4 text-lg font-semibold text-white transition-colors duration-300 ${EASE} hover:bg-cobalt disabled:opacity-50 disabled:hover:bg-ink`}
+          >
             {running ? "Running" : "Run everything"}
           </button>
         </div>
       </form>
       {!started && (
-        <p className="flex flex-wrap gap-2 text-sm">
+        <p className="-mt-4 flex flex-wrap items-center gap-2 text-sm">
+          <span className="mr-1 text-graphite">Try</span>
           {EXAMPLES.map(([c, u]) => (
-            <button key={c} type="button" onClick={() => { setCompany(c); setUrl(u); run(c, u); }} className="border border-rule bg-surface px-3 py-1.5 hover:border-ink">
+            <button
+              key={c}
+              type="button"
+              onClick={() => { setCompany(c); setUrl(u); run(c, u); }}
+              className={`rounded-[8px] border border-rule bg-surface px-3 py-1.5 transition-colors duration-200 ${EASE} hover:border-ink`}
+            >
               {c}
             </button>
           ))}
@@ -140,28 +162,64 @@ export default function RunEverything() {
 
       {started && (
         <>
-          <section className="tnum grid gap-6 border-y border-rule py-5 sm:grid-cols-4">
-            <Stat label="memo verdict" value={memo ? VERDICT[memo.verdict][0] : "…"} tone={memo ? VERDICT[memo.verdict][1] : ""} />
-            <Stat label="lines backed by a quote" value={memo?.verification ? `${memo.verification.kept} of ${memo.verification.checked}` : "…"} />
-            <Stat label="site claims that hold up" value={audit ? `${audit.summary.supported} of ${claims.length}` : url.trim() ? "…" : "–"} />
-            <Stat label="trust score" value={audit ? `${audit.trust_score} / 100` : url.trim() ? "…" : "–"} />
+          <section aria-label="Scorecard" className="tnum grid border-y border-ink/80 sm:grid-cols-4">
+            <Stat label="memo verdict" tone={memo ? VERDICT[memo.verdict][1] : "text-faint"}>
+              {memo ? VERDICT[memo.verdict][0] : "…"}
+            </Stat>
+            <Stat label="lines backed by a quote">
+              {memo?.verification ? (
+                <>
+                  <CountUp value={memo.verification.kept} />
+                  <span className="text-faint"> / {memo.verification.checked}</span>
+                </>
+              ) : (
+                <span className="text-faint">…</span>
+              )}
+            </Stat>
+            <Stat label="site claims that hold up">
+              {audit ? (
+                <>
+                  <CountUp value={audit.summary.supported} />
+                  <span className="text-faint"> / {claims.length}</span>
+                </>
+              ) : (
+                <span className="text-faint">{site ? "…" : "–"}</span>
+              )}
+            </Stat>
+            <Stat label="trust score" tone={audit ? "text-cobalt" : ""}>
+              {audit ? (
+                <>
+                  <CountUp value={audit.trust_score} />
+                  <span className="text-[1.4rem] text-faint"> /100</span>
+                </>
+              ) : (
+                <span className="text-faint">{site ? "…" : "–"}</span>
+              )}
+            </Stat>
           </section>
 
-          <div className="grid gap-6 lg:grid-cols-3">
-            <Panel title="1. Pitch audit" href={url.trim() ? `/audit?url=${encodeURIComponent(url.trim())}` : "/audit"} linkLabel="Open the audit page">
-              {!url.trim() && <p className="text-graphite">No website given, so the audit was skipped.</p>}
+          <div className="grid gap-5 lg:grid-cols-3">
+            <Panel n={1} title="Pitch audit" phase={auditPhase} color={COBALT} href={site ? `/audit?url=${encodeURIComponent(site)}` : "/audit"} linkLabel="Open the audit page">
+              {!site && <p className="text-graphite">No website given, so the audit was skipped.</p>}
               {auditErr && <p className="text-pass">{auditErr}</p>}
-              {url.trim() && !auditErr && claims.length === 0 && <p className="text-graphite">Reading the site and pulling out its claims.</p>}
+              {site && !auditErr && claims.length === 0 && <p className="text-graphite">Reading the site and pulling out its claims.</p>}
               {claims.length > 0 && (
                 <>
-                  <p className="text-sm text-graphite">{done} of {claims.length} claims checked against independent sources</p>
-                  <ul className="mt-3 space-y-2.5">
+                  <p className="tnum text-sm text-graphite">
+                    <span className="font-mono text-ink">{done}</span> of <span className="font-mono text-ink">{claims.length}</span> claims checked against independent sources
+                  </p>
+                  <ul className="mt-4 space-y-3">
                     {claims.map((c, i) => {
                       const k = checks[i];
                       return (
-                        <li key={i} className="text-sm leading-snug">
-                          <span className={`font-semibold ${k ? TONE[k.verdict] : "text-faint"}`}>{k ? WORD[k.verdict] : "Checking"}</span>{" "}
-                          <span>{c.claim}</span>
+                        <li key={i} className="row-in grid grid-cols-[0.5rem_minmax(0,1fr)] gap-3 text-sm leading-snug" style={{ animationDelay: `${i * 40}ms` }}>
+                          <span aria-hidden className={`mt-[0.35rem] h-2 w-2 rounded-full transition-colors duration-500 ${EASE} ${k ? MARK[k.verdict] : "bg-rule pulse-dot"}`} />
+                          <span>
+                            <span key={k?.verdict ?? "checking"} className={`font-semibold transition-colors duration-500 ${EASE} ${k ? `row-in ${TONE[k.verdict]}` : "text-faint"}`}>
+                              {k ? WORD[k.verdict] : "Checking"}
+                            </span>{" "}
+                            <span>{c.claim}</span>
+                          </span>
                         </li>
                       );
                     })}
@@ -170,50 +228,75 @@ export default function RunEverything() {
               )}
             </Panel>
 
-            <Panel title="2. Research memo" href={memo ? `/memo/${memo.id}` : "/"} linkLabel={memo ? "Open the full memo" : "Research page"}>
+            <Panel n={2} title="Research memo" phase={memoPhase} color={INK} href={memo ? `/memo/${memo.id}` : "/"} linkLabel={memo ? "Open the full memo" : "Research page"}>
               {memoErr && <p className="text-pass">{memoErr}</p>}
               {!memo && !memoErr && (
                 <>
-                  <p className="text-sm text-graphite">
-                    {searches.length} searches, {engines.size} engines through Telem and Tavily
+                  <p className="tnum text-sm text-graphite">
+                    <span className="font-mono text-ink">{searches.length}</span> searches, <span className="font-mono text-ink">{engines.size}</span> engines through Telem and Tavily
                   </p>
-                  <p className="mt-2 text-sm">{last ? last.label : "Planning the research"}</p>
-                  <ul className="mt-3 space-y-1 text-sm text-graphite">
-                    {searches.slice(-6).map((s, i) => (
-                      <li key={i} className="truncate font-mono text-[0.8rem]">
-                        {s.topic ? `[${s.topic}] ` : ""}{s.query}
+                  <p className="mt-2 text-sm font-medium">{last ? last.label : "Planning the research"}</p>
+                  {topics.length > 0 && (
+                    <div className="mt-4">
+                      <p className="text-xs text-graphite">Topics Telem labelled</p>
+                      <p className="mt-1.5 flex flex-wrap gap-1.5">
+                        {topics.map((t) => (
+                          <span key={t} className="row-in rounded-[8px] border border-rule bg-paper px-2 py-0.5 font-mono text-[0.78rem]">
+                            {t}
+                          </span>
+                        ))}
+                      </p>
+                    </div>
+                  )}
+                  {engines.size > 0 && (
+                    <div className="mt-4">
+                      <p className="text-xs text-graphite">Engines that answered</p>
+                      <p className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 text-[0.82rem]">
+                        {[...engines].map((e) => (
+                          <span key={e} className="row-in flex items-center gap-1.5">
+                            <EngineDot name={e} size={7} /> {engineLabel(e)}
+                          </span>
+                        ))}
+                      </p>
+                    </div>
+                  )}
+                  <ul className="mt-4 space-y-1 border-t border-rule-soft pt-3 text-sm text-graphite">
+                    {searches.slice(-5).map((s, i) => (
+                      <li key={`${searches.length}-${i}`} className="row-in truncate font-mono text-[0.78rem]">
+                        {s.topic ? <span className="text-cobalt">[{s.topic}] </span> : ""}
+                        {s.query}
                       </li>
                     ))}
                   </ul>
                 </>
               )}
               {memo && (
-                <>
-                  <p className={`serif text-2xl font-semibold ${VERDICT[memo.verdict][1]}`}>
-                    {VERDICT[memo.verdict][0]}, {Math.round(memo.confidence * 100)}%
+                <div className="row-in">
+                  <p className={`serif text-[2rem] font-semibold leading-tight ${VERDICT[memo.verdict][1]}`}>
+                    {VERDICT[memo.verdict][0]}, <span className="tnum"><CountUp value={Math.round(memo.confidence * 100)} />%</span>
                   </p>
-                  <p className="mt-2 text-sm leading-relaxed">{memo.summary}</p>
-                  <p className="mt-3 text-sm text-graphite">
+                  <p className="mt-3 text-sm leading-relaxed">{memo.summary}</p>
+                  <p className="tnum mt-4 border-t border-rule-soft pt-3 text-sm text-graphite">
                     {memo.facts.length} facts, {memo.risks.length} risks, {memo.sources.length} sources
                     {memo.contradictions?.length ? `, ${memo.contradictions.length} claims vs. reality${high ? ` (${high} high)` : ""}` : ""}
                   </p>
-                </>
+                </div>
               )}
             </Panel>
 
-            <Panel title="3. Watch" href={memo ? `/memo/${memo.id}` : "/"} linkLabel="Check now from the memo page">
+            <Panel n={3} title="Watch" phase={watchPhase} color={RUST} href={memo ? `/memo/${memo.id}` : "/"} linkLabel="Check now from the memo page">
               {watchErr && <p className="text-pass">{watchErr}</p>}
               {!watch && !watchErr && <p className="text-graphite">Starting a Telem monitor.</p>}
               {watch && (
-                <>
-                  <p className="font-semibold">Watching {watch.company}</p>
-                  <p className="mt-1 text-sm text-graphite">
+                <div className="row-in">
+                  <p className="serif text-[1.5rem] font-semibold leading-tight">Watching {watch.company}</p>
+                  <p className="mt-2 text-sm leading-relaxed text-graphite">
                     A Telem monitor agent re-checks for news, funding, layoffs, lawsuits and new competitors every hour.
                   </p>
-                  <p className="mt-2 text-xs text-faint">
-                    Monitor <span className="font-mono">{watch.monitor_id}</span>
+                  <p className="mt-4 border-t border-rule-soft pt-3 text-xs text-faint">
+                    Monitor <span className="font-mono text-graphite">{watch.monitor_id}</span>
                   </p>
-                </>
+                </div>
               )}
             </Panel>
           </div>
@@ -223,21 +306,42 @@ export default function RunEverything() {
   );
 }
 
-function Stat({ label, value, tone = "" }: { label: string; value: string; tone?: string }) {
+function Stat({ label, tone = "", children }: { label: string; tone?: string; children: React.ReactNode }) {
   return (
-    <div>
-      <p className={`serif text-[1.9rem] font-semibold ${tone}`}>{value}</p>
-      <p className="text-sm text-graphite">{label}</p>
+    <div className="border-rule px-6 py-6 first:pl-0 sm:border-l sm:first:border-l-0">
+      <p className={`serif text-[3rem] font-semibold leading-none tracking-tight transition-colors duration-500 ${EASE} ${tone}`}>{children}</p>
+      <p className="mt-2 text-sm text-graphite">{label}</p>
     </div>
   );
 }
 
-function Panel({ title, href, linkLabel, children }: { title: string; href: string; linkLabel: string; children: React.ReactNode }) {
+const STATE: Record<string, [string, string]> = {
+  idle: ["Waiting", "text-faint"],
+  running: ["Running", "text-cobalt"],
+  done: ["Done", "text-pursue"],
+  skipped: ["Skipped", "text-faint"],
+  error: ["Failed", "text-pass"],
+};
+
+function Panel({ n, title, phase, color, href, linkLabel, children }: { n: number; title: string; phase: string; color: string; href: string; linkLabel: string; children: React.ReactNode }) {
+  const [word, tone] = STATE[phase];
   return (
-    <section className="flex min-h-[18rem] flex-col border border-rule bg-surface px-5 py-5">
-      <h2 className="serif text-xl font-semibold">{title}</h2>
-      <div className="mt-3 flex-1">{children}</div>
-      <Link href={href} className="mt-4 text-sm font-medium text-cobalt hover:underline">
+    <section
+      className={`flex min-h-[22rem] flex-col overflow-hidden rounded-[8px] border bg-surface transition-colors duration-500 ${EASE} ${phase === "running" ? "border-ink/70" : "border-rule"}`}
+    >
+      <div className="h-4 border-b border-rule-soft">{phase === "running" && <ActivityStrip color={color} label={`${title} is working`} />}</div>
+      <div className="flex items-baseline justify-between gap-3 px-6 pt-5">
+        <h2 className="serif text-[1.5rem] font-semibold">
+          <span className="tnum mr-2 font-mono text-base text-faint">{n}</span>
+          {title}
+        </h2>
+        <span className={`flex items-center gap-1.5 text-sm font-medium ${tone}`}>
+          <span aria-hidden className={`h-1.5 w-1.5 rounded-full bg-current ${phase === "running" ? "pulse-dot" : ""}`} />
+          {word}
+        </span>
+      </div>
+      <div className="mt-4 flex-1 px-6">{children}</div>
+      <Link href={href} className="mx-6 mb-5 mt-5 text-sm font-medium text-cobalt hover:underline">
         {linkLabel}
       </Link>
     </section>

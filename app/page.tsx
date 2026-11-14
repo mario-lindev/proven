@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { Memo, TrailStep } from "@/lib/types";
 import ErrorBox from "@/components/ErrorBox";
 import MemoView from "@/components/MemoView";
+import RecentMemos from "@/components/RecentMemos";
 import { errMsg, fmtMs } from "@/components/http";
 import { streamMemo } from "@/components/memo-stream";
 
@@ -20,9 +21,7 @@ export default function Home() {
   const [memo, setMemo] = useState<Memo | null>(null);
   useEffect(() => () => request.current?.abort(), []);
 
-  async function submit(e: React.FormEvent) {
-    e.preventDefault();
-    const name = company.trim();
+  const runResearch = useCallback(async (name: string, detail: string, depth: Depth) => {
     if (!name || request.current) return;
     const controller = new AbortController();
     request.current = controller;
@@ -31,7 +30,7 @@ export default function Home() {
     setSubject(name);
     try {
       const result = await streamMemo(
-        { company: name, context: context.trim() || undefined, depth },
+        { company: name, context: detail.trim() || undefined, depth },
         controller.signal,
         (step) => setSteps((previous) => [...previous, step]),
       );
@@ -42,31 +41,31 @@ export default function Home() {
       request.current = null;
       if (!controller.signal.aborted) setSubject("");
     }
+  }, []);
+
+  useEffect(() => {
+    const query = new URLSearchParams(window.location.search);
+    const name = query.get("company")?.trim();
+    if (!name) return;
+    const requestedDepth = query.get("depth") === "quick" ? "quick" : "deep";
+    setCompany(name);
+    setDepth(requestedDepth);
+    if (query.get("go") !== "1") return;
+    const timer = setTimeout(() => {
+      const url = new URL(window.location.href);
+      url.searchParams.delete("go");
+      window.history.replaceState(null, "", url);
+      void runResearch(name, "", requestedDepth);
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [runResearch]);
+
+  function submit(event: React.FormEvent) {
+    event.preventDefault();
+    void runResearch(company.trim(), context, depth);
   }
 
   const loading = Boolean(subject);
-  return () => clearTimeout(t);
-  }, [loading]);
-
-  async function submit(e: React.FormEvent) {
-    e.preventDefault();
-    const name = company.trim();
-    if (!name || loading) return;
-    setError(null);
-    setMemo(null);
-    setStep(0);
-    setLoading(depth);
-    try {
-      const m = await api<Memo>("/api/memo", { company: name, context: context.trim() || undefined, depth });
-      setMemo(m);
-      setRun((r) => r + 1);
-    } catch (err) {
-      setError(errMsg(err));
-    } finally {
-      setLoading(null);
-    }
-  }
-
   return (
     <div className="space-y-12">
       <form onSubmit={submit} className="space-y-4">
@@ -146,6 +145,7 @@ export default function Home() {
       {error && <ErrorBox message={error} />}
 
       {!loading && memo && <MemoView key={memo.id} memo={memo} />}
+      {!loading && <RecentMemos key={memo?.id ?? "initial"} />}
     </div>
   );
 }

@@ -5,6 +5,8 @@ import type { Evidence, Line, Memo, Source, Trail } from "@/lib/types";
 import SourceChip from "./SourceChip";
 import TrailDrawer, { useTrail } from "./TrailDrawer";
 import WatchPanel from "./WatchPanel";
+import Contradictions from "./Contradictions";
+import Rounds from "./Rounds";
 import { Check, EngineDot, engineLabel, isTavily } from "./engines";
 import { domain, fmtDate, fmtMs, fmtTime } from "./http";
 import { feedStats } from "./ResearchFeed";
@@ -194,6 +196,8 @@ export default function MemoView({ memo, trail: preloaded }: { memo: Memo; trail
 
       <div className="memo-grid grid gap-12 lg:grid-cols-[minmax(0,1fr)_22rem]">
         <div className="min-w-0 space-y-10">
+          <Contradictions memo={memo} onSource={(src) => setFocus({ urls: [src.url], source: src })} />
+          <Rounds memo={memo} />
           <section className="avoid-break">
             <SectionTitle title="Facts" count={memo.facts.length} />
             {lineList(memo.facts, "fact")}

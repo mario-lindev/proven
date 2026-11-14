@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Trail, TrailStep } from "@/lib/types";
 import ErrorBox from "./ErrorBox";
 import { api, domain, errMsg, fmtMs } from "./http";
@@ -21,43 +21,51 @@ export default function TrailDrawer({
   focusUrls?: string[];
   onClose: () => void;
 }) {
+  if (!trailId) return null;
+  return <Drawer key={trailId} trailId={trailId} focusUrls={focusUrls} onClose={onClose} />;
+}
+
+function Drawer({ trailId, focusUrls, onClose }: {
+  trailId: string;
+  focusUrls: string[];
+  onClose: () => void;
+}) {
+  const dialog = useRef<HTMLDialogElement>(null);
+  const [attempt, setAttempt] = useState(0);
   const [trail, setTrail] = useState<Trail | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!trailId) return;
-    let live = true;
-    setTrail(null);
-    setError(null);
-    api<Trail>(`/api/trail/${encodeURIComponent(trailId)}`)
-      .then((t) => live && setTrail(t))
-      .catch((e) => live && setError(errMsg(e)));
-    return () => {
-      live = false;
-    };
-  }, [trailId]);
+    const controller = new AbortController();
+    api<Trail>(`/api/trail/${encodeURIComponent(trailId)}`, undefined, controller.signal)
+      .then(setTrail)
+      .catch((e) => {
+        if (!controller.signal.aborted) setError(errMsg(e));
+      });
+    return () => controller.abort();
+  }, [trailId, attempt]);
 
   useEffect(() => {
-    if (!trailId) return;
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [trailId, onClose]);
-
-  if (!trailId) return null;
-
-  const total = trail?.steps.reduce((a, s) => a + s.ms, 0) ?? 0;
+    const node = dialog.current;
+    node?.showModal();
+    return () => node?.close();
+  }, []);
 
   return (
-    <div className="fixed inset-0 z-40">
-      <div className="absolute inset-0 bg-black/30" onClick={onClose} />
-      <aside className="absolute right-0 top-0 flex h-full w-full max-w-xl flex-col bg-white shadow-2xl">
+    <dialog
+      ref={dialog}
+      aria-labelledby="trail-title"
+      onCancel={(event) => { event.preventDefault(); onClose(); }}
+      onClick={(event) => { if (event.target === event.currentTarget) onClose(); }}
+      className="fixed inset-y-0 right-0 left-auto m-0 h-dvh max-h-none w-full max-w-xl bg-white shadow-2xl backdrop:bg-black/30"
+    >
+      <div className="flex h-full flex-col">
         <div className="flex items-start justify-between border-b border-line px-7 py-6">
           <div>
-            <h2 className="text-2xl font-semibold tracking-tight">How Proven reached this</h2>
+            <h2 id="trail-title" className="text-2xl font-semibold tracking-tight">Research trail</h2>
             {trail && (
               <p className="mt-1 text-muted">
-                {trail.steps.length} steps, {fmtMs(total)}
+                {trail.steps.length} research steps
               </p>
             )}
           </div>
@@ -72,8 +80,19 @@ export default function TrailDrawer({
         </div>
 
         <div className="flex-1 overflow-y-auto px-7 py-6">
-          {error && <ErrorBox message={error} />}
-          {!error && !trail && <p className="text-muted">Loading the trail...</p>}
+          {error && (
+            <>
+              <ErrorBox message={error} />
+              <button type="button" className="mt-3 font-semibold text-accent underline" onClick={() => {
+                setError(null);
+                setAttempt((value) => value + 1);
+              }}>Retry trail</button>
+            </>
+          )}
+          {!error && !trail && <p className="text-muted" role="status">Loading the trail…</p>}
+          {trail && focusUrls.length > 0 && !trail.steps.some((step) => step.urls?.some((url) => focusUrls.includes(url))) && (
+            <p className="mb-5 rounded-lg bg-soft p-3 text-sm text-muted">The cited URL does not appear in the recorded steps.</p>
+          )}
           {trail && trail.steps.length === 0 && <p className="text-muted">No steps were recorded.</p>}
           {trail && (
             <ol className="relative">
@@ -102,7 +121,13 @@ export default function TrailDrawer({
                         </div>
                         <span className="shrink-0 font-mono text-sm text-muted">{fmtMs(s.ms)}</span>
                       </div>
-                      {hit && <p className="mt-1 text-sm font-medium text-accent">This step found the cited source</p>}
+                      {hit && <p className="mt-1 text-sm font-medium text-accent">This step includes the cited source</p>}
+
+                      {!!s.routing?.length && (
+                        <p className="mt-2 break-words text-sm">
+                          <strong>Telem selected</strong> {s.routing.join(", ")}
+                        </p>
+                      )}
 
                       {s.engines && s.engines.length > 0 && (
                         <div className="mt-3 flex flex-wrap gap-2">
@@ -145,7 +170,7 @@ export default function TrailDrawer({
                       )}
 
                       {s.telem_session_id && (
-                        <p className="mt-3 text-xs text-muted">
+                        <p className="mt-3 break-all text-xs text-muted">
                           Telem session <span className="font-mono">{s.telem_session_id}</span>
                         </p>
                       )}
@@ -156,7 +181,7 @@ export default function TrailDrawer({
             </ol>
           )}
         </div>
-      </aside>
-    </div>
+      </div>
+    </dialog>
   );
 }

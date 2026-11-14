@@ -21,6 +21,14 @@ const secondary = [
 export default function Nav() {
   const path = usePathname();
   const [mock, setMock] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const on = () => setScrolled(window.scrollY > 4);
+    on();
+    window.addEventListener("scroll", on, { passive: true });
+    return () => window.removeEventListener("scroll", on);
+  }, []);
 
   useEffect(() => {
     fetch("/api/health", { cache: "no-store" })
@@ -32,7 +40,7 @@ export default function Nav() {
   const isActive = (href: string) => (href === "/" ? path === "/" || path.startsWith("/memo") : path.startsWith(href));
 
   return (
-    <header className="no-print relative z-20 border-b border-rule bg-paper">
+    <header className={`no-print sticky top-0 z-20 border-b bg-paper transition-colors duration-300 ${scrolled ? "border-rule" : "border-transparent"}`}>
       <div className="mx-auto flex h-[68px] max-w-[1240px] items-center justify-between gap-6 px-5 md:px-10">
         <div className="flex items-center gap-4">
           <Link href="/" className="serif text-[1.85rem] leading-none tracking-[-0.03em] text-navy" aria-label="Proven home">

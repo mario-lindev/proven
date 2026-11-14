@@ -15,6 +15,7 @@ const secondary = [
   { href: "/impact", label: "Impact" },
   { href: "/telem", label: "Telem" },
   { href: "/engines", label: "Learned" },
+  { href: "/improve", label: "Self-improve" },
   { href: "/simulation", label: "ML Lab" },
 ];
 

@@ -5,6 +5,7 @@ import { rankSources } from "../learn";
 import { newId, newTrail } from "../store";
 import { askJSON } from "./claude";
 import { quoteIn } from "./verify";
+import { currentStrategy } from "./improve";
 
 const claimsSchema = {
   type: "object",
@@ -42,7 +43,9 @@ const seen = new Map<string, number>();
 const SEEN_MS = 90_000;
 
 // `context`: who is pitching and what they do (e.g. "Proven: checks investor pitch claims live"). Optional.
-export async function checkText(text: string, context?: string): Promise<ClaimCheck[]> {
+// `strategy`: search and judging guidance; defaults to the one the self-improve loop saved (lib/brain/improve.ts).
+export async function checkText(text: string, context?: string, strategy?: string): Promise<ClaimCheck[]> {
+  const follow = ` Search strategy to follow: ${strategy ?? currentStrategy()}`;
   const ctx = context?.trim().slice(0, 600);
   const about = ctx ? `Company being pitched: ${ctx}\n\n` : "";
   const pickTrail = newTrail();
@@ -58,13 +61,15 @@ export async function checkText(text: string, context?: string): Promise<ClaimCh
       "Return an empty list if there is nothing checkable. At most 2 claims. " +
       "'We', 'our' and 'us' mean the company being pitched. If it is given, write the claim and the queries about that company and its market " +
       "(name what it does in the queries). If it is not given and the text does not name the company or product, " +
-      "still return the claim and write queries that test it as a general claim about startups or the market named in the text.",
+      "still return the claim and write queries that test it as a general claim about startups or the market named in the text." +
+      follow,
     user: `${about}Text: ${text}`,
     schema: claimsSchema,
   });
 
   const now = Date.now();
-  const fresh = claims.filter((c) => now - (seen.get(c.claim.toLowerCase()) ?? 0) > SEEN_MS).slice(0, 2);
+  // An explicit strategy is a benchmark run, which re-checks the same claim on purpose.
+  const fresh = claims.filter((c) => strategy !== undefined || now - (seen.get(c.claim.toLowerCase()) ?? 0) > SEEN_MS).slice(0, 2);
   fresh.forEach((c) => seen.set(c.claim.toLowerCase(), now));
 
   return Promise.all(
@@ -90,7 +95,8 @@ export async function checkText(text: string, context?: string): Promise<ClaimCh
           'Use "" for both if no source text does. ' +
           "Never answer unclear only because the company is not named. If no company or product is identified, judge the claim as a " +
           "general statement about the market: an absolute claim such as 'no competitors' or 'first to' is contradicted when the sources " +
-          "show that such claims are almost never true or that competitors exist in the market described; say in the note that it was judged as a general claim.",
+          "show that such claims are almost never true or that competitors exist in the market described; say in the note that it was judged as a general claim." +
+          follow,
         user: `${about}Claim: ${c.claim}\n\nSources:\n${sources
           .map((s) => `[${s.id}] ${s.title} (${s.url}, via ${s.engine})\n${s.snippet}`)
           .join("\n\n")}`,

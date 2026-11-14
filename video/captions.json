@@ -37,7 +37,7 @@
   "end": 52,
   "voice": "Aarav",
   "shot": "audit",
-  "caption": "Pitch Audit on rippling.com: 8 claims in 21 seconds. 4 hold up, 2 are contradicted, 2 are unclear. Trust score 63."
+  "caption": "Pitch Audit on rippling.com: 8 claims in 20 seconds. 5 hold up, 2 are contradicted, 1 is unclear. Trust score 69."
  },
  {
   "scene": 6,
@@ -69,7 +69,7 @@
   "end": 99,
   "voice": "Mario",
   "shot": "telem",
-  "caption": "Today Telem routed over 230 questions across 16 engines. Two thirds of our verified proof came from engines Telem chose."
+  "caption": "Today Telem routed over 250 questions across 16 engines. About two thirds of our verified proof came from engines Telem chose."
  },
  {
   "scene": 10,

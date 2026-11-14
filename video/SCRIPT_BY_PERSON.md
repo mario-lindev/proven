@@ -32,7 +32,7 @@ Read at a calm pace, about 2.4 words a second. Record each line as its own clip,
 
 **Scene 5** (0:40 to 0:52, 12 s). On screen: audit. File name: `aarav-scene5.mp4`
 
-> Pitch Audit on rippling.com: 8 claims in 21 seconds. 4 hold up, 2 are contradicted, 2 are unclear. Trust score 63.
+> Pitch Audit on rippling.com: 8 claims in 20 seconds. 5 hold up, 2 are contradicted, 1 is unclear. Trust score 69.
 
 **Scene 8** (1:15 to 1:29, 14 s). On screen: how. File name: `aarav-scene8.mp4`
 
@@ -51,7 +51,7 @@ Read at a calm pace, about 2.4 words a second. Record each line as its own clip,
 
 **Scene 9** (1:29 to 1:39, 10 s). On screen: telem. File name: `mario-scene9.mp4`
 
-> Today Telem routed over 230 questions across 16 engines. Two thirds of our verified proof came from engines Telem chose.
+> Today Telem routed over 250 questions across 16 engines. About two thirds of our verified proof came from engines Telem chose.
 
 **Scene 10** (1:39 to 1:49, 10 s). On screen: engines. File name: `mario-scene10.mp4`
 

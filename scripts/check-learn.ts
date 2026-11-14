@@ -40,7 +40,7 @@ async function main() {
   const dir = mkdtempSync(join(tmpdir(), "proven-learn-"));
   process.chdir(dir);
   delete process.env.VERCEL;
-  const { getBoard, rankSources, recordMemo, scoreOf, MAX_SHIFT } = await import("../lib/learn");
+  const { getBoard, rankSources, recordMemo, scoreOf, MAX_SHIFT, provenEngines, queryHints, generalize } = await import("../lib/learn");
   const file = join(dir, ".data", "engines.json");
   const g = globalThis as unknown as { __provenEngines?: EngineBoard };
 
@@ -57,6 +57,9 @@ async function main() {
     assert.equal(steps[0].kind, "learn");
     assert.equal(steps[0].label, "Ranked 3 sources by consensus; nothing learned yet");
     assert.equal(existsSync(file), false);
+    assert.deepEqual(provenEngines(), []);
+    assert.deepEqual(provenEngines("people_profiles"), []);
+    assert.deepEqual(queryHints(), []);
     ok("empty board: no engines, rankSources returns input unchanged and records a learn step");
   }
 
@@ -172,6 +175,90 @@ async function main() {
     ok(`ranking: better engine gains places (top-6 exa ${topExa(list)} -> ${topExa(a)}), deterministic, no move > ${2 * MAX_SHIFT}`);
   }
 
+  // 7. The loop: topic x engine memory, steer selection, query hints, efficiency history.
+  {
+    // An old-shape board (no topics / queries / history) on disk still loads and is extended in place.
+    const old: EngineBoard = {
+      engines: [{ name: "exa", memos: 1, returned: 4, cited: 1, supported: 1, score: scoreOf({ supported: 1, returned: 4 }) }],
+      memos: 1,
+      updated_at: new Date(Date.now() + 180_000).toISOString(),
+    };
+    writeFileSync(file, JSON.stringify(old));
+    assert.equal(getBoard().topics, undefined);
+    assert.deepEqual(provenEngines(), [], "4 results on record is below the bar");
+    assert.deepEqual(queryHints(), []);
+
+    const c = [
+      src("s1", "exa", "https://a.com/1"), src("s2", "exa", "https://a.com/2"), src("s3", "brave", "https://b.com/1"),
+      src("s4", "apify_linkedin", "https://linkedin.com/in/x"), src("s5", "tavily", "https://t.com/1"), src("s6", "brave", "https://b.com/2"),
+    ];
+    const facts = [
+      line(["s1"], [{ source_id: "s1", quote: "q", verdict: "supported" }]),
+      line(["s2"], [{ source_id: "s2", quote: "q", verdict: "partial" }]),
+      line(["s4"], [{ source_id: "s4", quote: "q", verdict: "supported" }]),
+      line(["s5"], [{ source_id: "s5", quote: "q", verdict: "supported" }]),
+    ];
+    const risks = [line(["s3"])]; // cited, never verified
+    const eng = (name: string, n_results: number) => ({ name, latency_ms: 1, n_results });
+    const steps: TrailStep[] = [
+      { kind: "search", label: "Search: Acme funding", query: "Acme funding round", topic: "company_research", at: "", ms: 1,
+        engines: [eng("exa", 5), eng("exa", 3), eng("brave", 5), eng("tavily", 5), { ...eng("telem_platforms", 0), error: "x" }],
+        urls: ["https://a.com/1", "https://www.a.com/2/", "https://b.com/1", "https://t.com/1"] },
+      { kind: "search", label: "Search: Acme founders", query: "acme founders background", topic: "people_profiles", at: "", ms: 1,
+        engines: [eng("apify_linkedin", 5), eng("brave", 5)], urls: ["https://linkedin.com/in/x", "https://b.com/2"] },
+      { kind: "search", label: "Search: Acme lawsuits", query: "Acme lawsuits", at: "", ms: 1, engines: [eng("brave", 5)], urls: ["https://b.com/3"] },
+      { kind: "extract", label: "Extract", at: "", ms: 1, urls: ["https://a.com/1", "https://b.com/1", "https://t.com/1"] },
+    ];
+    const { trail, steps: rec } = recorder();
+    const b = recordMemo(memoOf(c, facts, risks, true), c, trail, steps);
+
+    // topic memory: returned per engine (largest batch once), supported credited to the verified source's engine
+    const cr = Object.fromEntries(b.topics!.company_research.map((e) => [e.name, e]));
+    assert.deepEqual({ ...cr.exa, score: 0 }, { name: "exa", memos: 1, returned: 5, cited: 2, supported: 1.5, score: 0 });
+    assert.deepEqual({ ...cr.brave, score: 0 }, { name: "brave", memos: 1, returned: 5, cited: 0, supported: 0, score: 0 });
+    assert.deepEqual({ ...cr.tavily, score: 0 }, { name: "tavily", memos: 1, returned: 5, cited: 1, supported: 1, score: 0 });
+    assert.equal(cr.telem_platforms, undefined);
+    assert.deepEqual(b.topics!.company_research.map((e) => e.name), ["exa", "tavily", "brave"]);
+    assert.deepEqual(b.topics!.people_profiles.map((e) => [e.name, e.returned, e.supported]), [["apify_linkedin", 5, 1], ["brave", 5, 0]]);
+    assert.deepEqual(Object.keys(b.topics!).sort(), ["company_research", "people_profiles"]);
+
+    // steer selection: per topic, then overall; tavily is never pinnable; unknown topic falls back to the board
+    assert.deepEqual(provenEngines("company_research"), ["exa"]);
+    assert.deepEqual(provenEngines("people_profiles"), ["apify_linkedin"]);
+    assert.deepEqual(provenEngines("{company} founders background"), ["apify_linkedin"], "a query seen before maps to its topic");
+    assert.deepEqual(provenEngines(), ["exa"], "exa 6 returned 2.5 verified; linkedin has only 1 result overall; brave proved nothing");
+    assert.deepEqual(provenEngines("never_seen_topic"), provenEngines());
+
+    // query memory: company generalized out, only queries with a verified source, best first
+    assert.deepEqual(b.queries, [
+      { pattern: "{company} funding round", verified: 3, memos: 1, topic: "company_research" },
+      { pattern: "{company} founders background", verified: 1, memos: 1, topic: "people_profiles" },
+    ]);
+    assert.deepEqual(queryHints(), ["{company} funding round", "{company} founders background"]);
+    assert.equal(generalize("Is  ACME (Acme) hiring?", "Acme"), "Is {company} ({company}) hiring?");
+    assert.equal(generalize("C++ jobs at a.b", "a.b"), "C++ jobs at {company}");
+
+    // efficiency history
+    assert.equal(b.history!.length, 1);
+    assert.deepEqual({ ...b.history![0], at: "" }, { at: "", company: "Acme", search_calls: 3, verified_lines: 4, sources_read: 3, yield: 1.3333 });
+    assert.equal(rec.length, 2);
+    assert.equal(rec[1].label, "Efficiency: 4 verified lines from 3 searches (1.3 per search); follow-up searches now steer to exa");
+
+    // persisted with the board; a second memo accumulates; history is capped at 50
+    delete g.__provenEngines;
+    assert.deepEqual(getBoard().topics, b.topics);
+    let last = b;
+    for (let i = 0; i < 52; i++) last = recordMemo(memoOf(c, facts, risks, true), c, recorder().trail, steps);
+    assert.equal(last.history!.length, 50);
+    assert.equal(last.topics!.company_research.find((e) => e.name === "exa")!.returned, 5 * 53);
+    assert.equal(last.queries![0].memos, 53);
+    // without trail steps the board still learns, the loop memory is left as it was
+    const kept = recordMemo(memoOf(c, facts, risks, true), c, recorder().trail);
+    assert.deepEqual(kept.history, last.history);
+    assert.deepEqual(kept.topics, last.topics);
+    ok("loop: old board loads; topic x engine yield, provenEngines per topic and overall, query hints, yield history (capped), persisted");
+  }
+
   // 6. Mock fixture is internally consistent.
   {
     const fx = fixtureBoard as EngineBoard;
@@ -180,6 +267,8 @@ async function main() {
       assert.ok(e.supported <= e.cited && e.cited <= e.returned);
     }
     assert.deepEqual(fx.engines.map((e) => e.score), [...fx.engines.map((e) => e.score)].sort((x, y) => y - x));
+    for (const rows of Object.values(fx.topics ?? {})) for (const e of rows) assert.ok(Math.abs(e.score - scoreOf(e)) < 1e-3, `fixture topic score for ${e.name}`);
+    for (const h of fx.history ?? []) assert.ok(Math.abs(h.yield - h.verified_lines / h.search_calls) < 1e-3);
     ok("fixtures/engines.json: scores match the formula, sorted, supported <= cited <= returned");
   }
 

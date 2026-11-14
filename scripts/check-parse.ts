@@ -318,6 +318,43 @@ async function e2e() {
   assert.deepEqual(store.trails.get(trail.id)!.steps[0].engines!.find((e) => e.name === "telem_platforms")!.error, "Telem search HTTP 402: out of credit");
   ok("searchAll: platform batch failure is recorded, not fatal");
 
+  // proof-steered routing: opts.steer adds one batch pinned to the engines that proved out (lib/learn.ts board)
+  const gl = globalThis as unknown as { __provenEngines?: unknown };
+  const stat = (name: string, returned: number, supported: number) => ({ name, memos: 3, returned, cited: supported, supported, score: (supported + 1) / (returned + 10) });
+  gl.__provenEngines = { engines: [stat("exa", 20, 10), stat("you", 20, 8), stat("brave", 20, 0), stat("tavily", 30, 20)], memos: 3, updated_at: "9999-01-01T00:00:00.000Z" };
+  const pinned = (c: { body: unknown }) => (c.body as { search: { providers?: { include: string[] } } }).search.providers?.include;
+  const steerStub = (fail: boolean) =>
+    stub((url, body) => {
+      if (url.endsWith("api.tavily.com/search")) return { status: 200, json: { results: [] } };
+      const inc = (body as { search: { providers?: { include: string[] } } }).search.providers?.include;
+      if (inc && fail) return { status: 402, json: { detail: "out of credit" } };
+      if (inc) return { status: 200, json: { preprocessor_runs: [run("you", 0, "https://you.com/acme")] } };
+      return { status: 200, json: { preprocessor_runs: [run("exa", 0, "https://acme.com/about")] } };
+    });
+  steerStub(false);
+  trail = newTrail();
+  sources = await searchAll(["Acme revenue"], trail, { steer: true });
+  const steerCall = calls.find((c) => c.url.endsWith("/v1/search") && pinned(c));
+  assert.deepEqual(pinned(steerCall!), ["exa", "you"], "proven engines only: brave proved nothing, tavily is not a Telem provider");
+  assert.deepEqual(sources.map((x) => x.url).sort(), ["https://acme.com/about", "https://you.com/acme"]);
+  assert.deepEqual(store.trails.get(trail.id)!.steps[0].steered, ["exa", "you"]);
+  steerStub(false);
+  trail = newTrail();
+  await searchAll(["Acme revenue"], trail);
+  assert.equal(calls.filter((c) => c.url.endsWith("/v1/search") && pinned(c)).length, 0, "no steered batch without opts.steer");
+  assert.equal(store.trails.get(trail.id)!.steps[0].steered, undefined);
+  steerStub(true);
+  trail = newTrail();
+  sources = await searchAll(["Acme revenue"], trail, { steer: true });
+  assert.equal(sources.length, 1);
+  assert.equal(store.trails.get(trail.id)!.steps[0].steered, undefined);
+  assert.equal(store.trails.get(trail.id)!.steps[0].engines!.find((e) => e.name === "telem_steered")!.error, "Telem search HTTP 402: out of credit");
+  gl.__provenEngines = { engines: [], memos: 0, updated_at: "9999-01-02T00:00:00.000Z" };
+  steerStub(false);
+  await searchAll(["Acme revenue"], newTrail(), { steer: true });
+  assert.equal(calls.filter((c) => c.url.endsWith("/v1/search")).length, 1, "no history: nothing to steer to");
+  ok("searchAll: opts.steer pins a batch to proven engines, marks the step, soft failure, off without history");
+
   // diligence batches: off by default; with TELEM_DILIGENCE=1 each provider set gets its own pinned batch
   const dq = ["Acme funding and investors", "Acme customer reviews on Reddit", "Acme patents", "Acme pricing"];
   const dStub = (failReddit: boolean) =>

@@ -228,7 +228,7 @@ export default function Home() {
           <ol className="grid gap-8 sm:grid-cols-3">
             {[
               ["Plan", "Claude breaks the question into searches: funding, rivals, hiring, lawsuits, sentiment."],
-              ["Route", "Telem sends each query to the engines best suited to it, including LinkedIn and Reddit."],
+              ["Route", "Telem sends each query to the engines best suited to it, including LinkedIn, X and Trustpilot."],
               ["Prove", "The memo keeps only lines with a source. Open the trail to see every search behind it."],
             ].map(([t, d], i) => (
               <li key={t}>

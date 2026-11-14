@@ -2,7 +2,7 @@
 // Feeds hard-coded sample responses (shapes from docs.telem.ai / docs.tavily.com) through the mappers,
 // then runs searchAll / extract / pollWatch against a stubbed fetch. No network, no real keys.
 import assert from "node:assert/strict";
-import { PLATFORM_PROVIDERS, extract, mergeHits, normalizeUrl, pollWatch, recentSince, runWatch, searchAll, wantsPlatforms, wantsRecent, watch, watchChanges } from "../lib/search";
+import { DILIGENCE, PLATFORM_PROVIDERS, extract, mergeHits, normalizeUrl, pollWatch, recentSince, runWatch, searchAll, wantsPlatforms, wantsRecent, watch, watchChanges } from "../lib/search";
 import { SEARCH_FIELDS, parseTelemFetch, parseTelemPoll, parseTelemSearch, type TelemSearchResponse } from "../lib/search/telem";
 import { parseTavilyExtract, parseTavilySearch, topicFor, type TavilySearchResponse } from "../lib/search/tavily";
 import { newTrail, store } from "../lib/store";
@@ -317,6 +317,67 @@ async function e2e() {
   assert.equal(sources.length, 1);
   assert.deepEqual(store.trails.get(trail.id)!.steps[0].engines!.find((e) => e.name === "telem_platforms")!.error, "Telem search HTTP 402: out of credit");
   ok("searchAll: platform batch failure is recorded, not fatal");
+
+  // diligence batches: off by default; with TELEM_DILIGENCE=1 each provider set gets its own pinned batch
+  const dq = ["Acme funding and investors", "Acme customer reviews on Reddit", "Acme patents", "Acme pricing"];
+  const dStub = (failReddit: boolean) =>
+    stub((url, body) => {
+      if (url.endsWith("api.tavily.com/search")) return { status: 200, json: { results: [] } };
+      const b = body as { session_id?: string; user_input: { query: string }[]; search: { providers?: { include: string[] } } };
+      const inc = b.search.providers?.include.join(",") ?? "";
+      const q = b.user_input.map((u) => u.query);
+      if (inc === "sec_edgar,coresignal_company") {
+        assert.deepEqual(q, ["Acme funding and investors"]);
+        return { status: 200, json: { session_id: "d1", routing: [{ providers: ["sec_edgar"] }], preprocessor_runs: [run("sec_edgar", 0, "https://sec.gov/acme-s1")] } };
+      }
+      if (inc === "fetchlayer_reddit") {
+        assert.deepEqual(q, ["Acme customer reviews on Reddit"]);
+        if (failReddit) return { status: 400, json: { detail: "unknown search.providers entries: fetchlayer_reddit" } };
+        return { status: 200, json: { preprocessor_runs: [run("fetchlayer_reddit", 0, "https://reddit.com/r/acme/1")] } };
+      }
+      if (inc === "patsnap,uspto_applications") {
+        assert.deepEqual(q, ["Acme patents"]);
+        return { status: 200, json: { preprocessor_runs: [run("uspto_applications", 0, "https://uspto.gov/acme-1")] } };
+      }
+      if (inc) return { status: 200, json: { preprocessor_runs: [] } }; // platform batch
+      return { status: 200, json: { session_id: "m2", preprocessor_runs: dq.map((_, i) => run("exa", i, `https://acme.com/${i}`)) } };
+    });
+
+  delete process.env.TELEM_DILIGENCE;
+  dStub(false);
+  await searchAll(dq, newTrail());
+  assert.equal(calls.filter((c) => c.url.endsWith("/v1/search")).length, 1, "no diligence batches unless TELEM_DILIGENCE=1");
+
+  process.env.TELEM_DILIGENCE = "1";
+  assert.deepEqual(DILIGENCE.map((d) => d.name), ["financials", "reddit", "patents"]);
+  dStub(false);
+  trail = newTrail();
+  sources = await searchAll(dq, trail);
+  assert.equal(calls.filter((c) => c.url.endsWith("/v1/search")).length, 4);
+  steps = store.trails.get(trail.id)!.steps;
+  assert.deepEqual(steps[0].engines!.map((e) => e.name), ["exa", "sec_edgar", "tavily"]);
+  assert.deepEqual(steps[0].routing, ["sec_edgar"]);
+  assert.deepEqual(steps[1].engines!.map((e) => e.name), ["exa", "fetchlayer_reddit", "tavily"]);
+  assert.deepEqual(steps[2].engines!.map((e) => e.name), ["exa", "uspto_applications", "tavily"]);
+  assert.deepEqual(steps[3].engines!.map((e) => e.name), ["exa", "tavily"]);
+  for (const u of ["https://sec.gov/acme-s1", "https://reddit.com/r/acme/1", "https://uspto.gov/acme-1"]) assert.ok(sources.some((s) => s.url === u), u);
+  assert.equal(sources.find((s) => s.url === "https://sec.gov/acme-s1")!.engine, "sec_edgar");
+
+  // later calls on the same trail send its Telem session to the diligence batches too
+  dStub(false);
+  await searchAll(["Acme revenue"], trail);
+  const fin = calls.find((c) => (c.body as { search?: { providers?: { include: string[] } } }).search?.providers?.include[0] === "sec_edgar")!;
+  assert.ok(["m2", "d1"].includes((fin.body as { session_id?: string }).session_id ?? ""), "diligence batch joins the trail's Telem session");
+
+  // a refused diligence provider (400 twice: rich body, then the plain fallback) is recorded, not fatal
+  dStub(true);
+  trail = newTrail();
+  sources = await searchAll(dq, trail);
+  steps = store.trails.get(trail.id)!.steps;
+  assert.match(steps[1].engines!.find((e) => e.name === "telem_reddit")!.error!, /HTTP 400: unknown search.providers entries/);
+  assert.ok(sources.some((s) => s.url === "https://sec.gov/acme-s1") && !sources.some((s) => s.url.includes("reddit.com")));
+  delete process.env.TELEM_DILIGENCE;
+  ok("searchAll: TELEM_DILIGENCE=1 adds pinned sec_edgar/coresignal, reddit and patent batches; soft failure; session");
 
   // Telem down, Tavily up
   stub((url) => (url.includes("telem") ? { status: 401, json: { detail: "Missing API key" } } : { status: 200, json: tavilySample }));

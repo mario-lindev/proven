@@ -156,3 +156,4 @@ node_modules
 
 # local agent worktrees
 .claude/
+.data/

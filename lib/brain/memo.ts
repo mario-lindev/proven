@@ -1,7 +1,7 @@
 // OWNER: Rishith. Company name -> sourced memo (AGENTS.md §8).
-import type { Line, Memo, Source } from "../types";
+import type { Line, Memo, Source, TrailRecorder } from "../types";
 import { extract, searchAll } from "../search";
-import { newId, newTrail, store } from "../store";
+import { newId, newTrail, saveMemo } from "../store";
 import { askJSON } from "./claude";
 
 const planSchema = {
@@ -34,8 +34,13 @@ const memoSchema = {
 
 export type Depth = "quick" | "deep";
 
-export async function buildMemo(company: string, context?: string, depth: Depth = "deep"): Promise<Memo> {
-  const trail = newTrail();
+// Pass a trail to watch progress (newTrail(onStep)); otherwise a new one is made.
+export async function buildMemo(
+  company: string,
+  context?: string,
+  depth: Depth = "deep",
+  trail: TrailRecorder = newTrail(),
+): Promise<Memo> {
   const deep = depth === "deep";
 
   const plan = await askJSON<{ queries: string[] }>({
@@ -126,6 +131,6 @@ export async function buildMemo(company: string, context?: string, depth: Depth 
     trail_id: trail.id,
     created_at: new Date().toISOString(),
   };
-  store.memos.set(memo.id, memo);
+  saveMemo(memo);
   return memo;
 }

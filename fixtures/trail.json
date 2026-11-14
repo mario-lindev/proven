@@ -1,9 +1,525 @@
 {
-  "id": "tr_demo",
-  "steps": [
-    { "kind": "llm", "label": "Plan the research", "at": "2026-11-14T12:00:00.000Z", "ms": 1800 },
-    { "kind": "search", "label": "Search: Acme Robotics competitors", "query": "Acme Robotics competitors", "engines": [ { "name": "exa", "latency_ms": 1019, "n_results": 5 }, { "name": "brave", "latency_ms": 868, "n_results": 5 }, { "name": "tavily", "latency_ms": 1240, "n_results": 5 } ], "urls": ["https://example.com/rival-a", "https://example.com/rival-b"], "telem_session_id": "ad6461b0-8a0f-4385-9d48-46aa47ad871c", "at": "2026-11-14T12:00:02.000Z", "ms": 1240 },
-    { "kind": "extract", "label": "Read 5 pages", "urls": ["https://example.com/acme-series-a"], "at": "2026-11-14T12:00:04.000Z", "ms": 2100 },
-    { "kind": "llm", "label": "Write the memo", "at": "2026-11-14T12:00:06.000Z", "ms": 9000 }
-  ]
+ "id": "tr_demo",
+ "steps": [
+  {
+   "kind": "llm",
+   "label": "Plan the research",
+   "at": "2026-11-14T12:00:00.000Z",
+   "ms": 2100
+  },
+  {
+   "kind": "search",
+   "label": "Search: Acme Robotics funding round investors",
+   "query": "Acme Robotics funding round investors",
+   "engines": [
+    {
+     "name": "exa",
+     "latency_ms": 690,
+     "n_results": 5
+    },
+    {
+     "name": "linkup",
+     "latency_ms": 485,
+     "n_results": 5
+    },
+    {
+     "name": "tavily",
+     "latency_ms": 1438,
+     "n_results": 5
+    }
+   ],
+   "urls": [
+    "https://example.com/acme-robotics-funding-round-investors/1",
+    "https://example.com/acme-robotics-funding-round-investors/2",
+    "https://example.com/acme-robotics-funding-round-investors/3",
+    "https://example.com/acme-robotics-funding-round-investors/4",
+    "https://example.com/acme-robotics-funding-round-investors/5",
+    "https://example.com/acme-robotics-funding-round-investors/6",
+    "https://example.com/acme-robotics-funding-round-investors/7"
+   ],
+   "telem_session_id": "ad6461b0-8a0f-4385-9d48-46aa47ad871c",
+   "at": "2026-11-14T12:00:02.000Z",
+   "ms": 1438
+  },
+  {
+   "kind": "search",
+   "label": "Search: Acme Robotics competitors warehouse picking",
+   "query": "Acme Robotics competitors warehouse picking",
+   "engines": [
+    {
+     "name": "exa",
+     "latency_ms": 538,
+     "n_results": 5
+    },
+    {
+     "name": "brave",
+     "latency_ms": 472,
+     "n_results": 5
+    },
+    {
+     "name": "linkup",
+     "latency_ms": 448,
+     "n_results": 5
+    },
+    {
+     "name": "tavily",
+     "latency_ms": 720,
+     "n_results": 5
+    }
+   ],
+   "urls": [
+    "https://example.com/acme-robotics-competitors-warehouse-pick/1",
+    "https://example.com/acme-robotics-competitors-warehouse-pick/2",
+    "https://example.com/acme-robotics-competitors-warehouse-pick/3",
+    "https://example.com/acme-robotics-competitors-warehouse-pick/4",
+    "https://example.com/acme-robotics-competitors-warehouse-pick/5",
+    "https://example.com/acme-robotics-competitors-warehouse-pick/6",
+    "https://example.com/acme-robotics-competitors-warehouse-pick/7"
+   ],
+   "telem_session_id": "ad6461b0-8a0f-4385-9d48-46aa47ad871c",
+   "at": "2026-11-14T12:00:02.000Z",
+   "ms": 720
+  },
+  {
+   "kind": "search",
+   "label": "Search: Acme Robotics layoffs 2026",
+   "query": "Acme Robotics layoffs 2026",
+   "engines": [
+    {
+     "name": "brave",
+     "latency_ms": 1199,
+     "n_results": 5
+    },
+    {
+     "name": "tavily_web",
+     "latency_ms": 1393,
+     "n_results": 5
+    },
+    {
+     "name": "tavily",
+     "latency_ms": 1483,
+     "n_results": 5
+    }
+   ],
+   "urls": [
+    "https://example.com/acme-robotics-layoffs-2026/1",
+    "https://example.com/acme-robotics-layoffs-2026/2",
+    "https://example.com/acme-robotics-layoffs-2026/3",
+    "https://example.com/acme-robotics-layoffs-2026/4"
+   ],
+   "telem_session_id": "ad6461b0-8a0f-4385-9d48-46aa47ad871c",
+   "at": "2026-11-14T12:00:02.000Z",
+   "ms": 1483
+  },
+  {
+   "kind": "search",
+   "label": "Search: Acme Robotics customer reviews reddit",
+   "query": "Acme Robotics customer reviews reddit",
+   "engines": [
+    {
+     "name": "reddit",
+     "latency_ms": 607,
+     "n_results": 5
+    },
+    {
+     "name": "brave",
+     "latency_ms": 912,
+     "n_results": 5
+    },
+    {
+     "name": "tavily",
+     "latency_ms": 1249,
+     "n_results": 5
+    }
+   ],
+   "urls": [
+    "https://example.com/acme-robotics-customer-reviews-reddit/1",
+    "https://example.com/acme-robotics-customer-reviews-reddit/2",
+    "https://example.com/acme-robotics-customer-reviews-reddit/3",
+    "https://example.com/acme-robotics-customer-reviews-reddit/4",
+    "https://example.com/acme-robotics-customer-reviews-reddit/5",
+    "https://example.com/acme-robotics-customer-reviews-reddit/6"
+   ],
+   "telem_session_id": "ad6461b0-8a0f-4385-9d48-46aa47ad871c",
+   "at": "2026-11-14T12:00:02.000Z",
+   "ms": 1249
+  },
+  {
+   "kind": "search",
+   "label": "Search: Acme Robotics hiring LinkedIn field engineers",
+   "query": "Acme Robotics hiring LinkedIn field engineers",
+   "engines": [
+    {
+     "name": "linkedin",
+     "latency_ms": 663,
+     "n_results": 5
+    },
+    {
+     "name": "exa",
+     "latency_ms": 1178,
+     "n_results": 5
+    },
+    {
+     "name": "tavily",
+     "latency_ms": 876,
+     "n_results": 5
+    }
+   ],
+   "urls": [
+    "https://example.com/acme-robotics-hiring-linkedin-field-engi/1",
+    "https://example.com/acme-robotics-hiring-linkedin-field-engi/2",
+    "https://example.com/acme-robotics-hiring-linkedin-field-engi/3",
+    "https://example.com/acme-robotics-hiring-linkedin-field-engi/4"
+   ],
+   "telem_session_id": "ad6461b0-8a0f-4385-9d48-46aa47ad871c",
+   "at": "2026-11-14T12:00:02.000Z",
+   "ms": 1178
+  },
+  {
+   "kind": "search",
+   "label": "Search: Acme Robotics lawsuit",
+   "query": "Acme Robotics lawsuit",
+   "engines": [
+    {
+     "name": "brave",
+     "latency_ms": 599,
+     "n_results": 5
+    },
+    {
+     "name": "tavily_web",
+     "latency_ms": 1345,
+     "n_results": 5
+    },
+    {
+     "name": "tavily",
+     "latency_ms": 726,
+     "n_results": 5
+    }
+   ],
+   "urls": [
+    "https://example.com/acme-robotics-lawsuit/1",
+    "https://example.com/acme-robotics-lawsuit/2",
+    "https://example.com/acme-robotics-lawsuit/3",
+    "https://example.com/acme-robotics-lawsuit/4",
+    "https://example.com/acme-robotics-lawsuit/5",
+    "https://example.com/acme-robotics-lawsuit/6"
+   ],
+   "telem_session_id": "ad6461b0-8a0f-4385-9d48-46aa47ad871c",
+   "at": "2026-11-14T12:00:03.000Z",
+   "ms": 1345
+  },
+  {
+   "kind": "search",
+   "label": "Search: Acme Robotics founders background",
+   "query": "Acme Robotics founders background",
+   "engines": [
+    {
+     "name": "brave",
+     "latency_ms": 578,
+     "n_results": 5
+    },
+    {
+     "name": "tavily_web",
+     "latency_ms": 548,
+     "n_results": 5
+    },
+    {
+     "name": "tavily",
+     "latency_ms": 1017,
+     "n_results": 5
+    }
+   ],
+   "urls": [
+    "https://example.com/acme-robotics-founders-background/1",
+    "https://example.com/acme-robotics-founders-background/2",
+    "https://example.com/acme-robotics-founders-background/3",
+    "https://example.com/acme-robotics-founders-background/4",
+    "https://example.com/acme-robotics-founders-background/5",
+    "https://example.com/acme-robotics-founders-background/6"
+   ],
+   "telem_session_id": "ad6461b0-8a0f-4385-9d48-46aa47ad871c",
+   "at": "2026-11-14T12:00:03.000Z",
+   "ms": 1017
+  },
+  {
+   "kind": "search",
+   "label": "Search: Acme Robotics pricing per robot",
+   "query": "Acme Robotics pricing per robot",
+   "engines": [
+    {
+     "name": "brave",
+     "latency_ms": 468,
+     "n_results": 5
+    },
+    {
+     "name": "tavily_web",
+     "latency_ms": 1245,
+     "n_results": 5
+    },
+    {
+     "name": "tavily",
+     "latency_ms": 1320,
+     "n_results": 5
+    }
+   ],
+   "urls": [
+    "https://example.com/acme-robotics-pricing-per-robot/1",
+    "https://example.com/acme-robotics-pricing-per-robot/2",
+    "https://example.com/acme-robotics-pricing-per-robot/3",
+    "https://example.com/acme-robotics-pricing-per-robot/4",
+    "https://example.com/acme-robotics-pricing-per-robot/5",
+    "https://example.com/acme-robotics-pricing-per-robot/6"
+   ],
+   "telem_session_id": "ad6461b0-8a0f-4385-9d48-46aa47ad871c",
+   "at": "2026-11-14T12:00:03.000Z",
+   "ms": 1320
+  },
+  {
+   "kind": "search",
+   "label": "Search: warehouse picking robots market size 2026",
+   "query": "warehouse picking robots market size 2026",
+   "engines": [
+    {
+     "name": "exa",
+     "latency_ms": 898,
+     "n_results": 5
+    },
+    {
+     "name": "brave",
+     "latency_ms": 634,
+     "n_results": 5
+    },
+    {
+     "name": "linkup",
+     "latency_ms": 562,
+     "n_results": 5
+    },
+    {
+     "name": "tavily",
+     "latency_ms": 953,
+     "n_results": 5
+    }
+   ],
+   "urls": [
+    "https://example.com/warehouse-picking-robots-market-size-202/1",
+    "https://example.com/warehouse-picking-robots-market-size-202/2",
+    "https://example.com/warehouse-picking-robots-market-size-202/3",
+    "https://example.com/warehouse-picking-robots-market-size-202/4",
+    "https://example.com/warehouse-picking-robots-market-size-202/5",
+    "https://example.com/warehouse-picking-robots-market-size-202/6",
+    "https://example.com/warehouse-picking-robots-market-size-202/7"
+   ],
+   "telem_session_id": "ad6461b0-8a0f-4385-9d48-46aa47ad871c",
+   "at": "2026-11-14T12:00:03.000Z",
+   "ms": 953
+  },
+  {
+   "kind": "search",
+   "label": "Search: Acme Robotics news last 6 months",
+   "query": "Acme Robotics news last 6 months",
+   "engines": [
+    {
+     "name": "brave",
+     "latency_ms": 471,
+     "n_results": 5
+    },
+    {
+     "name": "tavily_web",
+     "latency_ms": 1347,
+     "n_results": 5
+    },
+    {
+     "name": "tavily",
+     "latency_ms": 1537,
+     "n_results": 5
+    }
+   ],
+   "urls": [
+    "https://example.com/acme-robotics-news-last-6-months/1",
+    "https://example.com/acme-robotics-news-last-6-months/2",
+    "https://example.com/acme-robotics-news-last-6-months/3",
+    "https://example.com/acme-robotics-news-last-6-months/4",
+    "https://example.com/acme-robotics-news-last-6-months/5",
+    "https://example.com/acme-robotics-news-last-6-months/6",
+    "https://example.com/acme-robotics-news-last-6-months/7",
+    "https://example.com/acme-robotics-news-last-6-months/8"
+   ],
+   "telem_session_id": "ad6461b0-8a0f-4385-9d48-46aa47ad871c",
+   "at": "2026-11-14T12:00:03.000Z",
+   "ms": 1537
+  },
+  {
+   "kind": "llm",
+   "label": "Find the gaps and follow up",
+   "at": "2026-11-14T12:00:05.000Z",
+   "ms": 3400
+  },
+  {
+   "kind": "search",
+   "label": "Search: Acme Robotics revenue estimate",
+   "query": "Acme Robotics revenue estimate",
+   "engines": [
+    {
+     "name": "brave",
+     "latency_ms": 387,
+     "n_results": 5
+    },
+    {
+     "name": "tavily_web",
+     "latency_ms": 1310,
+     "n_results": 5
+    },
+    {
+     "name": "tavily",
+     "latency_ms": 998,
+     "n_results": 5
+    }
+   ],
+   "urls": [
+    "https://example.com/acme-robotics-revenue-estimate/1",
+    "https://example.com/acme-robotics-revenue-estimate/2",
+    "https://example.com/acme-robotics-revenue-estimate/3",
+    "https://example.com/acme-robotics-revenue-estimate/4",
+    "https://example.com/acme-robotics-revenue-estimate/5",
+    "https://example.com/acme-robotics-revenue-estimate/6",
+    "https://example.com/acme-robotics-revenue-estimate/7",
+    "https://example.com/acme-robotics-revenue-estimate/8"
+   ],
+   "telem_session_id": "ad6461b0-8a0f-4385-9d48-46aa47ad871c",
+   "at": "2026-11-14T12:00:08.000Z",
+   "ms": 1310
+  },
+  {
+   "kind": "search",
+   "label": "Search: Acme Robotics churn customers switching",
+   "query": "Acme Robotics churn customers switching",
+   "engines": [
+    {
+     "name": "brave",
+     "latency_ms": 1248,
+     "n_results": 5
+    },
+    {
+     "name": "tavily_web",
+     "latency_ms": 1163,
+     "n_results": 5
+    },
+    {
+     "name": "tavily",
+     "latency_ms": 1220,
+     "n_results": 5
+    }
+   ],
+   "urls": [
+    "https://example.com/acme-robotics-churn-customers-switching/1",
+    "https://example.com/acme-robotics-churn-customers-switching/2",
+    "https://example.com/acme-robotics-churn-customers-switching/3",
+    "https://example.com/acme-robotics-churn-customers-switching/4",
+    "https://example.com/acme-robotics-churn-customers-switching/5"
+   ],
+   "telem_session_id": "ad6461b0-8a0f-4385-9d48-46aa47ad871c",
+   "at": "2026-11-14T12:00:09.000Z",
+   "ms": 1248
+  },
+  {
+   "kind": "search",
+   "label": "Search: Rival A vs Acme Robotics comparison",
+   "query": "Rival A vs Acme Robotics comparison",
+   "engines": [
+    {
+     "name": "exa",
+     "latency_ms": 813,
+     "n_results": 5
+    },
+    {
+     "name": "brave",
+     "latency_ms": 993,
+     "n_results": 5
+    },
+    {
+     "name": "linkup",
+     "latency_ms": 675,
+     "n_results": 5
+    },
+    {
+     "name": "tavily",
+     "latency_ms": 1141,
+     "n_results": 5
+    }
+   ],
+   "urls": [
+    "https://example.com/rival-a-vs-acme-robotics-comparison/1",
+    "https://example.com/rival-a-vs-acme-robotics-comparison/2",
+    "https://example.com/rival-a-vs-acme-robotics-comparison/3",
+    "https://example.com/rival-a-vs-acme-robotics-comparison/4",
+    "https://example.com/rival-a-vs-acme-robotics-comparison/5",
+    "https://example.com/rival-a-vs-acme-robotics-comparison/6",
+    "https://example.com/rival-a-vs-acme-robotics-comparison/7"
+   ],
+   "telem_session_id": "ad6461b0-8a0f-4385-9d48-46aa47ad871c",
+   "at": "2026-11-14T12:00:09.000Z",
+   "ms": 1141
+  },
+  {
+   "kind": "search",
+   "label": "Search: Acme Robotics safety incident OSHA",
+   "query": "Acme Robotics safety incident OSHA",
+   "engines": [
+    {
+     "name": "exa",
+     "latency_ms": 618,
+     "n_results": 5
+    },
+    {
+     "name": "linkup",
+     "latency_ms": 692,
+     "n_results": 5
+    },
+    {
+     "name": "tavily",
+     "latency_ms": 965,
+     "n_results": 5
+    }
+   ],
+   "urls": [
+    "https://example.com/acme-robotics-safety-incident-osha/1",
+    "https://example.com/acme-robotics-safety-incident-osha/2",
+    "https://example.com/acme-robotics-safety-incident-osha/3",
+    "https://example.com/acme-robotics-safety-incident-osha/4"
+   ],
+   "telem_session_id": "ad6461b0-8a0f-4385-9d48-46aa47ad871c",
+   "at": "2026-11-14T12:00:09.000Z",
+   "ms": 965
+  },
+  {
+   "kind": "extract",
+   "label": "Extract 8 of 8 pages",
+   "engines": [
+    {
+     "name": "tavily",
+     "latency_ms": 2300,
+     "n_results": 7
+    },
+    {
+     "name": "telem_fetch",
+     "latency_ms": 1900,
+     "n_results": 1
+    }
+   ],
+   "urls": [
+    "https://example.com/acme-series-a",
+    "https://example.com/acme-layoffs",
+    "https://example.com/rival-a",
+    "https://example.com/rival-b"
+   ],
+   "at": "2026-11-14T12:00:11.000Z",
+   "ms": 4200
+  },
+  {
+   "kind": "llm",
+   "label": "Write the memo",
+   "at": "2026-11-14T12:00:15.000Z",
+   "ms": 9000
+  }
+ ]
 }

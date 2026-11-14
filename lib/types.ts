@@ -52,6 +52,19 @@ export type Trail = { id: string; steps: TrailStep[] };
 export type WatchUpdate = { at: string; title: string; url: string; summary: string };
 export type Watch = { id: string; company: string; monitor_id: string; updates: WatchUpdate[] };
 
+// Streaming memo (POST /api/memo with { stream: true }): NDJSON, one MemoEvent per line, in this order:
+// start, then a step for every trail step as it happens, then memo (or error).
+export type MemoEvent =
+  | { type: "start"; trail_id: string; company: string; depth: "quick" | "deep" }
+  | { type: "step"; step: TrailStep }
+  | { type: "memo"; memo: Memo }
+  | { type: "error"; error: string };
+
+// GET /api/memos: recent memos, newest first.
+export type MemoSummary = Pick<Memo, "id" | "company" | "verdict" | "confidence" | "summary" | "created_at"> & {
+  n_sources: number;
+};
+
 export type TrailRecorder = {
   id: string;
   step: (s: Omit<TrailStep, "at"> & { at?: string }) => void;

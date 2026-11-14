@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Watch } from "@/lib/types";
 import ErrorBox from "./ErrorBox";
 import { api, errMsg, fmtTime } from "./http";
@@ -13,33 +13,60 @@ export default function WatchPanel({ company }: { company: string }) {
   const [error, setError] = useState<string | null>(null);
   const [checkedAt, setCheckedAt] = useState<Date | null>(null);
 
+  const startRequest = useRef<AbortController>(null);
   const watchId = watch?.id;
+
+  useEffect(() => () => startRequest.current?.abort(), []);
+
   useEffect(() => {
     if (!watchId) return;
-    const t = setInterval(() => {
-      api<Watch>(`/api/watch/${encodeURIComponent(watchId)}`)
-        .then((w) => {
-          setWatch(w);
-          setError(null);
-          setCheckedAt(new Date());
-        })
-        .catch((e) => setError(errMsg(e)));
-    }, POLL_MS);
-    return () => clearInterval(t);
+    const controller = new AbortController();
+    const path = `/api/watch/${encodeURIComponent(watchId)}`;
+    let timer: ReturnType<typeof setTimeout>;
+
+    async function poll() {
+      try {
+        const updated = await api<Watch>(path, undefined, controller.signal);
+        if (controller.signal.aborted) return;
+        setWatch((current) => current && { ...updated, company: current.company });
+        setError(null);
+        setCheckedAt(new Date());
+      } catch (e) {
+        if (!controller.signal.aborted) setError(errMsg(e));
+      } finally {
+        if (!controller.signal.aborted) timer = setTimeout(poll, POLL_MS);
+      }
+    }
+
+    timer = setTimeout(poll, POLL_MS);
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
   }, [watchId]);
 
   async function start() {
+    if (startRequest.current) return;
+    const controller = new AbortController();
+    startRequest.current = controller;
     setStarting(true);
     setError(null);
     try {
-      setWatch(await api<Watch>("/api/watch", { company }));
-      setCheckedAt(new Date());
+      const created = await api<Watch>("/api/watch", { company }, controller.signal);
+      if (!controller.signal.aborted) {
+        setWatch(created);
+        setCheckedAt(new Date());
+      }
     } catch (e) {
-      setError(errMsg(e));
+      if (!controller.signal.aborted) setError(errMsg(e));
     } finally {
-      setStarting(false);
+      startRequest.current = null;
+      if (!controller.signal.aborted) setStarting(false);
     }
   }
+
+  const updates = [...new Map(watch?.updates.map((entry) => [`${entry.at}|${entry.url}|${entry.title}`, entry])).values()]
+    .sort((first, second) => second.at.localeCompare(first.at));
 
   return (
     <section className="rounded-2xl border border-line p-6">
@@ -72,13 +99,13 @@ export default function WatchPanel({ company }: { company: string }) {
 
       {watch && (
         <div className="mt-5">
-          {watch.updates.length === 0 ? (
+          {updates.length === 0 ? (
             <p className="text-muted">No updates yet. New results will appear here.</p>
           ) : (
             <ul className="divide-y divide-line">
-              {[...watch.updates].reverse().map((u, i) => (
-                <li key={`${u.url}-${i}`} className="py-3">
-                  <div className="flex items-baseline justify-between gap-4">
+              {updates.map((u) => (
+                <li key={`${u.at}|${u.url}|${u.title}`} className="py-3">
+                  <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
                     <a
                       href={u.url}
                       target="_blank"

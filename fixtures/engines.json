@@ -1,10 +1,143 @@
 {
   "engines": [
-    { "name": "exa", "memos": 3, "returned": 24, "cited": 11, "supported": 9, "score": 0.2941 },
-    { "name": "tavily", "memos": 3, "returned": 30, "cited": 10, "supported": 7.5, "score": 0.2125 },
-    { "name": "apify_linkedin", "memos": 2, "returned": 6, "cited": 2, "supported": 1, "score": 0.125 },
-    { "name": "brave", "memos": 3, "returned": 18, "cited": 5, "supported": 2, "score": 0.1071 }
+    {
+      "name": "exa",
+      "memos": 3,
+      "returned": 24,
+      "cited": 11,
+      "supported": 9,
+      "score": 0.2941
+    },
+    {
+      "name": "tavily",
+      "memos": 3,
+      "returned": 30,
+      "cited": 10,
+      "supported": 7.5,
+      "score": 0.2125
+    },
+    {
+      "name": "apify_linkedin",
+      "memos": 2,
+      "returned": 6,
+      "cited": 2,
+      "supported": 1,
+      "score": 0.125
+    },
+    {
+      "name": "brave",
+      "memos": 3,
+      "returned": 18,
+      "cited": 5,
+      "supported": 2,
+      "score": 0.1071
+    }
   ],
   "memos": 3,
-  "updated_at": "2026-11-14T12:00:00.000Z"
+  "updated_at": "2026-11-14T12:00:00.000Z",
+  "topics": {
+    "company_research": [
+      {
+        "name": "exa",
+        "memos": 3,
+        "returned": 14,
+        "cited": 6,
+        "supported": 5,
+        "score": 0.25
+      },
+      {
+        "name": "tavily",
+        "memos": 3,
+        "returned": 15,
+        "cited": 5,
+        "supported": 4,
+        "score": 0.2
+      },
+      {
+        "name": "brave",
+        "memos": 3,
+        "returned": 10,
+        "cited": 2,
+        "supported": 1,
+        "score": 0.1
+      }
+    ],
+    "people_profiles": [
+      {
+        "name": "apify_linkedin",
+        "memos": 2,
+        "returned": 6,
+        "cited": 2,
+        "supported": 1,
+        "score": 0.125
+      },
+      {
+        "name": "exa",
+        "memos": 2,
+        "returned": 6,
+        "cited": 2,
+        "supported": 1,
+        "score": 0.125
+      },
+      {
+        "name": "brave",
+        "memos": 2,
+        "returned": 5,
+        "cited": 1,
+        "supported": 0,
+        "score": 0.0667
+      }
+    ]
+  },
+  "queries": [
+    {
+      "pattern": "{company} funding round investors",
+      "topic": "company_research",
+      "verified": 5,
+      "memos": 3
+    },
+    {
+      "pattern": "{company} competitors",
+      "topic": "company_research",
+      "verified": 4,
+      "memos": 3
+    },
+    {
+      "pattern": "{company} founders background",
+      "topic": "people_profiles",
+      "verified": 2,
+      "memos": 2
+    }
+  ],
+  "history": [
+    {
+      "at": "2026-11-14T10:10:00.000Z",
+      "company": "Acme",
+      "search_calls": 8,
+      "verified_lines": 7,
+      "sources_read": 6,
+      "yield": 0.875
+    },
+    {
+      "at": "2026-11-14T11:05:00.000Z",
+      "company": "Globex",
+      "search_calls": 8,
+      "verified_lines": 9,
+      "sources_read": 6,
+      "yield": 1.125
+    },
+    {
+      "at": "2026-11-14T12:00:00.000Z",
+      "company": "Initech",
+      "search_calls": 7,
+      "verified_lines": 10,
+      "sources_read": 6,
+      "yield": 1.4286
+    }
+  ],
+  "hints": [
+    "{company} funding round investors",
+    "{company} competitors",
+    "{company} founders background"
+  ]
 }

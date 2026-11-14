@@ -72,6 +72,7 @@ export type TrailStep = {
   engines?: Engine[];    // which engines answered, how fast
   routing?: string[];    // search steps: the engines Telem's router chose for this query (may be absent)
   topic?: string;        // search steps: the topic Telem's router classified the query as (e.g. "people_profiles")
+  steered?: string[];    // search steps: engines Proven pinned for this query because they proved out in past memos
   published_after?: string; // search steps: Telem kept only results published on or after this date (recency filter)
   urls?: string[];
   telem_session_id?: string;
@@ -119,5 +120,18 @@ export type EngineStat = {
   supported: number;  // of those, backed by a verified quote (Evidence verdict "supported")
   score: number;
 };
+// The closed loop (lib/learn.ts). All optional: boards saved before the loop existed still load.
+// A search query that led to at least one verified source; the company name is replaced by "{company}".
+export type QueryWin = { pattern: string; topic?: string; verified: number; memos: number };
+// One memo's research efficiency: yield = verified_lines / search_calls.
+export type MemoYield = { at: string; company: string; search_calls: number; verified_lines: number; sources_read: number; yield: number };
 // GET /api/engines
-export type EngineBoard = { engines: EngineStat[]; memos: number; updated_at: string };
+export type EngineBoard = {
+  engines: EngineStat[];
+  memos: number;
+  updated_at: string;
+  topics?: Record<string, EngineStat[]>;  // per Telem routing topic: each engine's verified yield on that kind of question
+  queries?: QueryWin[];                   // best ~30 queries that produced verified sources
+  history?: MemoYield[];                  // last 50 memos, oldest first
+  hints?: string[];                       // queryHints(): what the planner is told worked before (API only, not persisted)
+};

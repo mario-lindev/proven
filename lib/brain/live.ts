@@ -41,7 +41,10 @@ const judgeSchema = {
 const seen = new Map<string, number>();
 const SEEN_MS = 90_000;
 
-export async function checkText(text: string): Promise<ClaimCheck[]> {
+// `context`: who is pitching and what they do (e.g. "Proven: checks investor pitch claims live"). Optional.
+export async function checkText(text: string, context?: string): Promise<ClaimCheck[]> {
+  const ctx = context?.trim().slice(0, 600);
+  const about = ctx ? `Company being pitched: ${ctx}\n\n` : "";
   const pickTrail = newTrail();
   const { claims } = await askJSON<{ claims: { claim: string; queries: string[] }[] }>({
     label: "Find checkable claims",
@@ -52,8 +55,11 @@ export async function checkText(text: string): Promise<ClaimCheck[]> {
       "You listen to startup pitches. From the text, pull out factual claims that the web can check: market size, growth, " +
       "customers, funding, 'no competitors', 'first to', rankings, partnerships. Skip opinions, plans and feelings. " +
       "For each claim give 2 to 3 short search queries that would confirm or refute it (for 'no competitors', search for competitors). " +
-      "Return an empty list if there is nothing checkable. At most 2 claims.",
-    user: text,
+      "Return an empty list if there is nothing checkable. At most 2 claims. " +
+      "'We', 'our' and 'us' mean the company being pitched. If it is given, write the claim and the queries about that company and its market " +
+      "(name what it does in the queries). If it is not given and the text does not name the company or product, " +
+      "still return the claim and write queries that test it as a general claim about startups or the market named in the text.",
+    user: `${about}Text: ${text}`,
     schema: claimsSchema,
   });
 
@@ -81,8 +87,11 @@ export async function checkText(text: string): Promise<ClaimCheck[]> {
           "(e.g. funded competitors exist); unclear = not enough evidence. note: one short line a judge can read on a projector, " +
           "naming the key evidence (e.g. 'Found 3 funded competitors: A, B, C'). Cite source ids. " +
           "quote: the few words (under 20) from one source's text that best back your verdict, copied exactly; quote_source_id: its id. " +
-          'Use "" for both if no source text does.',
-        user: `Claim: ${c.claim}\n\nSources:\n${sources
+          'Use "" for both if no source text does. ' +
+          "Never answer unclear only because the company is not named. If no company or product is identified, judge the claim as a " +
+          "general statement about the market: an absolute claim such as 'no competitors' or 'first to' is contradicted when the sources " +
+          "show that such claims are almost never true or that competitors exist in the market described; say in the note that it was judged as a general claim.",
+        user: `${about}Claim: ${c.claim}\n\nSources:\n${sources
           .map((s) => `[${s.id}] ${s.title} (${s.url}, via ${s.engine})\n${s.snippet}`)
           .join("\n\n")}`,
         schema: judgeSchema,

@@ -121,8 +121,16 @@ export async function buildMemo(
       "You write one-page diligence memos for investors and buyers. Use ONLY the sources given. " +
       "Every fact and every risk must cite the ids of the sources that support it in source_ids. " +
       "If you cannot cite a source for a line, leave the line out. Do not guess numbers. " +
-      "verdict: pursue (strong, low risk), dig_deeper (promising but open questions), pass (serious risks). " +
-      `confidence 0 to 1. summary 2 to 3 sentences. ${deep ? "6 to 12 facts, 3 to 8 risks, 3 to 6" : "4 to 8 facts, 2 to 6 risks, 2 to 5"} open questions an investor should ask. ` +
+      "verdict, decided by this rubric and not by caution: pursue = strong traction that independent sources back (revenue, customers, " +
+      "funding from known investors, or growth) and no high-severity risk or contradiction; pass = a high-severity contradiction, or a serious " +
+      "legal or financial risk (fraud, insolvency or running out of cash, a regulator's action, a lawsuit that threatens the business); " +
+      "dig_deeper = everything else. Do not pick dig_deeper when the rubric gives pursue or pass. " +
+      "confidence 0 to 1. summary 2 to 3 sentences; it only restates facts and risks that are in your lists (no number, name or event that is " +
+      "not in a fact or risk line), and its last sentence gives the reason for the verdict. " +
+      "Each fact and risk is one plain statement about the company. Never write source ids (s3, s11) inside the text of a line, the summary or a " +
+      "contradiction; ids go in source_ids only. Never write notes about your own process or the sources as a set (what you compared, " +
+      "disregarded, could not find or left out). Saying who reported something is fine (\"reported independently by Reuters\"). " +
+      `${deep ? "6 to 12 facts, 3 to 8 risks, 3 to 6" : "4 to 8 facts, 2 to 6 risks, 2 to 5"} open questions an investor should ask. ` +
       "Name competitors explicitly when sources show them. Prefer independent sources over the company's own claims and say so when a fact is only self-reported. " +
       "contradictions (0 to 5): each source is marked COMPANY'S OWN (its site, or a press release it issued) or INDEPENDENT. " +
       "List the places where what the company says about itself conflicts with what independent sources say, or where independent sources " +
@@ -136,9 +144,17 @@ export async function buildMemo(
 
   // Hard rule: drop any line whose citations don't exist.
   const ids = new Set(sources.map((s) => s.id));
+  // Raw source ids ("s3", "(s3, s11)") don't belong in the text; ids are lowercase, so "S3" (Amazon) is left alone.
+  const noIds = (t: string) =>
+    t
+      .replace(/\s*[[(]\s*s\d+(?:\s*(?:,|and|&)\s*s\d+)*\s*[\])]/g, "")
+      .replace(/\bs\d+\b(?:\s*(?:,|and|&)\s*s\d+\b)*/g, "")
+      .replace(/\s{2,}/g, " ")
+      .replace(/\s+([.,;:])/g, "$1")
+      .trim();
   const keep = (lines: Line[]) =>
     lines
-      .map((l) => ({ ...l, source_ids: l.source_ids.filter((id) => ids.has(id)) }))
+      .map((l) => ({ ...l, text: noIds(l.text), source_ids: l.source_ids.filter((id) => ids.has(id)) }))
       .filter((l) => l.source_ids.length > 0);
   let facts = keep(draft.facts);
   let risks = keep(draft.risks);
@@ -166,14 +182,23 @@ export async function buildMemo(
   }
 
   // Same hard rule for contradictions: both sides must cite sources that exist, and the reality side an independent one.
+  // A contradiction whose two sides cite exactly the same sources is dropped: one source is not arguing with itself.
+  const sameSet = (a: string[], b: string[]) => new Set(a).size === new Set(b).size && a.every((id) => b.includes(id));
   const independent = new Set(sources.filter((s) => !s.own).map((s) => s.id));
   const contradictions = (draft.contradictions ?? [])
     .map((c) => ({
       ...c,
+      claim: noIds(c.claim),
+      reality: noIds(c.reality),
       claim_source_ids: c.claim_source_ids.filter((id) => ids.has(id)),
       reality_source_ids: c.reality_source_ids.filter((id) => ids.has(id)),
     }))
-    .filter((c) => c.claim_source_ids.length > 0 && c.reality_source_ids.some((id) => independent.has(id)))
+    .filter(
+      (c) =>
+        c.claim_source_ids.length > 0 &&
+        c.reality_source_ids.some((id) => independent.has(id)) &&
+        !sameSet(c.claim_source_ids, c.reality_source_ids),
+    )
     .slice(0, 5);
 
   const used = new Set<string>();
@@ -185,7 +210,7 @@ export async function buildMemo(
     company,
     verdict: draft.verdict,
     confidence: Math.max(0, Math.min(1, draft.confidence)),
-    summary: draft.summary,
+    summary: noIds(draft.summary),
     facts,
     risks,
     open_questions: draft.open_questions,

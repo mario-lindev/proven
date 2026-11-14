@@ -1,6 +1,6 @@
 // OWNER: verifier. The verify pass: every fact and risk is re-read against the text of the sources it cites.
 // Claude returns the exact quote per cited source; code then checks each quote really is in that source's text.
-// A line with no quote found (supported or partial) is dropped.
+// A line with no quote found (supported or partial) is dropped. Partial quotes must carry the line's numbers (see numbersIn).
 import type { Evidence, Line, Source, TrailRecorder } from "../types";
 import { normalizeUrl } from "../search";
 import { askJSON } from "./claude";
@@ -70,6 +70,9 @@ export function quoteIn(quote: string, text: string): boolean {
   return pieces(quote).every((p) => hay.includes(p));
 }
 
+// The numbers a text states: "2,083" -> "2083", "$1.2B" -> "1.2", "40%" -> "40".
+export const numbersIn = (s: string): string[] => (s.match(/\d[\d,]*(?:\.\d+)?/g) ?? []).map((n) => n.replace(/,/g, ""));
+
 export type Verified = { lines: Line[]; checked: number; kept: number; dropped: number; not_found: number; ms: number };
 
 // Returns every input line (same order) with `evidence` set; a line with empty evidence should be dropped.
@@ -137,6 +140,9 @@ export async function verifyLines(
               if (process.env.VERIFY_DEBUG) console.log(`[verify] quote not in ${e.source_id} for line ${i + 1}: "${e.quote}"`);
               continue;
             }
+            // A partial quote for a line that states numbers must carry at least one of them.
+            const nums = numbersIn(lines[i].text);
+            if (e.verdict === "partial" && nums.length && !numbersIn(e.quote).some((n) => nums.includes(n))) continue;
             evidence[i].push({ source_id: e.source_id, quote: trimEnds(e.quote.replace(/\s+/g, " ")), verdict: e.verdict });
           }
         }
@@ -147,6 +153,13 @@ export async function verifyLines(
     trail.step({ kind: "verify", label: `Verify failed, memo left unverified: ${(err as Error).message}`, ms: Date.now() - t0 });
     throw err;
   }
+
+  // A line backed only by partial quotes is dropped if it states a number that is in none of those sources' text.
+  lines.forEach((l, i) => {
+    if (!evidence[i].length || evidence[i].some((e) => e.verdict === "supported")) return;
+    const inSources = new Set(evidence[i].flatMap((e) => numbersIn(textOf(byId.get(e.source_id)!))));
+    if (numbersIn(l.text).some((n) => !inSources.has(n))) evidence[i] = [];
+  });
 
   const out = lines.map((l, i) => ({ ...l, evidence: evidence[i] }));
   const kept = out.filter((l) => l.evidence.length > 0).length;

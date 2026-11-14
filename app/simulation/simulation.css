@@ -1,0 +1,46 @@
+/* Scoped workspace treatment inspired by Linear's restrained dark product UI. */
+body:has(.ml-shell) { background: #0d0d10; color: #ededef; color-scheme: dark; font-family: var(--font-plex-sans), system-ui, sans-serif; }
+body:has(.ml-shell) > header { background: #0f0f12; border-color: #29292f; color: #dddde4; }
+body:has(.ml-shell) > header a, body:has(.ml-shell) .brand { color: #dddde4; }
+body:has(.ml-shell) .app-nav { background: #101014; border-color: #29292f; }
+body:has(.ml-shell) .nav-tabs { background:#19191e; border-color:#303039; }
+body:has(.ml-shell) .nav-tab.active { background:#2a2835; color:#d7d2ff; }
+body:has(.ml-shell) .brand-mark { background:#7870cc; }
+body:has(.ml-shell) main { max-width: 1440px !important; padding-top: 0; }
+.ml-shell { display: grid; grid-template-columns: 205px minmax(0, 1fr); min-height: 100vh; }
+.ml-sidebar { position: sticky; top: 0; height: 100vh; border-right: 1px solid #25252d; padding: 30px 18px 25px 0; display: flex; flex-direction: column; gap: 7px; font-size: 12px; }
+.ml-wordmark { display:flex; align-items:center; gap:9px; font-size:18px; font-weight:650; color:#ededf2; margin-bottom:30px; }
+.ml-wordmark > span { color:#a29ae8; font-size:25px; }
+.ml-wordmark small { margin-left:auto; font-size:9px; letter-spacing:.1em; color:#a19da9; border:1px solid #36333f; border-radius:4px; padding:2px 5px; }
+.ml-nav-label { color:#74717e; font-size:11px; margin-bottom:8px; }
+.ml-side-link { color:#a5a2b1; border-radius:6px; padding:10px 8px; }
+.ml-side-link:hover, .ml-side-link:focus-visible { background:#212029; color:#efedff; }
+.ml-sidebar-note { margin-top:auto; border-top:1px solid #29262f; padding-top:20px; color:#bbb7cc; line-height:2; }
+.ml-sidebar-note small { color:#797584; }
+.ml-status-dot { display:inline-block; width:6px; height:6px; border-radius:50%; background:#aca0fa; margin-right:6px; box-shadow:0 0 10px #b4a4ff55; }
+.ml-workspace { min-width:0; padding:28px 0 70px 38px;
+ --color-surface:#15151a; --color-paper:#1d1c24; --color-ink:#eeeef2;
+ --color-graphite:#a09daa; --color-rule:#303039; --color-cobalt:#9c91ed; --color-faint:#817c8e;
+ --color-dig:#cfb782; --color-dig-soft:#27231b;
+}
+.ml-breadcrumb { display:flex; gap:12px; align-items:center; font-size:11px; color:#777380; border-bottom:1px solid #25252d; padding-bottom:22px; }
+.ml-breadcrumb span { color:#44414d; } .ml-breadcrumb strong { color:#bbb6c8; font-weight:450; }
+.ml-hero { position:relative; padding:12px 0 15px; }
+.ml-hero::before { content:""; position:absolute; inset:-30px -10px 0; pointer-events:none; background:radial-gradient(ellipse at 55% 0%,#8b73e00b,transparent 65%); }
+.ml-hero h1 { font-family:inherit; font-size:clamp(36px,4.6vw,62px); line-height:1.08; font-weight:550; letter-spacing:-.045em; }
+.ml-hero p { font-size:14px; max-width:650px; line-height:1.8; }
+.ml-hero > span { font-size:9px; letter-spacing:.11em; border-color:#41394e; color:#bdb2e9; background:#211d2c; border-radius:5px; }
+.ml-workspace .serif { font-family:inherit; }
+.ml-workspace h2 { font-size:17px; letter-spacing:-.025em; }
+.ml-workspace h3 { font-size:14px; }
+.ml-workspace section, .ml-workspace article, .ml-workspace details { scroll-margin-top:20px; }
+.ml-workspace input:not([type=range]):not([type=checkbox]) { background:#111115; border-color:#34313d; color:#e8e5ef; font-size:15px; }
+.ml-workspace input[type=range], .ml-workspace input[type=checkbox] { accent-color:#9e91ef; }
+.ml-workspace button { transition:background .18s,border-color .18s,transform .18s; }
+.ml-workspace button:hover { background-color:#272330; }
+.ml-workspace details { background:#19181f; background-image:none; }
+.ml-workspace summary { color:#e0dce9; }
+.ml-workspace :focus-visible { outline:2px solid #a49be5; outline-offset:3px; }
+.ml-workspace .rounded-3xl, .ml-workspace .rounded-2xl { border-radius:12px; }
+@media(max-width:1000px) { .ml-shell { grid-template-columns:165px minmax(0,1fr); } .ml-workspace { padding-left:22px; } }
+@media(max-width:740px) { .ml-shell { display:block; } .ml-sidebar { display:none; } .ml-workspace { padding:22px 0 50px; } .ml-breadcrumb { gap:8px; font-size:10px; } }

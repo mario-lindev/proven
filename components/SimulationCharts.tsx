@@ -48,7 +48,7 @@ export default function SimulationCharts({ results, weights, enabled, hasQuery }
         <p className="mt-2 text-sm text-graphite">Share of synthetic snippets in each score band.</p>
         {!hasQuery ? <p className="py-12 text-center text-graphite">Enter a question to see the chart.</p> : <>
           <svg viewBox="0 0 220 220" className="mx-auto my-6 w-full max-w-[260px]" role="img" aria-label={groups.map((group, index) => group.label + ": " + counts[index] + " snippets").join("; ")}>
-            <title>Relevance distribution across {results.length} synthetic snippets</title>
+            <title>{`Relevance distribution across ${results.length} synthetic snippets`}</title>
             <circle cx="110" cy="110" r="109" fill="none" stroke="#e8ecf0" strokeWidth="1" />
             <circle cx="110" cy="110" r="56" fill="#f3f5f7" />
             {groups.map((group, index) => {
@@ -57,7 +57,7 @@ export default function SimulationCharts({ results, weights, enabled, hasQuery }
               offset += percentage;
               return percentage > 0 ? <circle key={group.label} cx="110" cy="110" r="85" fill="none" stroke={group.color}
                 className="transition-opacity duration-300 hover:opacity-75" strokeWidth="40" pathLength="100" strokeDasharray={percentage + " " + (100 - percentage)}
-                strokeDashoffset={-start} transform="rotate(-90 110 110)"><title>{group.label}: {counts[index]} snippets</title></circle> : null;
+                strokeDashoffset={-start} transform="rotate(-90 110 110)"><title>{`${group.label}: ${counts[index]} snippets`}</title></circle> : null;
             })}
             <text x="110" y="108" textAnchor="middle" fill="currentColor" fontSize="32" fontWeight="600">{results.length}</text>
             <text x="110" y="132" textAnchor="middle" fill="currentColor" fontSize="12">synthetic snippets</text>

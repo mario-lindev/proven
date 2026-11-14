@@ -50,16 +50,19 @@ export default function TrailDrawer({
   onClose: () => void;
 }) {
   const { trail, error } = useTrail(trailId, preloaded);
-  const closeRef = useRef<HTMLButtonElement>(null);
+  const dialogRef = useRef<HTMLDialogElement>(null);
   const bodyRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!trailId) return;
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
-    window.addEventListener("keydown", onKey);
-    closeRef.current?.focus();
-    return () => window.removeEventListener("keydown", onKey);
-  }, [trailId, onClose]);
+    const dialog = dialogRef.current;
+    const previousFocus = document.activeElement;
+    dialog?.showModal();
+    return () => {
+      dialog?.close();
+      if (previousFocus instanceof HTMLElement) previousFocus.focus({ preventScroll: true });
+    };
+  }, [trailId]);
 
   // Scroll the first step that found a cited source into view.
   useEffect(() => {
@@ -76,16 +79,20 @@ export default function TrailDrawer({
   const scale = Math.max(1500, ...steps.flatMap((s) => (s.engines ?? []).map((e) => e.latency_ms)));
 
   return (
-    <div className="no-print fixed inset-0 z-40" role="dialog" aria-modal="true" aria-labelledby="trail-title">
-      <div className="absolute inset-0 bg-ink/35" onClick={onClose} />
-      <aside className="drawer-in absolute right-0 top-0 flex h-full w-full max-w-[44rem] flex-col bg-surface shadow-2xl">
+    <dialog
+      ref={dialogRef}
+      aria-labelledby="trail-title"
+      onCancel={(event) => { event.preventDefault(); onClose(); }}
+      onClick={(event) => { if (event.target === event.currentTarget) onClose(); }}
+      className="no-print fixed inset-y-0 right-0 left-auto m-0 h-dvh max-h-none w-full max-w-[44rem] bg-surface text-ink shadow-2xl backdrop:bg-ink/35"
+    >
+      <aside className="drawer-in flex h-full flex-col">
         <div className="border-b border-rule px-7 pb-5 pt-6">
           <div className="flex items-start justify-between gap-4">
             <h2 id="trail-title" className="serif text-3xl font-semibold tracking-tight">
               How Proven reached this
             </h2>
             <button
-              ref={closeRef}
               type="button"
               onClick={onClose}
               className="rounded-md border border-rule px-3 py-1.5 text-graphite hover:border-ink hover:text-ink"
@@ -231,6 +238,6 @@ export default function TrailDrawer({
           )}
         </div>
       </aside>
-    </div>
+    </dialog>
   );
 }

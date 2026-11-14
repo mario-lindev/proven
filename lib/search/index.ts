@@ -2,7 +2,7 @@
 // Keep the signatures exactly as they are; the brain calls them.
 import type { Engine, Source, TrailRecorder, WatchUpdate } from "../types";
 import { normalizeUrl, type Hit } from "./http";
-import { parseTelemPoll, parseTelemSearch, telemCreateMonitor, telemFetch, telemPollMonitor, telemSearch, type TelemQuery, type TelemSearchOptions } from "./telem";
+import { parseTelemChanges, telemMonitorChanges, telemTickMonitor, parseTelemPoll, parseTelemSearch, telemCreateMonitor, telemFetch, telemPollMonitor, telemSearch, type TelemQuery, type TelemSearchOptions } from "./telem";
 import { parseTavilyExtract, parseTavilySearch, tavilyExtract, tavilySearch } from "./tavily";
 
 export { normalizeUrl };
@@ -249,4 +249,16 @@ export async function watch(company: string): Promise<{ monitor_id: string }> {
 
 export async function pollWatch(monitor_id: string): Promise<WatchUpdate[]> {
   return parseTelemPoll(await telemPollMonitor(monitor_id));
+}
+
+// Run the watch's Telem agent now instead of waiting for its hourly schedule.
+export async function runWatch(monitor_id: string): Promise<{ already_running: boolean }> {
+  const r = await telemTickMonitor(monitor_id);
+  return { already_running: !!r.already_running };
+}
+
+// What the monitor's agent found since `cursor` (each with a quote and source url).
+export async function watchChanges(monitor_id: string, cursor?: number): Promise<{ updates: WatchUpdate[]; cursor?: number }> {
+  const p = parseTelemChanges(await telemMonitorChanges(monitor_id, cursor));
+  return { updates: p.updates, cursor: p.next_cursor ?? cursor };
 }

@@ -29,12 +29,16 @@ export function errorText(e: unknown): string {
   return String(e);
 }
 
-export async function postJSON<T>(label: string, url: string, key: string, body?: unknown): Promise<T> {
+export async function getJSON<T>(label: string, url: string, key: string): Promise<T> {
+  return postJSON<T>(label, url, key, undefined, "GET");
+}
+
+export async function postJSON<T>(label: string, url: string, key: string, body?: unknown, method = "POST"): Promise<T> {
   let res: Response;
   try {
     res = await fetch(url, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+      method,
+      headers: { Authorization: `Bearer ${key}`, ...(body === undefined ? {} : { "Content-Type": "application/json" }) },
       body: body === undefined ? undefined : JSON.stringify(body),
       signal: AbortSignal.timeout(TIMEOUT_MS),
     });

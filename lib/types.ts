@@ -55,7 +55,14 @@ export type TrailStep = {
 export type Trail = { id: string; steps: TrailStep[] };
 
 export type WatchUpdate = { at: string; title: string; url: string; summary: string };
-export type Watch = { id: string; company: string; monitor_id: string; updates: WatchUpdate[] };
+export type Watch = {
+  id: string;
+  company: string;
+  monitor_id: string;
+  updates: WatchUpdate[];
+  checked_at?: string;   // last time "Check now" ran the Telem monitor agent
+  cursor?: number;       // internal: Telem agent changes cursor
+};
 
 // Streaming memo (POST /api/memo with { stream: true }): NDJSON, one MemoEvent per line, in this order:
 // start, then a step for every trail step as it happens, then memo (or error).

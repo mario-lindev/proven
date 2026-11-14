@@ -2,7 +2,7 @@
 // Feeds hard-coded sample responses (shapes from docs.telem.ai / docs.tavily.com) through the mappers,
 // then runs searchAll / extract / pollWatch against a stubbed fetch. No network, no real keys.
 import assert from "node:assert/strict";
-import { PLATFORM_PROVIDERS, extract, mergeHits, normalizeUrl, pollWatch, recentSince, searchAll, wantsPlatforms, wantsRecent, watch } from "../lib/search";
+import { PLATFORM_PROVIDERS, extract, mergeHits, normalizeUrl, pollWatch, recentSince, runWatch, searchAll, wantsPlatforms, wantsRecent, watch, watchChanges } from "../lib/search";
 import { SEARCH_FIELDS, parseTelemFetch, parseTelemPoll, parseTelemSearch, type TelemSearchResponse } from "../lib/search/telem";
 import { parseTavilyExtract, parseTavilySearch, topicFor, type TavilySearchResponse } from "../lib/search/tavily";
 import { newTrail, store } from "../lib/store";
@@ -376,6 +376,38 @@ async function e2e() {
   const ups = await pollWatch("mon-1");
   assert.ok(ups.length > 0 && ups.every((u) => u.url && u.title && u.at));
   ok("watch / pollWatch: request body, id, updates");
+
+  // monitor agent: run now (409 tick_in_progress is fine) + changes since cursor
+  let ticks = 0;
+  stub((url) => {
+    if (url === "https://hack.telem.ai/api/v1/monitors/mon-1/agent/ticks") {
+      ticks++;
+      return ticks === 1 ? { status: 202, json: { job_id: "j1" } } : { status: 409, json: { error: { code: "tick_in_progress", message: "already running" } } };
+    }
+    if (url === "https://hack.telem.ai/api/v1/monitors/mon-1/agent/changes?cursor=3") {
+      return {
+        status: 200,
+        json: {
+          changes: [
+            { seq: 4, kind: "run", at: "2026-11-14T14:01:00Z" },
+            { seq: 5, kind: "entity_added", subject: { entity_id: "e1", name: "Rival C" }, after: { quote: "Rival C launched a picking robot", url: "https://news.example/rival-c" }, at: "2026-11-14T14:02:00Z" },
+            { seq: 6, kind: "value_changed", subject: { name: "Headcount" }, before: { value: "120" }, after: { value: "108" } },
+          ],
+          next_cursor: 6,
+        },
+      };
+    }
+    throw new Error(`unexpected ${url}`);
+  });
+  assert.deepEqual(await runWatch("mon-1"), { already_running: false });
+  assert.deepEqual(await runWatch("mon-1"), { already_running: true });
+  const ch = await watchChanges("mon-1", 3);
+  assert.equal(ch.cursor, 6);
+  assert.equal(ch.updates.length, 1); // run is bookkeeping; the value change has no url
+  assert.equal(ch.updates[0].title, "New: Rival C");
+  assert.equal(ch.updates[0].summary, "Rival C launched a picking robot");
+  assert.equal(ch.updates[0].url, "https://news.example/rival-c");
+  ok("monitor agent: run now (+409 in progress), changes since cursor");
 
   globalThis.fetch = realFetch;
 }

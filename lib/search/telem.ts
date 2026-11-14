@@ -85,11 +85,14 @@ export type TelemQuery = { engines: Engine[]; hits: Hit[]; routing?: string[]; t
 // Per query, a URL several providers found becomes one hit, ordered the way Telem's docs merge results:
 // pages more providers found first, then the best per-provider rank, then the router's provider order
 // (routing lists providers best first). The hit is credited to the best-routed provider that found it.
+// Telem has its own tavily engine; keep it apart from our direct Tavily calls (engine "tavily").
+const viaTelem = (name: string) => (name === "tavily" ? "tavily_via_telem" : name);
+
 export function parseTelemSearch(resp: TelemSearchResponse, nQueries: number): { session_id?: string; perQuery: TelemQuery[] } {
   type Agg = { hit: Hit; providers: Set<string>; bestRank: number; bestRoute: number; first: number };
   const routingOf = (i: number) => {
     const p = resp.routing?.[i]?.providers;
-    return Array.isArray(p) ? p.filter((x): x is string => typeof x === "string" && x.length > 0) : undefined;
+    return Array.isArray(p) ? p.filter((x): x is string => typeof x === "string" && x.length > 0).map(viaTelem) : undefined;
   };
   const topicOf = (i: number) => {
     const t = resp.routing?.[i]?.topic;
@@ -101,7 +104,7 @@ export function parseTelemSearch(resp: TelemSearchResponse, nQueries: number): {
     const i = run.batch_index ?? 0;
     if (i < 0 || i >= nQueries) continue;
     const q = perQuery[i];
-    const name = run.preprocessor_name || "telem";
+    const name = viaTelem(run.preprocessor_name || "telem");
     const results = run.output_payload?.results ?? [];
     const err = run.error ? errorText(run.error) : "";
     const warnings = warningCodes(run);

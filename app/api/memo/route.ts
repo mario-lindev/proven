@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { buildMemo } from "@/lib/brain/memo";
 import { fail, fixture } from "@/lib/api";
 import { isMock } from "@/lib/mock";
-import { newId, newTrail, saveMemo, store } from "@/lib/store";
+import { newId, newTrail, store } from "@/lib/store";
 import type { Memo, MemoEvent, Trail } from "@/lib/types";
 
 export const maxDuration = 300;
@@ -49,7 +49,7 @@ export async function POST(req: Request) {
             send({ type: "step", step });
           }
           const memo = { ...(await mockMemo(company)), trail_id: trail.id };
-          saveMemo(memo);
+          store.memos.set(memo.id, memo); // mock memos stay in memory only, never in saved history
           send({ type: "memo", memo });
         } else {
           const trail = newTrail((step) => send({ type: "step", step }));

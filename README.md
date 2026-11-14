@@ -78,6 +78,7 @@ Run with `npx tsx`:
 
 | Command | What it does |
 |---|---|
+| `npx tsx --env-file=.env.local scripts/check-provider-keys.ts` | Check Telem search and MCP, Tavily account access, and Anthropic model access. Prints status only. Runs one Telem search. |
 | `npx tsx scripts/check-parse.ts` | Offline tests of the search layer: Telem and Tavily parsing, merge, batches, failures. No network, no keys. |
 | `npx tsx --env-file=.env.local scripts/try-search.ts` | Real-key smoke test: four queries through all three Telem batches plus Tavily, one extract, prints sources and the trail. |
 | `npx tsx --env-file=.env.local scripts/warm-cache.ts deep Stripe Figma Rivian` | Runs real memos ahead of a demo; they appear under Recent memos. First argument `quick` or `deep`. |

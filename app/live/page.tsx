@@ -265,7 +265,7 @@ export default function LiveRoom() {
               )}
               <button
                 type="button"
-                onClick={() => setTrailId(c.trail_id)}
+                onClick={(event) => { event.currentTarget.focus(); setTrailId(c.trail_id); }}
                 className="mt-4 font-medium text-accent hover:underline"
               >
                 See how

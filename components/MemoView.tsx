@@ -96,7 +96,7 @@ export default function MemoView({ memo }: { memo: Memo }) {
           </Link>
           <button
             type="button"
-            onClick={() => setFocus([])}
+            onClick={(event) => { event.currentTarget.focus(); setFocus([]); }}
             className="font-medium text-accent hover:underline"
           >
             See how Proven reached this

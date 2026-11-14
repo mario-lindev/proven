@@ -48,8 +48,12 @@ function Drawer({ trailId, focusUrls, onClose }: {
 
   useEffect(() => {
     const node = dialog.current;
+    const trigger = document.activeElement;
     node?.showModal();
-    return () => node?.close();
+    return () => {
+      node?.close();
+      if (trigger instanceof HTMLElement) trigger.focus({ preventScroll: true });
+    };
   }, []);
 
   return (

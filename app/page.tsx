@@ -8,6 +8,7 @@ import MemoView from "@/components/MemoView";
 import RecentMemos from "@/components/RecentMemos";
 import ResearchFeed, { feedStats } from "@/components/ResearchFeed";
 import { errMsg, fmtMs } from "@/components/http";
+import RouteScene, { GEO } from "@/components/ascii/RouteScene";
 
 type Depth = "quick" | "deep";
 
@@ -24,6 +25,15 @@ type Run = {
 
 const EXAMPLES = ["Stripe", "Figma", "Rivian", "Duolingo"];
 
+const ENTRIES = [
+  { href: "/run", title: "Run everything", note: "audit, memo and watch at once" },
+  { href: "/audit", title: "Pitch Audit", note: "check a company's own claims" },
+  { href: "/impact", title: "Event Impact", note: "what one event changes" },
+  { href: "/live", title: "Live Room", note: "claims checked as they are spoken" },
+];
+
+type TelemNumbers = { queries: number; engines: number; pct: number | null };
+
 export default function Home() {
   const [company, setCompany] = useState("");
   const [context, setContext] = useState("");
@@ -33,6 +43,22 @@ export default function Home() {
   const [historyKey, setHistoryKey] = useState(0);
   const abortRef = useRef<AbortController | null>(null);
   const deepLinked = useRef(false);
+  const [numbers, setNumbers] = useState<TelemNumbers | null>(null);
+
+  useEffect(() => {
+    fetch("/api/telem", { cache: "no-store" })
+      .then((r) => r.json())
+      .then((d: { ready?: boolean; queries?: number; engines?: unknown[]; proof?: { verified?: number; via_telem?: number } }) => {
+        if (!d.ready || !d.queries) return;
+        const v = d.proof?.verified ?? 0;
+        setNumbers({
+          queries: d.queries,
+          engines: d.engines?.length ?? 0,
+          pct: v > 0 ? Math.round(((d.proof?.via_telem ?? 0) / v) * 100) : null,
+        });
+      })
+      .catch(() => {});
+  }, []);
 
   const running = !!run && !run.memo && !run.error;
 
@@ -137,102 +163,149 @@ export default function Home() {
   const idle = !run;
   const stats = run ? feedStats(run.steps) : null;
 
+  const form = (
+    <form onSubmit={submit} className={`no-print ${idle ? "max-w-[46rem]" : ""}`} aria-label="Research a company">
+      <div className={`field flex overflow-hidden ${idle ? "p-1.5 shadow-[0_10px_30px_-18px_#263c5955]" : "p-1"}`}>
+        <label htmlFor="company" className="sr-only">
+          Company, vendor or market
+        </label>
+        <input
+          id="company"
+          value={company}
+          onChange={(e) => setCompany(e.target.value)}
+          placeholder="Company, vendor or market"
+          autoFocus={idle}
+          autoComplete="off"
+          className={`serif min-w-0 flex-1 bg-transparent px-5 outline-none placeholder:text-faint focus-visible:outline-none ${
+            idle ? "py-3 text-[1.75rem]" : "py-2 text-[1.35rem]"
+          }`}
+        />
+        <button
+          type="submit"
+          disabled={!company.trim() || running}
+          className={`btn btn-primary shrink-0 ${idle ? "px-8 text-lg" : "px-6"}`}
+        >
+          {running ? "Researching" : "Research"}
+        </button>
+      </div>
+
+      <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center">
+        <label htmlFor="context" className="sr-only">
+          Context, optional
+        </label>
+        <input
+          id="context"
+          value={context}
+          onChange={(e) => setContext(e.target.value)}
+          placeholder="Context, optional: what you are deciding, e.g. a Series B or a vendor contract"
+          className="field min-w-0 flex-1 px-4 py-2.5 outline-none placeholder:text-faint"
+        />
+        <div role="radiogroup" aria-label="Research depth" className="field flex shrink-0 gap-1 p-1">
+          {(["quick", "deep"] as Depth[]).map((d) => (
+            <button
+              key={d}
+              type="button"
+              role="radio"
+              aria-checked={depth === d}
+              onClick={() => setDepth(d)}
+              disabled={running}
+              className={`rounded-md px-4 py-1.5 text-left font-medium transition-colors ${depth === d ? "bg-ink text-white" : "text-graphite hover:text-ink"}`}
+            >
+              {d === "quick" ? "Quick" : "Deep"}
+              <span className={`ml-2 text-sm font-normal ${depth === d ? "text-white/70" : "text-faint"}`}>
+                {d === "quick" ? "1 round" : "until proven"}
+              </span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {idle && (
+        <div className="mt-5 flex flex-wrap items-center gap-2">
+          <span className="mr-1 font-mono text-sm text-graphite">Try</span>
+          {EXAMPLES.map((ex) => (
+            <button
+              key={ex}
+              type="button"
+              onClick={() => pick(ex)}
+              className="serif rounded-lg border border-rule bg-surface px-4 py-1.5 text-[1.05rem] transition-colors hover:border-cobalt hover:text-cobalt"
+            >
+              {ex}
+            </button>
+          ))}
+        </div>
+      )}
+    </form>
+  );
+
   return (
     <div className="space-y-10">
       {idle && (
-        <div className="max-w-[52rem] pt-6">
-          <h1 className="serif text-[3.6rem] font-semibold leading-[1.04] tracking-tight md:text-[4.4rem]">
-            Know what is true before you commit.
-          </h1>
-          <p className="mt-5 max-w-[40rem] text-[1.2rem] leading-relaxed text-graphite">
-            A search engine gives you links. Proven gives you a verdict: it keeps searching until the questions an
-            investor must have answered are answered, then keeps only the lines it can quote from the page they came from.
-          </p>
-          <p className="mt-3 max-w-[40rem] text-lg leading-relaxed text-graphite">
-            Name a startup, vendor or market below. Have their pitch or website instead?{" "}
-            <Link href="/audit" className="font-medium text-cobalt hover:underline">
-              Pitch Audit checks every claim a company makes about itself
-            </Link>
-            .
-          </p>
-        </div>
+        <section className="relative -mt-10 pb-4 pt-16">
+          <div className="pointer-events-none absolute inset-y-0 left-1/2 w-screen -translate-x-1/2">
+            <div className="hero-scene absolute inset-0">
+              <RouteScene />
+            </div>
+            <div className="absolute inset-0 hidden font-mono text-[0.7rem] uppercase tracking-[0.14em] text-graphite lg:block" aria-hidden>
+              <span className="absolute -translate-x-1/2" style={{ left: `${GEO.rx * 100}%`, top: `calc(${GEO.ry * 100}% + 72px)` }}>
+                Telem routes
+              </span>
+              <span className="absolute -translate-x-1/2" style={{ left: `${GEO.lanes[1] * 100}%`, top: `calc(${GEO.floor * 100}% + 20px)` }}>
+                Proven keeps
+              </span>
+            </div>
+          </div>
+
+          <div className="relative max-w-[46rem]">
+            <h1 className="display rise-in max-w-[40rem] text-[4rem] md:text-[4.6rem]">
+              A search engine gives you links. <span className="text-cobalt">Proven gives you a verdict.</span>
+            </h1>
+            <p className="rise-in mt-6 max-w-[38rem] text-[1.15rem] leading-relaxed text-graphite" style={{ animationDelay: "90ms" }}>
+              It keeps searching until the questions an investor must answer are answered, then keeps only the lines it can
+              quote from the page they came from.
+            </p>
+            <div className="rise-in mt-9" style={{ animationDelay: "180ms" }}>
+              {form}
+            </div>
+
+            <nav aria-label="Other ways in" className="rise-in mt-10 grid max-w-[46rem] grid-cols-2 gap-2 sm:grid-cols-4" style={{ animationDelay: "270ms" }}>
+              {ENTRIES.map((e) => (
+                <Link
+                  key={e.href}
+                  href={e.href}
+                  className="group rounded-lg border border-rule bg-surface px-3.5 py-3 transition-colors hover:border-cobalt"
+                >
+                  <span className="flex items-center justify-between font-medium text-ink group-hover:text-cobalt">
+                    {e.title}
+                    <span className="font-mono text-faint transition-transform duration-300 group-hover:translate-x-0.5 group-hover:text-cobalt">
+                      &rarr;
+                    </span>
+                  </span>
+                  <span className="mt-0.5 block text-[0.8rem] leading-snug text-graphite">{e.note}</span>
+                </Link>
+              ))}
+            </nav>
+
+            {numbers && (
+              <p className="tnum mt-6 font-mono text-[0.8rem] text-graphite">
+                <span className="text-ink">{numbers.queries}</span> questions routed across{" "}
+                <span className="text-ink">{numbers.engines}</span> engines
+                {numbers.pct !== null && (
+                  <>
+                    <span className="mx-2 text-faint">/</span>
+                    <span className="text-rust">{numbers.pct}%</span> of verified proof came from engines Telem chose
+                  </>
+                )}
+              </p>
+            )}
+          </div>
+        </section>
       )}
 
-      <form onSubmit={submit} className={`no-print ${idle ? "max-w-[52rem]" : ""}`} aria-label="Research a company">
-        <div className={`flex border-2 bg-surface transition-colors focus-within:border-cobalt ${idle ? "border-ink" : "border-rule"}`}>
-          <label htmlFor="company" className="sr-only">
-            Company, vendor or market
-          </label>
-          <input
-            id="company"
-            value={company}
-            onChange={(e) => setCompany(e.target.value)}
-            placeholder="Company, vendor or market"
-            autoFocus={idle}
-            autoComplete="off"
-            className={`serif min-w-0 flex-1 bg-transparent px-5 outline-none placeholder:text-faint focus-visible:outline-none ${
-              idle ? "py-4 text-[1.9rem]" : "py-2.5 text-[1.4rem]"
-            }`}
-          />
-          <button
-            type="submit"
-            disabled={!company.trim() || running}
-            className={`shrink-0 bg-ink font-semibold text-white hover:bg-cobalt disabled:bg-faint ${idle ? "px-9 text-xl" : "px-6 text-lg"}`}
-          >
-            {running ? "Researching" : "Research"}
-          </button>
-        </div>
-
-        <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center">
-          <label htmlFor="context" className="sr-only">
-            Context, optional
-          </label>
-          <input
-            id="context"
-            value={context}
-            onChange={(e) => setContext(e.target.value)}
-            placeholder="Context, optional: what you are deciding, e.g. a Series B or a vendor contract"
-            className="min-w-0 flex-1 border border-rule bg-surface px-4 py-2.5 outline-none placeholder:text-faint focus:border-cobalt"
-          />
-          <div role="radiogroup" aria-label="Research depth" className="flex shrink-0 border border-rule bg-surface p-1">
-            {(["quick", "deep"] as Depth[]).map((d) => (
-              <button
-                key={d}
-                type="button"
-                role="radio"
-                aria-checked={depth === d}
-                onClick={() => setDepth(d)}
-                disabled={running}
-                className={`px-4 py-1.5 text-left font-medium ${depth === d ? "bg-ink text-white" : "text-graphite hover:text-ink"}`}
-              >
-                {d === "quick" ? "Quick" : "Deep"}
-                <span className={`ml-2 text-sm font-normal ${depth === d ? "text-white/70" : "text-faint"}`}>
-                  {d === "quick" ? "1 round" : "until proven"}
-                </span>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {idle && (
-          <div className="mt-6 flex flex-wrap items-center gap-2">
-            <span className="mr-1 text-graphite">Try</span>
-            {EXAMPLES.map((ex) => (
-              <button
-                key={ex}
-                type="button"
-                onClick={() => pick(ex)}
-                className="serif border border-rule bg-surface px-4 py-1.5 text-[1.05rem] hover:border-ink"
-              >
-                {ex}
-              </button>
-            ))}
-          </div>
-        )}
-      </form>
+      {!idle && form}
 
       {idle && (
-        <div className="grid gap-12 border-t border-rule pt-10 lg:grid-cols-[minmax(0,1fr)_26rem]">
+        <div className="relative grid gap-12 border-t border-rule pt-10 lg:grid-cols-[minmax(0,1fr)_26rem]">
           <ol className="grid gap-8 sm:grid-cols-3">
             {[
               ["Plan", "Claude breaks the question into searches: funding, rivals, hiring, lawsuits, sentiment.",
@@ -250,8 +323,10 @@ export default function Home() {
               ],
             ].map(([t, d, extra], i) => (
               <li key={t}>
-                <p className="tnum text-sm text-graphite">Step {i + 1}</p>
-                <h3 className="serif mt-1 text-2xl font-semibold">{t}</h3>
+                <h3 className="display flex items-baseline gap-3 text-[2rem]">
+                  <span className="tnum font-mono text-[0.8rem] tracking-normal text-graphite">0{i + 1}</span>
+                  {t}
+                </h3>
                 <p className="mt-2 leading-relaxed text-graphite">{d}</p>
                 {extra && <p className="mt-2 leading-relaxed text-ink">{extra}</p>}
               </li>

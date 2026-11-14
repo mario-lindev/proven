@@ -1,15 +1,18 @@
 @import "tailwindcss";
 
 @theme inline {
-  --color-paper: #f3f5f7;
+  --color-paper: #f6f7f3;
   --color-surface: #ffffff;
-  --color-ink: #14202b;
-  --color-graphite: #5b6773;
-  --color-faint: #8c96a0;
-  --color-rule: #d8dee4;
-  --color-rule-soft: #e8ecf0;
-  --color-cobalt: #2c46c9;
-  --color-cobalt-soft: #e9edfb;
+  --color-ink: #263c59;
+  --color-graphite: #56657a;
+  --color-faint: #8893a0;
+  --color-rule: #d6ddde;
+  --color-rule-soft: #e7ebe9;
+  --color-cobalt: #2d4faa;
+  --color-cobalt-soft: #e7ecf7;
+  --color-navy: #2c456b;
+  --color-rust: #c4622d;
+  --color-rust-soft: #f6e8de;
   --color-pursue: #17704a;
   --color-pursue-soft: #e3f2ea;
   --color-dig: #a8670b;
@@ -28,9 +31,10 @@ html {
 }
 
 body {
-  background: #f3f5f7;
-  color: #14202b;
+  background: #f6f7f3;
+  color: #263c59;
   font-family: var(--font-plex-sans), system-ui, sans-serif;
+  overflow-x: clip;
 }
 
 .tnum {
@@ -43,13 +47,90 @@ body {
 }
 
 :focus-visible {
-  outline: 2px solid #2c46c9;
-  outline-offset: 2px;
-  border-radius: 3px;
+  outline: 2px solid #2d4faa;
+  outline-offset: 3px;
+  border-radius: 4px;
 }
 
 ::selection {
-  background: #d6ddfa;
+  background: #d4def6;
+}
+
+/* Display type: serif, regular weight, tight tracking. */
+.display {
+  font-family: var(--font-source-serif), Georgia, serif;
+  font-optical-sizing: auto;
+  font-weight: 400;
+  letter-spacing: -0.032em;
+  line-height: 1.02;
+  color: #2c456b;
+}
+
+/* Buttons and fields shared by the shell. */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  border-radius: 8px;
+  font-weight: 500;
+  transition: background-color 0.2s, border-color 0.2s, color 0.2s, transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.btn-primary {
+  background: #2d4faa;
+  color: #fff;
+}
+.btn-primary:hover:not(:disabled) {
+  background: #203d8b;
+}
+.btn-primary:disabled {
+  background: #a9b5cf;
+  cursor: not-allowed;
+}
+.field {
+  border: 1px solid #d6ddde;
+  border-radius: 8px;
+  background: #fff;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.field:focus-within,
+.field:focus {
+  border-color: #2d4faa;
+  box-shadow: 0 0 0 3px #2d4faa1f;
+}
+
+/* ASCII scenes fade in once their first frame is painted. */
+.ascii-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  transition: opacity 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.ascii-canvas.is-live {
+  opacity: 1;
+}
+
+/* The home hero scene fades out under the copy on the left and at the edges. */
+.hero-scene {
+  -webkit-mask-image: linear-gradient(to right, transparent 42%, #000 64%), linear-gradient(transparent, #000 14%, #000 86%, transparent);
+  -webkit-mask-composite: source-in;
+  mask-image: linear-gradient(to right, transparent 42%, #000 64%), linear-gradient(transparent, #000 14%, #000 86%, transparent);
+  mask-composite: intersect;
+}
+
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.rise-in {
+  animation: rise-in 0.9s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 /* Rows that stream in get one short entrance. Nothing else moves on its own. */
@@ -134,7 +215,8 @@ body {
   .drawer-in,
   .pulse-dot,
   .level-bar,
-  .sweep {
+  .sweep,
+  .rise-in {
     animation: none;
   }
 }

@@ -1,0 +1,373 @@
+{
+ "at": "2026-11-14T23:13:02.649Z",
+ "default_strategy": "Search for the claim's key fact directly and judge only from what the sources say.",
+ "winner_strategy": "Search for the claim's key fact directly and judge only from what the sources say.",
+ "iterations": [
+  {
+   "n": 0,
+   "strategy": "Search for the claim's key fact directly and judge only from what the sources say.",
+   "train_accuracy": 1,
+   "rows": [
+    {
+     "claim": "Microsoft acquired LinkedIn in 2016.",
+     "key": true,
+     "verdict": "supported",
+     "correct": true,
+     "note": "Deal announced June 13, 2016 and closed December 8, 2016 for $26.2B. Source says: \"The acquisition was completed on December 8, 2016.\"",
+     "ms": 12971
+    },
+    {
+     "claim": "Stripe was founded by Patrick and John Collison.",
+     "key": true,
+     "verdict": "supported",
+     "correct": true,
+     "note": "Multiple sources (Wikipedia, Forbes, NPR) confirm brothers Patrick and John Collison founded Stripe (2010). Source says: \"Irish entrepreneur brothers John and Patrick Collison founded Stripe\"",
+     "ms": 15939
+    },
+    {
+     "claim": "Figma went public on the NYSE in 2025.",
+     "key": true,
+     "verdict": "supported",
+     "correct": true,
+     "note": "Multiple sources confirm Figma IPO'd on NYSE under ticker FIG on July 31, 2025. Source says: \"The company went public on July 31, with shares opening at $85\"",
+     "ms": 16280
+    },
+    {
+     "claim": "Google acquired YouTube in 2006.",
+     "key": true,
+     "verdict": "supported",
+     "correct": true,
+     "note": "Google announced YouTube deal Oct 9, 2006 ($1.65B stock), completed Nov 13, 2006 per SEC filing, Wikipedia, Britannica. Source says: \"The deal was finalized on November 13, 2006.\"",
+     "ms": 15938
+    },
+    {
+     "claim": "Salesforce acquired Slack.",
+     "key": true,
+     "verdict": "supported",
+     "correct": true,
+     "note": "Salesforce completed its $27.7B acquisition of Slack on July 21, 2021 (press release, SEC 8-K, news reports). Source says: \"today announced it has completed its acquisition of Slack Technologies, Inc.\"",
+     "ms": 16541
+    },
+    {
+     "claim": "Adobe completed its acquisition of Figma.",
+     "key": false,
+     "verdict": "contradicted",
+     "correct": true,
+     "note": "Adobe and Figma terminated the $20B merger on Dec 18, 2023 over EU/UK regulatory hurdles; Figma later IPO'd. Source says: \"entered into a mutual agreement to terminate their previously announced merger agreement\"",
+     "ms": 14576
+    },
+    {
+     "claim": "Tesla was founded by Elon Musk in 1999.",
+     "key": false,
+     "verdict": "contradicted",
+     "correct": true,
+     "note": "Tesla was founded in 2003 by Eberhard and Tarpenning; Musk joined in 2004 as an investor and was named co-founder only via a 2009 settlement. Source says: \"Tesla Motors was founded as an electric carmaker by engineers Martin Eberhard and Marc Tarpenning in 2003.\"",
+     "ms": 20605
+    },
+    {
+     "claim": "Airbnb has never been a publicly traded company.",
+     "key": false,
+     "verdict": "contradicted",
+     "correct": true,
+     "note": "Airbnb IPO'd on Nasdaq (ABNB) on Dec 10, 2020 at $68/share; listed as a public company. Source says: \"Airbnb completed their IPO on December 10, 2020 to list on NASDAQ with ticker ABNB.\"",
+     "ms": 20438
+    },
+    {
+     "claim": "Nvidia completed its acquisition of Arm.",
+     "key": false,
+     "verdict": "contradicted",
+     "correct": true,
+     "note": "Nvidia's $40B Arm deal was terminated in Feb 2022 over regulatory challenges (Nvidia, FTC, CRN, TechCrunch). Source says: \"today announced the termination of the previously announced transaction whereby NVIDIA would acquire Arm Limited\"",
+     "ms": 23470
+    },
+    {
+     "claim": "Netflix was founded in 2007 as a streaming company.",
+     "key": false,
+     "verdict": "contradicted",
+     "correct": true,
+     "note": "Netflix was founded in 1997 as a DVD rental service; streaming only launched in 2007. Source says: \"Netflix was founded by Marc Randolph and Reed Hastings as a DVD rental service on August 29, 1997\"",
+     "ms": 19597
+    }
+   ]
+  },
+  {
+   "n": 1,
+   "strategy": "Search the claim's key fact directly, using its core names, numbers and terms. Run a second query worded differently if the first results are thin. Judge only from what the sources say. Mark it supported when credible sources confirm every material detail. Mark it contradicted when credible sources state something incompatible with it. Mark it unclear when evidence is missing, partial or conflicting. Do not fill gaps with prior knowledge.",
+   "train_accuracy": 1,
+   "rows": [
+    {
+     "claim": "Microsoft acquired LinkedIn in 2016.",
+     "key": true,
+     "verdict": "supported",
+     "correct": true,
+     "note": "Deal announced June 13, 2016 ($26.2B) and completed December 8, 2016. Source says: \"The deal was announced on June 13, 2016 and completed on December 8, 2016.\"",
+     "ms": 9673
+    },
+    {
+     "claim": "Stripe was founded by Patrick and John Collison.",
+     "key": true,
+     "verdict": "supported",
+     "correct": true,
+     "note": "Multiple sources (Wikipedia, Forbes, NPR) confirm brothers Patrick and John Collison founded Stripe. Source says: \"Irish entrepreneur brothers John and Patrick Collison founded Stripe\"",
+     "ms": 11662
+    },
+    {
+     "claim": "Figma went public on the NYSE in 2025.",
+     "key": true,
+     "verdict": "supported",
+     "correct": true,
+     "note": "Figma IPO'd on NYSE under 'FIG' on July 31, 2025 (CNBC, Capital.com, Wikipedia, Figma IR). Source says: \"The company went public on July 31, with shares opening at $85\"",
+     "ms": 8667
+    },
+    {
+     "claim": "Google acquired YouTube in 2006.",
+     "key": true,
+     "verdict": "supported",
+     "correct": true,
+     "note": "Multiple sources confirm Google announced (Oct 9) and completed (Nov 13) the $1.65B YouTube purchase in 2006. Source says: \"Google bought the site in November 2006 for US$1.65 billion\"",
+     "ms": 12173
+    },
+    {
+     "claim": "Salesforce acquired Slack.",
+     "key": true,
+     "verdict": "supported",
+     "correct": true,
+     "note": "Salesforce announced the ~$27.7B Slack deal on Dec 1, 2020; it closed in July 2021 (Wikipedia, CNBC, Reuters, NYT). Source says: \"Slack was delisted from the NYSE in June 2021 after the acquisition was completed\"",
+     "ms": 8703
+    },
+    {
+     "claim": "Adobe completed its acquisition of Figma.",
+     "key": false,
+     "verdict": "contradicted",
+     "correct": true,
+     "note": "Adobe and Figma terminated the $20B merger in Dec 2023 over regulatory hurdles; the deal never closed. Source says: \"Adobe does not own Figma: it abandoned the deal in 2023\"",
+     "ms": 10662
+    },
+    {
+     "claim": "Tesla was founded by Elon Musk in 1999.",
+     "key": false,
+     "verdict": "contradicted",
+     "correct": true,
+     "note": "Tesla founded July 2003 by Martin Eberhard and Marc Tarpenning; Musk was early investor, made co-founder retroactively in 2009. Source says: \"Tesla Motors was founded as an electric carmaker by engineers Martin Eberhard and Marc Tarpenning in 2003\"",
+     "ms": 10452
+    },
+    {
+     "claim": "Airbnb has never been a publicly traded company.",
+     "key": false,
+     "verdict": "contradicted",
+     "correct": true,
+     "note": "Airbnb IPO'd on Nasdaq (ABNB) on Dec 10, 2020, per CNBC, SEC filing, Forge. Source says: \"Airbnb completed their IPO on December 10, 2020 to list on NASDAQ with ticker ABNB.\"",
+     "ms": 10504
+    },
+    {
+     "claim": "Nvidia completed its acquisition of Arm.",
+     "key": false,
+     "verdict": "contradicted",
+     "correct": true,
+     "note": "Deal was terminated Feb 2022 after regulatory opposition; never closed (Nvidia newsroom, SEC 8-K, Guardian). Source says: \"Nvidia’s $40bn (£29.6bn) takeover of the Cambridge-based Arm has collapsed due to insurmountable regulatory hurdles\"",
+     "ms": 10968
+    },
+    {
+     "claim": "Netflix was founded in 2007 as a streaming company.",
+     "key": false,
+     "verdict": "contradicted",
+     "correct": true,
+     "note": "Netflix was founded in 1997 as a DVD rental service; streaming only launched in 2007. Source says: \"Netflix was founded by Marc Randolph and Reed Hastings as a DVD rental service on August 29, 1997\"",
+     "ms": 11118
+    }
+   ]
+  },
+  {
+   "n": 2,
+   "strategy": "Search for the claim's key fact directly, using its specific names, numbers and dates as query terms. Prefer authoritative, recent sources. Judge only from what the sources say: mark supported when sources confirm every key detail, contradicted when credible sources state something incompatible, and unclear when the evidence is missing, conflicting or only partly matches. Do not fill gaps with assumptions.",
+   "train_accuracy": 1,
+   "rows": [
+    {
+     "claim": "Microsoft acquired LinkedIn in 2016.",
+     "key": true,
+     "verdict": "supported",
+     "correct": true,
+     "note": "Deal announced June 13, 2016 and closed December 8, 2016 per Microsoft, SEC 8-K, and TechCrunch. Source says: \"On December 8, 2016, the Company completed its previously announced acquisition of LinkedIn Corporation\"",
+     "ms": 8881
+    },
+    {
+     "claim": "Stripe was founded by Patrick and John Collison.",
+     "key": true,
+     "verdict": "supported",
+     "correct": true,
+     "note": "Multiple sources (Wikipedia, Forbes, NPR) confirm brothers Patrick and John Collison founded Stripe. Source says: \"Irish entrepreneur brothers John and Patrick Collison founded Stripe\"",
+     "ms": 10336
+    },
+    {
+     "claim": "Figma went public on the NYSE in 2025.",
+     "key": true,
+     "verdict": "supported",
+     "correct": true,
+     "note": "Figma IPO priced at $33 and began trading on NYSE as 'FIG' on July 31, 2025 (company release, CNBC, Reuters). Source says: \"Figma more than triples in NYSE debut after selling shares at $33\"",
+     "ms": 7917
+    },
+    {
+     "claim": "Google acquired YouTube in 2006.",
+     "key": true,
+     "verdict": "supported",
+     "correct": true,
+     "note": "Google announced Oct 9, 2006 and completed Nov 13, 2006 the $1.65B YouTube acquisition (SEC 8-K, Wikipedia, Britannica). Source says: \"On November 13, 2006, we completed our previously announced acquisition of YouTube\"",
+     "ms": 12974
+    },
+    {
+     "claim": "Salesforce acquired Slack.",
+     "key": true,
+     "verdict": "supported",
+     "correct": true,
+     "note": "Salesforce closed its $27.7B acquisition of Slack on July 21, 2021 (press release, SEC 8-K, Reuters). Source says: \"today announced it has completed its acquisition of Slack Technologies, Inc.\"",
+     "ms": 9838
+    },
+    {
+     "claim": "Adobe completed its acquisition of Figma.",
+     "key": false,
+     "verdict": "contradicted",
+     "correct": true,
+     "note": "Adobe and Figma mutually terminated the $20B deal on Dec 18, 2023 over regulatory hurdles; Adobe paid a $1B termination fee. Source says: \"Adobe did not acquire Figma under that agreement.\"",
+     "ms": 9670
+    },
+    {
+     "claim": "Tesla was founded by Elon Musk in 1999.",
+     "key": false,
+     "verdict": "contradicted",
+     "correct": true,
+     "note": "Tesla was founded in 2003 by Eberhard and Tarpenning; Musk invested in 2004 and was named co-founder only via a 2009 settlement. Source says: \"founded as an electric carmaker by engineers Martin Eberhard and Marc Tarpenning in 2003\"",
+     "ms": 9963
+    },
+    {
+     "claim": "Airbnb has never been a publicly traded company.",
+     "key": false,
+     "verdict": "contradicted",
+     "correct": true,
+     "note": "Airbnb IPO'd on Nasdaq (ABNB) Dec 10, 2020 at $68/share, per SEC filing, CNBC and press release. Source says: \"Airbnb completed their IPO on December 10, 2020 to list on NASDAQ with ticker ABNB.\"",
+     "ms": 8934
+    },
+    {
+     "claim": "Nvidia completed its acquisition of Arm.",
+     "key": false,
+     "verdict": "contradicted",
+     "correct": true,
+     "note": "Deal was terminated in Feb 2022 amid regulatory opposition (Nvidia newsroom, SEC 8-K, FTC, Guardian). Source says: \"today announced the termination of the previously announced transaction whereby NVIDIA would acquire Arm Limited\"",
+     "ms": 12537
+    },
+    {
+     "claim": "Netflix was founded in 2007 as a streaming company.",
+     "key": false,
+     "verdict": "contradicted",
+     "correct": true,
+     "note": "Netflix was founded in 1997 as a DVD-by-mail rental service; streaming only launched in 2007. Source says: \"Netflix was founded by Marc Randolph and Reed Hastings as a DVD rental service on August 29, 1997\"",
+     "ms": 7022
+    }
+   ]
+  }
+ ],
+ "test": {
+  "baseline": 1,
+  "winner": 1,
+  "rows_baseline": [
+   {
+    "claim": "Facebook acquired Instagram in 2012.",
+    "key": true,
+    "verdict": "supported",
+    "correct": true,
+    "note": "Multiple sources confirm Facebook acquired Instagram in April 2012 for ~$1B (Meta press release, Wikipedia, CNBC). Source says: \"In April 2012, Facebook acquired the service for approximately US$1 billion in cash and stock.\"",
+    "ms": 7601
+   },
+   {
+    "claim": "Amazon acquired Whole Foods in 2017.",
+    "key": true,
+    "verdict": "supported",
+    "correct": true,
+    "note": "Amazon announced the $13.7B Whole Foods deal June 16, 2017 and closed it August 28, 2017 (SEC filing, Amazon press, Reuters). Source says: \"Amazon’s acquisition of Whole Foods Market will close on Monday August 28, 2017\"",
+    "ms": 12861
+   },
+   {
+    "claim": "Spotify went public through a direct listing on the NYSE in 2018.",
+    "key": true,
+    "verdict": "supported",
+    "correct": true,
+    "note": "Multiple sources confirm Spotify direct-listed on the NYSE on April 3, 2018. Source says: \"went public on April 3, 2018 through a direct listing of its shares on the New York Stock Exchange\"",
+    "ms": 8449
+   },
+   {
+    "claim": "Microsoft acquired Zoom Video Communications.",
+    "key": false,
+    "verdict": "contradicted",
+    "correct": true,
+    "note": "Microsoft's buyout offers were rejected; Zoom went public in 2019 and remains an independent competitor. Source says: \"Microsoft made many unsuccessful offers to buy the San Jose cloud-based video-conferencing business\"",
+    "ms": 8031
+   },
+   {
+    "claim": "Uber is still a privately held company.",
+    "key": false,
+    "verdict": "contradicted",
+    "correct": true,
+    "note": "Uber IPO'd May 2019; now publicly traded on NYSE as UBER. Source says: \"Uber is a publicly traded company listed on the New York Stock Exchange under the ticker UBER\"",
+    "ms": 7598
+   },
+   {
+    "claim": "Shopify is headquartered in San Francisco.",
+    "key": false,
+    "verdict": "contradicted",
+    "correct": true,
+    "note": "Sources place Shopify HQ in Ottawa, Canada (s1, s2, s6, s8); s9 lists a Las Vegas principal office; San Francisco is only an engineering office (s4). Source says: \"Headquarters | Ottawa, Ontario, Canada\"",
+    "ms": 8250
+   }
+  ],
+  "rows_winner": [
+   {
+    "claim": "Facebook acquired Instagram in 2012.",
+    "key": true,
+    "verdict": "supported",
+    "correct": true,
+    "note": "Multiple sources confirm Facebook acquired Instagram in April 2012 for ~$1B (Meta press release, Wikipedia, CNBC). Source says: \"In April 2012, Facebook acquired the service for approximately US$1 billion in cash and stock.\"",
+    "ms": 7601
+   },
+   {
+    "claim": "Amazon acquired Whole Foods in 2017.",
+    "key": true,
+    "verdict": "supported",
+    "correct": true,
+    "note": "Amazon announced the $13.7B Whole Foods deal June 16, 2017 and closed it August 28, 2017 (SEC filing, Amazon press, Reuters). Source says: \"Amazon’s acquisition of Whole Foods Market will close on Monday August 28, 2017\"",
+    "ms": 12861
+   },
+   {
+    "claim": "Spotify went public through a direct listing on the NYSE in 2018.",
+    "key": true,
+    "verdict": "supported",
+    "correct": true,
+    "note": "Multiple sources confirm Spotify direct-listed on the NYSE on April 3, 2018. Source says: \"went public on April 3, 2018 through a direct listing of its shares on the New York Stock Exchange\"",
+    "ms": 8449
+   },
+   {
+    "claim": "Microsoft acquired Zoom Video Communications.",
+    "key": false,
+    "verdict": "contradicted",
+    "correct": true,
+    "note": "Microsoft's buyout offers were rejected; Zoom went public in 2019 and remains an independent competitor. Source says: \"Microsoft made many unsuccessful offers to buy the San Jose cloud-based video-conferencing business\"",
+    "ms": 8031
+   },
+   {
+    "claim": "Uber is still a privately held company.",
+    "key": false,
+    "verdict": "contradicted",
+    "correct": true,
+    "note": "Uber IPO'd May 2019; now publicly traded on NYSE as UBER. Source says: \"Uber is a publicly traded company listed on the New York Stock Exchange under the ticker UBER\"",
+    "ms": 7598
+   },
+   {
+    "claim": "Shopify is headquartered in San Francisco.",
+    "key": false,
+    "verdict": "contradicted",
+    "correct": true,
+    "note": "Sources place Shopify HQ in Ottawa, Canada (s1, s2, s6, s8); s9 lists a Las Vegas principal office; San Francisco is only an engineering office (s4). Source says: \"Headquarters | Ottawa, Ontario, Canada\"",
+    "ms": 8250
+   }
+  ]
+ },
+ "adopted": false
+}

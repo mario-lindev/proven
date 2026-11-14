@@ -12,12 +12,31 @@ export type Source = {
   engine: string;        // "exa", "brave", "tavily"... (Telem preprocessor_name, or "tavily")
   snippet: string;
   published?: string;    // ISO date if known
+  own?: boolean;         // true: the company's own site or a press release it issued; false/absent: independent
 };
 
 // Proof for one memo line: the exact quote in a cited source that backs it (found by the verify pass).
 export type Evidence = { source_id: string; quote: string; verdict: "supported" | "partial" };
 
 export type Line = { text: string; source_ids: string[]; evidence?: Evidence[] };   // every memo line cites sources
+
+// Deep mode researches in rounds until the investor-critical questions are answered (lib/brain/loop.ts).
+export type Round = {
+  round: number;         // 1 = the planned searches, 2+ = follow-up searches aimed at the open questions
+  queries: string[];     // searched in this round
+  new_sources: number;   // sources this round added
+  coverage: number;      // 0..1, how much of what an investor must know is answered with a source after this round
+  open: string[];        // key questions still unanswered after this round
+};
+
+// Claims vs. reality: something the company says that independent sources contradict or do not support.
+export type Contradiction = {
+  claim: string;
+  claim_source_ids: string[];
+  reality: string;
+  reality_source_ids: string[];   // at least one independent source
+  severity: "high" | "medium" | "low";
+};
 
 export type Memo = {
   id: string;
@@ -33,6 +52,8 @@ export type Memo = {
   created_at: string;
   // Verify pass: every fact and risk re-checked against its sources' text; unsupported lines are dropped.
   verification?: { checked: number; kept: number; dropped: number; ms: number };
+  rounds?: Round[];                  // deep mode only
+  contradictions?: Contradiction[];  // 0 to 5; kept only when the cited ids exist
 };
 
 export type ClaimCheck = {
@@ -51,6 +72,7 @@ export type TrailStep = {
   engines?: Engine[];    // which engines answered, how fast
   routing?: string[];    // search steps: the engines Telem's router chose for this query (may be absent)
   topic?: string;        // search steps: the topic Telem's router classified the query as (e.g. "people_profiles")
+  steered?: string[];    // search steps: engines Proven pinned for this query because they proved out in past memos
   published_after?: string; // search steps: Telem kept only results published on or after this date (recency filter)
   urls?: string[];
   telem_session_id?: string;
@@ -98,5 +120,18 @@ export type EngineStat = {
   supported: number;  // of those, backed by a verified quote (Evidence verdict "supported")
   score: number;
 };
+// The closed loop (lib/learn.ts). All optional: boards saved before the loop existed still load.
+// A search query that led to at least one verified source; the company name is replaced by "{company}".
+export type QueryWin = { pattern: string; topic?: string; verified: number; memos: number };
+// One memo's research efficiency: yield = verified_lines / search_calls.
+export type MemoYield = { at: string; company: string; search_calls: number; verified_lines: number; sources_read: number; yield: number };
 // GET /api/engines
-export type EngineBoard = { engines: EngineStat[]; memos: number; updated_at: string };
+export type EngineBoard = {
+  engines: EngineStat[];
+  memos: number;
+  updated_at: string;
+  topics?: Record<string, EngineStat[]>;  // per Telem routing topic: each engine's verified yield on that kind of question
+  queries?: QueryWin[];                   // best ~30 queries that produced verified sources
+  history?: MemoYield[];                  // last 50 memos, oldest first
+  hints?: string[];                       // queryHints(): what the planner is told worked before (API only, not persisted)
+};

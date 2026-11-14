@@ -70,7 +70,10 @@ Sign in to the [Telem hackathon platform](https://hack.telem.ai/) to get your ke
 
 - [Hackathon API docs](https://hack.telem.ai/doc)
 - SDK and REST base URL: `TELEM_BASE_URL=https://hack.telem.ai/api`
-- [Hackathon MCP endpoint](https://hack.telem.ai/mcp)
+- MCP endpoint: `TELEM_MCP_URL=https://hack.telem.ai/mcp`
+- Redeem the SearchHack offer in the [Tavily dashboard](https://app.tavily.com/redeem/SEARCHHACK).
+
+Copy the provider URLs and `ANTHROPIC_MODEL` from `.env.example` when configuring a deployment or upgrading an existing `.env.local`. Set `MOCK=1` to run the demo fixtures without provider configuration.
 
 ## Scripts
 

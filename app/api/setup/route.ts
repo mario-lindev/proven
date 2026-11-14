@@ -17,6 +17,13 @@ export async function POST(req: Request) {
   if (!allowed(req)) return fail("setup is only available on localhost in development", 403);
   const body = (await req.json().catch(() => ({}))) as Partial<Record<(typeof NAMES)[number], string>>;
   const path = join(process.cwd(), ".env.local");
+  const example = join(process.cwd(), ".env.example");
+  const configuredDefaults = new Map(
+    readFileSync(example, "utf8").split("\n")
+      .map((line) => line.match(/^([A-Z_]+)=(.*)$/))
+      .filter((match) => match !== null)
+      .map((match) => [match[1], match[2]] as const),
+  );
   const lines = existsSync(path) ? readFileSync(path, "utf8").split("\n").filter((l) => l.trim() !== "") : [];
   const env = new Map<string, string>();
   const order: string[] = [];
@@ -39,7 +46,9 @@ export async function POST(req: Request) {
     }
   }
   put("MOCK", "0");
-  if (!env.has("TELEM_BASE_URL")) put("TELEM_BASE_URL", "https://hack.telem.ai/api");
+  for (const [name, value] of configuredDefaults) {
+    if (value && !env.has(name)) put(name, value);
+  }
   writeFileSync(path, order.map((k) => `${k}=${env.get(k)}`).join("\n") + "\n");
   chmodSync(path, 0o600);
   const set = Object.fromEntries(NAMES.map((k) => [k, !!env.get(k)?.trim()]));

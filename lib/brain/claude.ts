@@ -1,9 +1,9 @@
 // One helper for every Claude call: JSON out, matched to a schema, recorded in the trail.
 import Anthropic from "@anthropic-ai/sdk";
+import { providerUrl, requireSetting } from "../provider-config";
 import type { TrailRecorder } from "../types";
 
-const client = new Anthropic();
-export const MODEL = "claude-opus-5-5";
+
 
 export async function askJSON<T>(opts: {
   system: string;
@@ -14,10 +14,14 @@ export async function askJSON<T>(opts: {
   effort?: "low" | "medium" | "high";
   maxTokens?: number;
 }): Promise<T> {
+  const apiKey = requireSetting("ANTHROPIC_API_KEY");
+  const baseURL = providerUrl("ANTHROPIC_BASE_URL");
+  const model = requireSetting("ANTHROPIC_MODEL");
+  const client = new Anthropic({ apiKey, baseURL });
   const t0 = Date.now();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const params: any = {
-    model: MODEL,
+    model,
     max_tokens: opts.maxTokens ?? 8000,
     system: opts.system,
     messages: [{ role: "user", content: opts.user }],

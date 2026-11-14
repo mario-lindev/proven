@@ -33,6 +33,20 @@ async function main() {
   console.log(m.summary);
   show("Facts", m.facts);
   show("Risks", m.risks);
+  if (m.rounds) {
+    console.log("\nRounds");
+    for (const r of m.rounds) {
+      console.log(`- Round ${r.round}: ${r.queries.length} queries, ${r.new_sources} new sources, coverage ${r.coverage.toFixed(2)}, ${r.open.length} open`);
+      for (const q of r.open) console.log(`    open: ${q}`);
+    }
+  }
+  console.log(`\nClaims vs. reality (${m.contradictions?.length ?? 0})`);
+  const tag = (ids: string[]) => ids.map((id) => `${id}${src.get(id)?.own ? " own" : ""}`).join(", ");
+  for (const c of m.contradictions ?? []) {
+    console.log(`- [${c.severity}] The company says: ${c.claim} [${tag(c.claim_source_ids)}]`);
+    console.log(`    Independent sources say: ${c.reality} [${tag(c.reality_source_ids)}]`);
+  }
+  console.log(`Own sources cited: ${m.sources.filter((s) => s.own).map((s) => s.url).join(", ") || "none"}`);
   const v = m.verification;
   console.log(
     v

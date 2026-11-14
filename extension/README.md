@@ -15,7 +15,7 @@ After editing a file: click the reload arrow on the Proven card, then reload the
 
 ## Use it
 
-1. Start the Proven server (`npm run dev` in the repo root) or use the deployed URL (see Settings below).
+1. Start the Proven server (`npx next dev -p 3313` in the repo root) or use the deployed URL (see Settings below).
 2. Join the call: **Google Meet** at meet.google.com, or **Zoom web client** (app.zoom.us, "Join from your browser"; not the desktop app).
 3. Turn on captions: **CC** in the bottom bar (Meet: or press `c`). On Zoom the host must allow captions.
 4. Click the Proven icon. The panel opens and shows **Listening to Google Meet captions** (green dot).
@@ -23,7 +23,7 @@ After editing a file: click the reload arrow on the Proven card, then reload the
 The panel shows:
 - **Status**: which call it is connected to, whether captions were found, and whether the Proven server answers. "No captions found" means captions are off: turn on CC.
 - **Counts**: claims checked, how many check out, how many are contradicted.
-- **Claims**: newest first, coloured by verdict, with a one-line note and source links (title + domain). **See how** shows the research trail.
+- **Claims**: newest first, coloured by verdict, with a one-line note, the source's own words as a quote line when the server sends them (`Source says: "..."`), and source links (title + domain). **See how** shows the research trail.
 - **Transcript**: a compact running log of what was said.
 - **Type a claim** and press Check if you want to check something by hand.
 
@@ -35,9 +35,15 @@ Type the company name (or let the panel fill it in: when someone says "I'm the C
 - **Deep memo**: opens `{server}/?company=Acme&depth=deep&go=1`, which starts a full streaming memo (1 to 2 minutes).
 - **Quick**: same with `depth=quick` (faster, fewer searches).
 
+The name in this field is also sent with every live check (`context` in the `POST /api/live` body) so the server knows which company the claims are about.
+
+## Audit this page
+
+Open any web page (a startup's site, a pitch page, a press release) and press **Audit this page**. It opens `{server}/audit?url=<the tab's URL>&go=1`: the web app's Pitch Audit, which checks every claim on that page against independent sources. The button is off, with a hint, on pages that are not http(s) (new tab, `chrome://`) and on the Proven app itself. Reading the tab's URL is why the extension asks for the `tabs` permission.
+
 ## Settings
 
-**Settings** at the bottom of the panel: the Proven server URL (default `http://localhost:3000`). Press **Save** (kept in `chrome.storage.local`), then **Test connection** (calls `GET /api/memos`, shows Connected or Failed). The extension has host access to `localhost`, `127.0.0.1` and `*.vercel.app`; other hosts must send CORS headers (the `/api/*` routes do).
+**Settings** at the bottom of the panel: the Proven server URL (default `http://localhost:3313`, the demo server; change it if yours runs elsewhere). Press **Save** (kept in `chrome.storage.local`), then **Test connection** (calls `GET /api/health`, shows **Connected (real keys)**, **Connected (demo data)** or Failed). The extension has host access to `localhost`, `127.0.0.1` and `*.vercel.app`; other hosts must send CORS headers (the `/api/*` routes do).
 
 **Call options**: **Only check this speaker** (pick the founder so your own questions are not checked) and **Use microphone** (backup, Chrome speech recognition).
 
@@ -85,4 +91,4 @@ for p in test-captions.html "test-captions.html?mode=fallback" "test-captions.ht
 done
 ```
 
-Each prints `PASS (...)` or `FAIL (...)`; open the page in Chrome to see which check failed. `test-panel.html` covers status text, the CC hint, company detection, request batching and dedupe, card order and colours, counts, the research URLs, server-down errors and Test connection. Add `?server=http://localhost:3331` to also hit a real server started with `MOCK=1 npx next dev -p 3331`.
+Each prints `PASS (...)` or `FAIL (...)`; open the page in Chrome to see which check failed. `test-panel.html` covers status text, the CC hint, company detection, request batching and dedupe, card order and colours, counts, the quote line, the `context` field, Audit this page (URL, off on non-http pages and on Proven itself), the research URLs, server-down errors and Test connection (real keys / demo data). Add `?server=http://localhost:3331` to also hit a real server started with `MOCK=1 npx next dev -p 3331`.

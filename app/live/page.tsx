@@ -22,6 +22,8 @@ type Recognition = {
 };
 type RecognitionCtor = new () => Recognition;
 
+const EMBEDDED = "Embedded browsers (like an IDE preview) can't use the mic — open this page in Chrome.";
+
 const VERDICT: Record<ClaimCheck["verdict"], { label: string; text: string; bg: string; line: string; mark: string }> = {
   supported: { label: "Checks out", text: "text-pursue", bg: "bg-pursue-soft", line: "border-pursue", mark: "bg-pursue-soft decoration-pursue" },
   contradicted: { label: "Contradicted", text: "text-pass", bg: "bg-pass-soft", line: "border-pass", mark: "bg-pass-soft decoration-pass" },
@@ -62,12 +64,15 @@ export default function LiveRoom() {
   const [error, setError] = useState<string | null>(null);
   const [typed, setTyped] = useState("");
   const [trailId, setTrailId] = useState<string | null>(null);
+  const [context, setContext] = useState("");
+  const contextRef = useRef("");
 
   const recRef = useRef<Recognition | null>(null);
   const listeningRef = useRef(false);
   const finalsRef = useRef<string[]>([]);
   const inFlight = useRef(new Set<string>());
   const scrollRef = useRef<HTMLDivElement>(null);
+  const typedRef = useRef<HTMLInputElement>(null);
 
   const closeTrail = useCallback(() => setTrailId(null), []);
 
@@ -77,7 +82,10 @@ export default function LiveRoom() {
     inFlight.current.add(t);
     setPending((p) => p + 1);
     try {
-      const { checks: found } = await api<{ checks: ClaimCheck[] }>("/api/live", { text: t });
+      const { checks: found } = await api<{ checks: ClaimCheck[] }>("/api/live", {
+        text: t,
+        context: contextRef.current.trim() || undefined,
+      });
       setError(null);
       if (found?.length) {
         setChecks((prev) => {
@@ -96,7 +104,9 @@ export default function LiveRoom() {
 
   useEffect(() => {
     const w = window as unknown as { SpeechRecognition?: RecognitionCtor; webkitSpeechRecognition?: RecognitionCtor };
-    setSupported(!!(w.webkitSpeechRecognition || w.SpeechRecognition));
+    const ok = !!(w.webkitSpeechRecognition || w.SpeechRecognition);
+    setSupported(ok);
+    if (!ok) typedRef.current?.focus();
     return () => {
       listeningRef.current = false;
       recRef.current?.stop();
@@ -141,10 +151,11 @@ export default function LiveRoom() {
     };
     rec.onerror = (e) => {
       if (e.error === "no-speech" || e.error === "aborted") return;
-      if (e.error === "not-allowed" || e.error === "service-not-allowed") {
+      if (e.error === "not-allowed" || e.error === "service-not-allowed" || e.error === "audio-capture") {
         listeningRef.current = false;
         setListening(false);
-        setError("Microphone access was blocked. Allow the mic for this site, or type a claim below.");
+        setError(`Microphone access was blocked. Allow the mic for this site, or type a claim below. ${EMBEDDED}`);
+        typedRef.current?.focus();
         return;
       }
       setError(`Speech recognition error: ${e.error}`);
@@ -198,6 +209,20 @@ export default function LiveRoom() {
           <p className="mt-3 max-w-[38rem] text-[1.15rem] text-graphite">
             Proven listens to the pitch and checks each factual claim against the web while the founder is still talking.
           </p>
+          <label htmlFor="live-context" className="mt-4 flex max-w-[38rem] items-center gap-3 text-sm text-graphite">
+            <span className="shrink-0">Company / context</span>
+            <input
+              id="live-context"
+              value={context}
+              onChange={(e) => {
+                setContext(e.target.value);
+                contextRef.current = e.target.value;
+              }}
+              placeholder="Optional: who is pitching, e.g. Ramp, corporate cards"
+              autoComplete="off"
+              className="min-w-0 flex-1 border border-rule bg-surface px-3 py-2 text-base text-ink outline-none placeholder:text-faint focus:border-cobalt"
+            />
+          </label>
         </div>
         <div className="flex items-center gap-5">
           {listening && (
@@ -229,7 +254,7 @@ export default function LiveRoom() {
       {supported === false && (
         <div className="border-l-4 border-dig bg-dig-soft px-5 py-4">
           <span className="font-semibold text-dig">Use Chrome for the mic.</span> This browser has no speech recognition.
-          You can still type claims below.
+          You can still type claims below. {EMBEDDED}
         </div>
       )}
 
@@ -278,6 +303,7 @@ export default function LiveRoom() {
             </label>
             <input
               id="typed"
+              ref={typedRef}
               value={typed}
               onChange={(e) => setTyped(e.target.value)}
               placeholder="Type a claim to check, e.g. We have no competitors"

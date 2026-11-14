@@ -23,7 +23,11 @@ for name, label in KEYS:
     if v:
         env[name] = v
 env["MOCK"] = "0"
-env.setdefault("TELEM_BASE_URL", "https://hack.telem.ai/api")
+with open(os.path.join(os.path.dirname(PATH), ".env.example")) as example:
+    for line in example:
+        setting = re.fullmatch(r"([A-Z_]+)=(.+)", line.rstrip("\n"))
+        if setting:
+            env.setdefault(*setting.groups())
 
 out, done = [], set()
 for l in lines:

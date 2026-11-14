@@ -1,3 +1,4 @@
+import { requireSetting } from "../provider-config";
 // Shared helpers for the search layer: key lookup, 20 s timeout, readable errors.
 
 export const TIMEOUT_MS = 20_000;
@@ -6,9 +7,7 @@ export const TIMEOUT_MS = 20_000;
 export type Hit = { url: string; title: string; engine: string; snippet: string; published?: string };
 
 export function needKey(name: "TELEM_API_KEY" | "TAVILY_API_KEY"): string {
-  const key = process.env[name];
-  if (!key) throw new Error(`${name} is not set. Add it to .env.local (or run with MOCK=1).`);
-  return key;
+  return requireSetting(name);
 }
 
 // Turn any provider error body into one line. Telem uses { detail } (a string, { reason }, or a 422 list)

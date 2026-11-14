@@ -4,6 +4,7 @@ import type { Engine, Source, TrailRecorder, WatchUpdate } from "../types";
 import { normalizeUrl, type Hit } from "./http";
 import { parseTelemChanges, telemMonitorChanges, telemTickMonitor, parseTelemPoll, parseTelemSearch, telemCreateMonitor, telemFetch, telemPollMonitor, telemSearch, type TelemQuery, type TelemSearchOptions } from "./telem";
 import { parseTavilyExtract, parseTavilySearch, tavilyExtract, tavilySearch } from "./tavily";
+import { provenEngines } from "../learn";
 
 export { normalizeUrl };
 
@@ -45,6 +46,7 @@ export const PLATFORM_PROVIDERS = [
   "socialdatax_wechat",
 ];
 const MAX_PLATFORM_QUERIES = 4;
+const MAX_STEERED_QUERIES = 6;
 export const wantsPlatforms = (q: string) =>
   /\b(hiring|hires?|jobs?|employees?|headcount|linkedin|talent|layoffs?|reviews?|customers?|sentiment|complain\w*|users?|reddit|tiktok|twitter|youtube|social|community|wechat|china|chinese|overseas)\b/i.test(q);
 
@@ -86,7 +88,7 @@ const GENERAL = new Set(["main", "recent"]);
 export async function searchAll(
   queries: string[],
   trail: TrailRecorder,
-  opts?: { platforms?: boolean },
+  opts?: { platforms?: boolean; steer?: boolean },
 ): Promise<Source[]> {
   const qs = queries.map((q) => q.trim()).filter(Boolean);
   if (qs.length === 0) return [];
@@ -101,10 +103,14 @@ export async function searchAll(
   const mainIdx = all.filter((i) => !wantsRecent(qs[i]));
   const platformIdx = opts?.platforms ? all.filter((i) => wantsPlatforms(qs[i])).slice(0, MAX_PLATFORM_QUERIES) : [];
   const since = recentSince();
+  // Proof-steered routing (opts.steer): one more batch pinned to the engines whose results proved out in past
+  // memos (lib/learn.ts). Telem's router still chooses among them per query. No history, no batch.
+  const steered = opts?.steer ? provenEngines() : [];
   const groups: Group[] = [
     { name: "main", idx: mainIdx, opts: { session_id } },
     { name: "recent", idx: recentIdx, opts: { session_id, published_after: since } },
     { name: "platforms", idx: platformIdx, opts: { session_id, providers: PLATFORM_PROVIDERS } },
+    { name: "steered", idx: steered.length ? all.slice(0, MAX_STEERED_QUERIES) : [], opts: { session_id, providers: steered } },
     ...(diligenceOn()
       ? DILIGENCE.map((d) => ({
           name: d.name,
@@ -159,9 +165,11 @@ export async function searchAll(
     let stepSession: string | undefined;
     let publishedAfter: string | undefined;
     let topic: string | undefined;
+    let steeredTo: string[] | undefined;
     for (const p of parsed) {
       const j = p.gr.idx.indexOf(i);
       if (j < 0) continue;
+      if (p.gr.name === "steered" && p.perQuery) steeredTo = steered;
       ms = Math.max(ms, p.ms);
       const label = GENERAL.has(p.gr.name) ? "telem" : `telem_${p.gr.name}`;
       if (!p.perQuery) {
@@ -199,6 +207,7 @@ export async function searchAll(
       engines,
       ...(routing.length ? { routing } : {}),
       ...(topic ? { topic } : {}),
+      ...(steeredTo ? { steered: steeredTo } : {}),
       ...(publishedAfter ? { published_after: publishedAfter } : {}),
       urls: [...new Map(hits.map((h) => [normalizeUrl(h.url), h.url])).values()],
       ...(stepSession ? { telem_session_id: stepSession } : {}),

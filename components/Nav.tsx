@@ -7,6 +7,8 @@ import { useEffect, useState } from "react";
 const links = [
   { href: "/", label: "Research" },
   { href: "/live", label: "Live Room" },
+  { href: "/audit", label: "Pitch Audit" },
+  { href: "/engines", label: "What Proven learned" },
 ];
 
 export default function Nav() {
@@ -26,7 +28,7 @@ export default function Nav() {
         <div className="flex items-center gap-4">
           <Link href="/" className="flex items-baseline gap-3" aria-label="Proven home">
             <span className="serif text-[1.75rem] font-semibold leading-none tracking-tight">Proven</span>
-            <span className="hidden text-sm text-graphite lg:inline">Research where every line cites its source</span>
+            <span className="hidden whitespace-nowrap text-sm text-graphite xl:inline">Research where every line cites its source</span>
           </Link>
           {mock && (
             <span
@@ -37,7 +39,7 @@ export default function Nav() {
             </span>
           )}
         </div>
-        <nav className="flex gap-1" aria-label="Main">
+        <nav className="flex shrink-0 gap-1 whitespace-nowrap" aria-label="Main">
           {links.map((l) => {
             const active = l.href === "/" ? path === "/" || path.startsWith("/memo") : path.startsWith(l.href);
             return (
@@ -45,12 +47,12 @@ export default function Nav() {
                 key={l.href}
                 href={l.href}
                 aria-current={active ? "page" : undefined}
-                className={`relative px-4 py-2 font-medium transition-colors ${
+                className={`relative px-3 py-2 font-medium lg:px-4 transition-colors ${
                   active ? "text-ink" : "text-graphite hover:text-ink"
                 }`}
               >
                 {l.label}
-                {active && <span className="absolute inset-x-4 -bottom-[17px] h-[2px] bg-ink" />}
+                {active && <span className="absolute inset-x-3 lg:inset-x-4 -bottom-[17px] h-[2px] bg-ink" />}
               </Link>
             );
           })}

@@ -1,11 +1,13 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
-import type { Line, Memo, Source, Trail } from "@/lib/types";
+import { useCallback, useId, useMemo, useState } from "react";
+import type { Evidence, Line, Memo, Source, Trail } from "@/lib/types";
 import SourceChip from "./SourceChip";
 import TrailDrawer, { useTrail } from "./TrailDrawer";
 import WatchPanel from "./WatchPanel";
-import { EngineDot, engineLabel, isTavily } from "./engines";
+import Contradictions from "./Contradictions";
+import Rounds from "./Rounds";
+import { Check, EngineDot, engineLabel, isTavily } from "./engines";
 import { domain, fmtDate, fmtMs, fmtTime } from "./http";
 import { feedStats } from "./ResearchFeed";
 
@@ -15,7 +17,13 @@ export const VERDICT: Record<Memo["verdict"], { label: string; text: string; bg:
   pass: { label: "Pass", text: "text-pass", bg: "bg-pass-soft", bar: "bg-pass", line: "border-pass" },
 };
 
-type Focus = { urls: string[]; source: Source | null };
+type Focus = { urls: string[]; source: Source | null; evidence?: Evidence | null };
+
+const evidenceFor = (l: Line, sourceId: string | undefined) => l.evidence?.find((e) => e.source_id === sourceId) ?? null;
+
+// "supported" if any quote fully backs the line, "partial" if quotes only partly do, null when unchecked.
+const lineStatus = (l: Line) =>
+  !l.evidence || l.evidence.length === 0 ? null : l.evidence.some((e) => e.verdict === "supported") ? "supported" : "partial";
 
 export default function MemoView({ memo, trail: preloaded }: { memo: Memo; trail?: Trail | null }) {
   const [focus, setFocus] = useState<Focus | null>(null);
@@ -39,11 +47,15 @@ export default function MemoView({ memo, trail: preloaded }: { memo: Memo; trail
     return [...g.entries()].sort((a, b) => Number(isTavily(a[0])) - Number(isTavily(b[0])) || b[1].length - a[1].length);
   }, [memo.sources]);
 
-  const openLine = (ids: string[]) =>
+  // Opening a line traces its first quoted source (or its first cited one if nothing was quoted).
+  const openLine = (l: Line) => {
+    const first = l.evidence?.[0]?.source_id ?? l.source_ids[0];
     setFocus({
-      urls: ids.map((id) => memo.sources[index.get(id) ?? -1]?.url).filter((u): u is string => !!u),
-      source: memo.sources[index.get(ids[0]) ?? -1] ?? null,
+      urls: l.source_ids.map((id) => memo.sources[index.get(id) ?? -1]?.url).filter((u): u is string => !!u),
+      source: memo.sources[index.get(first) ?? -1] ?? null,
+      evidence: evidenceFor(l, first),
     });
+  };
 
   function say(msg: string) {
     setFlash(msg);
@@ -68,22 +80,45 @@ export default function MemoView({ memo, trail: preloaded }: { memo: Memo; trail
         .filter((n): n is number => n !== undefined)
         .map((n) => `[${n + 1}]`)
         .join("");
+    // Each line, then the quotes that back it as a blockquote inside the list item.
+    const item = (l: Line) => {
+      const st = lineStatus(l);
+      const head = `- ${l.text} ${cite(l.source_ids)}${st === "supported" ? " (verified)" : st === "partial" ? " (partly verified)" : ""}`;
+      const quotes = (l.evidence ?? []).map(
+        (e) => `  > "${e.quote}" ${cite([e.source_id])}${e.verdict === "partial" ? " (partial)" : ""}`,
+      );
+      return quotes.length ? `${head}\n${quotes.join("\n  >\n")}` : head;
+    };
+    const ver = memo.verification;
     return [
       `# ${memo.company}: ${v.label} (${pct}% confidence)`,
       "",
       memo.summary,
       "",
+      ...(ver && ver.checked > 0
+        ? [`Verified: ${ver.kept} of ${ver.checked} lines checked against the text of their sources, ${ver.dropped} dropped.`, ""]
+        : []),
+      ...(memo.contradictions && memo.contradictions.length > 0
+        ? [
+            "## Claims vs. reality",
+            ...memo.contradictions.map(
+              (c) =>
+                `- **The company says:** ${c.claim} ${cite(c.claim_source_ids)}\n  **Independent sources say:** ${c.reality} ${cite(c.reality_source_ids)} (${c.severity} severity)`,
+            ),
+            "",
+          ]
+        : []),
       "## Facts",
-      ...memo.facts.map((l) => `- ${l.text} ${cite(l.source_ids)}`),
+      ...memo.facts.map(item),
       "",
       "## Risks",
-      ...memo.risks.map((l) => `- ${l.text} ${cite(l.source_ids)}`),
+      ...memo.risks.map(item),
       "",
       "## Ask the founder",
       ...memo.open_questions.map((q) => `- ${q}`),
       "",
       "## Sources",
-      ...memo.sources.map((s, i) => `${i + 1}. [${s.title}](${s.url}) (found by ${engineLabel(s.engine)})`),
+      ...memo.sources.map((s, i) => `${i + 1}. [${s.title}](${s.url}) (found by ${engineLabel(s.engine)}${s.own ? ", company's own" : ""})`),
       "",
       `Memo by Proven, ${fmtTime(memo.created_at)}. Research trail: ${shareUrl()}`,
     ].join("\n");
@@ -95,30 +130,15 @@ export default function MemoView({ memo, trail: preloaded }: { memo: Memo; trail
       <ul className="divide-y divide-rule-soft">
         {lines.map((l, i) => (
           <li key={i} className="avoid-break">
-            <div
-              role="button"
-              tabIndex={0}
-              onClick={() => openLine(l.source_ids)}
-              onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), openLine(l.source_ids))}
-              title="Show how Proven found this"
-              className="group -mx-3 flex cursor-pointer gap-3 px-3 py-3 transition-colors hover:bg-paper"
-            >
-              <span
-                aria-hidden
-                className={`mt-[0.6em] h-[7px] w-[7px] shrink-0 ${kind === "risk" ? "bg-pass" : "bg-ink"}`}
-              />
-              <p className="serif text-[1.18rem] leading-[1.55]">
-                {l.text}
-                {l.source_ids.map((id) => {
-                  const n = index.get(id);
-                  if (n === undefined) return null;
-                  const src = memo.sources[n];
-                  return (
-                    <SourceChip key={id} n={n + 1} source={src} onClick={() => setFocus({ urls: [src.url], source: src })} />
-                  );
-                })}
-              </p>
-            </div>
+            <LineRow
+              line={l}
+              kind={kind}
+              sources={memo.sources}
+              index={index}
+              checked={!!memo.verification}
+              onOpen={() => openLine(l)}
+              onSource={(src) => setFocus({ urls: [src.url], source: src, evidence: evidenceFor(l, src.id) })}
+            />
           </li>
         ))}
       </ul>
@@ -150,6 +170,21 @@ export default function MemoView({ memo, trail: preloaded }: { memo: Memo; trail
             {memo.sources.length} sources
             {stats ? `, ${stats.queries} queries across ${stats.engines.size} engines` : ""}
           </p>
+          {memo.verification && memo.verification.checked > 0 && (
+            <p
+              className="mt-3 flex items-start gap-2 border-t border-ink/10 pt-3 text-sm leading-snug"
+              title={`Claude re-read each line against the text of its sources in ${fmtMs(memo.verification.ms)}. Lines with no supporting quote were dropped.`}
+            >
+              <Check className="mt-[2px] h-3.5 w-3.5 shrink-0 text-pursue" />
+              <span>
+                <span className="tnum font-semibold">
+                  {memo.verification.kept} of {memo.verification.checked}
+                </span>{" "}
+                lines verified against their sources
+                {memo.verification.dropped > 0 ? `, ${memo.verification.dropped} dropped` : ", none dropped"}
+              </span>
+            </p>
+          )}
         </div>
       </header>
 
@@ -169,8 +204,11 @@ export default function MemoView({ memo, trail: preloaded }: { memo: Memo; trail
         </span>
       </div>
 
+      <Contradictions memo={memo} onSource={(src) => setFocus({ urls: [src.url], source: src })} />
+
       <div className="memo-grid grid gap-12 lg:grid-cols-[minmax(0,1fr)_22rem]">
         <div className="min-w-0 space-y-10">
+          <Rounds memo={memo} />
           <section className="avoid-break">
             <SectionTitle title="Facts" count={memo.facts.length} />
             {lineList(memo.facts, "fact")}
@@ -257,6 +295,14 @@ export default function MemoView({ memo, trail: preloaded }: { memo: Memo; trail
                             {domain(s.url)}
                             {s.published ? `, ${fmtDate(s.published)}` : ""}
                           </p>
+                          {s.own && (
+                            <p
+                              className="mt-1 inline-block border border-dig bg-dig-soft px-1.5 py-px text-xs font-semibold text-dig"
+                              title="The company's own site or a press release it issued. Proven does not count it as independent."
+                            >
+                              Company&rsquo;s own
+                            </p>
+                          )}
                           <p className="print-only break-all text-xs text-graphite">{s.url}</p>
                         </div>
                       </li>
@@ -280,9 +326,144 @@ export default function MemoView({ memo, trail: preloaded }: { memo: Memo; trail
         trail={trail}
         focusUrls={focus?.urls ?? []}
         focusSource={focus?.source}
+        focusEvidence={focus?.evidence}
         onClose={close}
       />
     </article>
+  );
+}
+
+// One fact or risk. Hover or focus shows the quotes that back it; click opens the trail.
+function LineRow({
+  line,
+  kind,
+  sources,
+  index,
+  checked,
+  onOpen,
+  onSource,
+}: {
+  line: Line;
+  kind: "fact" | "risk";
+  sources: Source[];
+  index: Map<string, number>;
+  checked: boolean; // the memo went through the verify pass
+  onOpen: () => void;
+  onSource: (s: Source) => void;
+}) {
+  const [hover, setHover] = useState(false);
+  const [focused, setFocused] = useState(false);
+  const [chipOpen, setChipOpen] = useState(false);
+  const pid = useId();
+  const status = lineStatus(line);
+  const evidence = (line.evidence ?? []).filter((e) => index.has(e.source_id));
+  const open = (hover || focused) && !chipOpen;
+  const dot = kind === "risk" ? "pass" : "ink";
+
+  return (
+    <div className="relative" onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}>
+      <div
+        role="button"
+        tabIndex={0}
+        onClick={onOpen}
+        onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), onOpen())}
+        onFocus={() => setFocused(true)}
+        onBlur={() => setFocused(false)}
+        aria-describedby={open ? pid : undefined}
+        className="group -mx-3 flex cursor-pointer gap-3 px-3 py-3 transition-colors hover:bg-paper"
+      >
+        <span
+          aria-hidden
+          className={`mt-[0.6em] h-[7px] w-[7px] shrink-0 ${
+            status ? (dot === "pass" ? "bg-pass" : "bg-ink") : dot === "pass" ? "border border-pass" : "border border-ink/60"
+          }`}
+        />
+        <p className="serif text-[1.18rem] leading-[1.55]">
+          {line.text}
+          {line.source_ids.map((id) => {
+            const n = index.get(id);
+            if (n === undefined) return null;
+            const src = sources[n];
+            return (
+              <SourceChip
+                key={id}
+                n={n + 1}
+                source={src}
+                quote={line.evidence?.find((e) => e.source_id === id)}
+                onOpenChange={setChipOpen}
+                onClick={() => onSource(src)}
+              />
+            );
+          })}
+          {status && (
+            <span
+              className={`relative -top-[0.15em] ml-2 inline-flex items-center gap-1 whitespace-nowrap font-sans text-[0.74rem] font-semibold ${
+                status === "supported" ? "text-pursue" : "text-dig"
+              }`}
+            >
+              <Check className="h-3 w-3" />
+              {status === "supported" ? "verified" : "partly verified"}
+            </span>
+          )}
+          {!status && checked && (
+            <span className="relative -top-[0.15em] ml-2 whitespace-nowrap font-sans text-[0.74rem] text-faint">unverified</span>
+          )}
+        </p>
+      </div>
+
+      {open && (
+        <div
+          id={pid}
+          role="tooltip"
+          className="no-print pointer-events-none absolute left-7 top-full z-30 -mt-1 w-[min(38rem,calc(100%-1.75rem))] border border-rule bg-surface p-4 shadow-[0_12px_32px_-12px_rgba(20,32,43,0.35)]"
+        >
+          {evidence.length > 0 ? (
+            <>
+              <p className="flex items-center gap-1.5 text-sm font-medium text-pursue">
+                <Check className="h-3.5 w-3.5" />
+                Checked against the text of {evidence.length === 1 ? "its source" : `${evidence.length} sources`}
+              </p>
+              <ul className="mt-3 space-y-3.5">
+                {evidence.map((e, i) => {
+                  const n = index.get(e.source_id)!;
+                  const s = sources[n];
+                  return (
+                    <li key={i}>
+                      <blockquote
+                        className={`serif border-l-2 pl-3 text-[1.05rem] leading-snug text-ink ${
+                          e.verdict === "supported" ? "border-pursue" : "border-dig"
+                        }`}
+                      >
+                        &ldquo;{e.quote}&rdquo;
+                      </blockquote>
+                      <p className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 pl-3 text-sm text-graphite">
+                        <span className="tnum font-semibold text-cobalt">{n + 1}</span>
+                        <span className="max-w-[18rem] truncate font-medium text-ink">{s.title}</span>
+                        <span>{domain(s.url)}</span>
+                        <span className="flex items-center gap-1">
+                          <EngineDot name={s.engine} />
+                          {engineLabel(s.engine)}
+                        </span>
+                        <span className={`font-medium ${e.verdict === "supported" ? "text-pursue" : "text-dig"}`}>
+                          {e.verdict === "supported" ? "supports the line" : "partly supports it"}
+                        </span>
+                      </p>
+                    </li>
+                  );
+                })}
+              </ul>
+            </>
+          ) : (
+            <p className="text-sm text-graphite">
+              {checked
+                ? "No exact quote for this line was found in its sources."
+                : "Not checked against its sources. This memo was written before Proven verified each line."}
+            </p>
+          )}
+          <p className="mt-3 border-t border-rule-soft pt-2.5 text-sm text-faint">Click the line to see the searches behind it.</p>
+        </div>
+      )}
+    </div>
   );
 }
 

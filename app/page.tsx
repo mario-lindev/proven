@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import type { Memo, MemoEvent, TrailStep } from "@/lib/types";
 import ErrorBox from "@/components/ErrorBox";
@@ -144,8 +145,15 @@ export default function Home() {
             Know what is true before you commit.
           </h1>
           <p className="mt-5 max-w-[40rem] text-[1.2rem] leading-relaxed text-graphite">
-            Name a startup, vendor or market. Telem routes each search to the engines that fit it, Tavily reads the
-            pages, and Claude writes a one-page memo where every line cites its source.
+            A search engine gives you links. Proven gives you a verdict: it keeps searching until the questions an
+            investor must have answered are answered, then keeps only the lines it can quote from the page they came from.
+          </p>
+          <p className="mt-3 max-w-[40rem] text-lg leading-relaxed text-graphite">
+            Name a startup, vendor or market below. Have their pitch or website instead?{" "}
+            <Link href="/audit" className="font-medium text-cobalt hover:underline">
+              Pitch Audit checks every claim a company makes about itself
+            </Link>
+            .
           </p>
         </div>
       )}
@@ -199,7 +207,7 @@ export default function Home() {
               >
                 {d === "quick" ? "Quick" : "Deep"}
                 <span className={`ml-2 text-sm font-normal ${depth === d ? "text-white/70" : "text-faint"}`}>
-                  {d === "quick" ? "1 round" : "2 rounds"}
+                  {d === "quick" ? "1 round" : "until proven"}
                 </span>
               </button>
             ))}
@@ -227,14 +235,25 @@ export default function Home() {
         <div className="grid gap-12 border-t border-rule pt-10 lg:grid-cols-[minmax(0,1fr)_26rem]">
           <ol className="grid gap-8 sm:grid-cols-3">
             {[
-              ["Plan", "Claude breaks the question into searches: funding, rivals, hiring, lawsuits, sentiment."],
-              ["Route", "Telem sends each query to the engines best suited to it, including LinkedIn, X and Trustpilot."],
-              ["Prove", "The memo keeps only lines with a source. Open the trail to see every search behind it."],
-            ].map(([t, d], i) => (
+              ["Plan", "Claude breaks the question into searches: funding, rivals, hiring, lawsuits, sentiment.",
+                "Deep mode then searches again for whatever is still unanswered, up to 4 rounds.",
+              ],
+              [
+                "Route",
+                "Telem sends each query to the engines best suited to it, including LinkedIn, X and Trustpilot.",
+                "Pages from engines whose answers held up in past memos are read first.",
+              ],
+              [
+                "Prove",
+                "The memo keeps only lines with a source. Open the trail to see every search behind it.",
+                "Each line is checked against its page; lines without a quote are dropped.",
+              ],
+            ].map(([t, d, extra], i) => (
               <li key={t}>
                 <p className="tnum text-sm text-graphite">Step {i + 1}</p>
                 <h3 className="serif mt-1 text-2xl font-semibold">{t}</h3>
                 <p className="mt-2 leading-relaxed text-graphite">{d}</p>
+                {extra && <p className="mt-2 leading-relaxed text-ink">{extra}</p>}
               </li>
             ))}
           </ol>

@@ -1,7 +1,7 @@
 // Tavily REST: search + extract. Docs: https://docs.tavily.com/documentation/api-reference/endpoint/search , /extract
 import { clip, needKey, postJSON, type Hit } from "./http";
 
-const BASE = "https://api.tavily.com";
+import { providerUrl } from "../provider-config";
 
 export type TavilySearchResponse = {
   query?: string;
@@ -52,7 +52,7 @@ export const topicFor = (q: string) =>
 
 export async function tavilySearch(query: string): Promise<TavilySearchResponse> {
   const key = needKey("TAVILY_API_KEY");
-  return postJSON<TavilySearchResponse>("Tavily search", `${BASE}/search`, key, {
+  return postJSON<TavilySearchResponse>("Tavily search", `${providerUrl("TAVILY_BASE_URL")}/search`, key, {
     query,
     topic: topicFor(query),
     max_results: 5,
@@ -63,7 +63,7 @@ export async function tavilySearch(query: string): Promise<TavilySearchResponse>
 
 export async function tavilyExtract(urls: string[]): Promise<TavilyExtractResponse> {
   const key = needKey("TAVILY_API_KEY");
-  return postJSON<TavilyExtractResponse>("Tavily extract", `${BASE}/extract`, key, {
+  return postJSON<TavilyExtractResponse>("Tavily extract", `${providerUrl("TAVILY_BASE_URL")}/extract`, key, {
     urls: urls.slice(0, 20), // API limit: 1 to 20 URLs
     extract_depth: "basic",
     format: "text",

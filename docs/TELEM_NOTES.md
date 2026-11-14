@@ -31,7 +31,7 @@ Facts only. Sources: H = https://hack.telem.ai/doc/llms-full.txt (the hackathon 
 ## Platforms (H: Supported platforms)
 
 - **Every platform search provider is pinnable only: auto-routing and the default set never choose it.** Name it in `providers.include`. With `auto_routing` on, Telem chooses among the named ones.
-- Ids we use: `apify_linkedin` (LinkedIn), `socialdatax_x` (X), `fetchlayer_tiktok` (TikTok), `socialdatax_youtube`, `fetchlayer_trustpilot`, `fetchlayer_producthunt`, `apify_quora`, `socialdatax_wechat`. Many more (Weibo, Zhihu, Xiaohongshu, Bilibili, Google Maps/Reviews, Amazon, Substack...).
+- Ids we use: `apify_linkedin` (LinkedIn), `socialdatax_x` (X), `fetchlayer_reddit` (Reddit), `socialdatax_youtube`, `fetchlayer_trustpilot`, `fetchlayer_producthunt`, `socialdatax_wechat`. Dropped: `fetchlayer_tiktok` (hung ~45 s), `apify_quora` (0 results). Many more (Weibo, Zhihu, Xiaohongshu, Bilibili, Google Maps/Reviews, Amazon, Substack...).
 - Fetch side: platform links often route to the platform provider automatically. `brightdata` (pin only) reads LinkedIn company/job/post pages; `fetchlayer_glassdoor` reads Glassdoor company pages.
 - Billing is per provider meter (e.g. apify_linkedin per post, up to 20 a call; socialdatax 10 points a call). Empty results are not billed.
 - On the hack deployment `/v1/preprocessors` also lists `sec_edgar`, `coresignal_company`, `coresignal_people`, `fetchlayer_reddit`, `tianyancha`, `patsnap`, `uspto_applications` (not in the docs; untested).
@@ -56,6 +56,15 @@ Facts only. Sources: H = https://hack.telem.ai/doc/llms-full.txt (the hackathon 
 - Per query, Telem hits are merged by URL and ordered: consensus, then best rank, then routing order; credited to the best-routed provider.
 - News-style queries ("latest", "news", "recent"...) go in their own batch with `published_after` = 365 days ago (step gets `published_after`).
 - `opts.platforms` (memo only): hiring / customer / social queries (max 4) also go in a batch pinned to the platform providers above, auto-routed among them.
-- One Telem session per trail: later searches and Telem fetches send the first `session_id`.
+- One Telem session per trail: later searches and Telem fetches send the first `session_id`. Measured 2026-11-14: round one's batches start in parallel with no session yet, so the news batch (and the platform batch) open their own sessions. Every memo we ran had 2 session ids in its trail.
+
+## Measured on real runs (2026-11-14, 1:20 PM, 4 memos)
+
+- Router topics seen: `financial_filings`, `finance_markets`, `companies`, `people_profiles`, `general`, `news`, `academic_papers`.
+- Engines that answered: exa, tavily, perplexity, brave, parallel, ceramic, seltz, you, linkup, plus all seven platform engines.
+- Platform errors: `socialdatax_x`, `socialdatax_youtube` and `socialdatax_wechat` returned `upstream 429, reason: rate_limited` in 3 of 4 memos run back to back. The other engines still answered.
+- Run warnings seen: `unranked_provider` (every platform engine), `trimmed_results` (ceramic), `dropped_results` (apify_linkedin), `routing_fallback` (socialdatax_youtube).
+- Slowest engine: `fetchlayer_producthunt` took 15.1 s once (Figma deep), which held round one at 15.8 s instead of about 9 s.
+- Monitor: **Check now** to first update 45 s (from the legacy `/poll`); the agent's first change came at about 2 min and 14 changes by about 3 min. Agent changes came with an empty summary, and one page showed twice (once from `/poll`, once from the agent, with a different title).
 - If a richer body gets 400/422, one retry with the docs' plain body (tier default).
 - **`TELEM_DILIGENCE=1`** (env, default off): extra batches pinned to providers seen in the live `GET /v1/preprocessors` roster but not in the docs, and billed, so opt-in. Funding / financials / filings / investors / headcount queries go to `sec_edgar` + `coresignal_company`; reviews / customers / sentiment / Reddit queries to `fetchlayer_reddit`; patents / IP / technology queries to `patsnap` + `uspto_applications`. At most 3 queries per set, auto-routed within the set, same session. If one fails (e.g. a 400 for an unknown provider), its error is in the trail as `telem_financials` / `telem_reddit` / `telem_patents` and the other results still come back. Untested against the real API.

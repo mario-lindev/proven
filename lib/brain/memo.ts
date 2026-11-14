@@ -1,6 +1,7 @@
 // OWNER: Rishith. Company name -> sourced memo (AGENTS.md §8).
 import type { Line, Memo, Source, TrailRecorder } from "../types";
 import { extract, normalizeUrl, searchAll } from "../search";
+import { rankSources, recordMemo } from "../learn";
 import { newId, newTrail, saveMemo } from "../store";
 import { askJSON } from "./claude";
 import { verifyLines } from "./verify";
@@ -86,6 +87,8 @@ export async function buildMemo(
     sources = [...sources, ...added].slice(0, 30).map((s, i) => ({ ...s, id: `s${i + 1}` }));
   }
 
+  sources = rankSources(sources, trail);
+
   let pages: { url: string; text: string }[] = [];
   const firstUrls = sources.slice(0, deep ? 8 : 4).map((s) => s.url);
   try {
@@ -167,6 +170,7 @@ export async function buildMemo(
     created_at: new Date().toISOString(),
     ...(verification ? { verification } : {}),
   };
+  recordMemo(memo, sources, trail);
   saveMemo(memo);
   return memo;
 }

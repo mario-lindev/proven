@@ -59,12 +59,15 @@ export function normalize(s: string): string {
 
 const trimEnds = (s: string) => s.replace(/^[\s"'.,;:]+|[\s"'.,;:]+$/g, "");
 
+const pieces = (quote: string) => quote.split(/\.{3}|…/).map((p) => trimEnds(normalize(p))).filter(Boolean);
+// Too short to prove anything on its own (e.g. "600+"), even if it is on the page.
+export const tooShort = (quote: string) => pieces(quote).join(" ").length < MIN_QUOTE_CHARS;
+
 // True if the quote is in the text. A quote joined with "..." must have every piece in the text.
 export function quoteIn(quote: string, text: string): boolean {
+  if (tooShort(quote)) return false;
   const hay = normalize(text);
-  const parts = quote.split(/\.{3}|…/).map((p) => trimEnds(normalize(p))).filter(Boolean);
-  if (parts.join(" ").length < MIN_QUOTE_CHARS) return false;
-  return parts.every((p) => hay.includes(p));
+  return pieces(quote).every((p) => hay.includes(p));
 }
 
 export type Verified = { lines: Line[]; checked: number; kept: number; dropped: number; not_found: number; ms: number };
@@ -80,7 +83,12 @@ export async function verifyLines(
   const t0 = Date.now();
   const byId = new Map(sources.map((s) => [s.id, s]));
   const pageText = new Map(pages.map((p) => [normalizeUrl(p.url), p.text]));
-  const textOf = (s: Source) => (pageText.get(normalizeUrl(s.url)) || s.snippet || "").slice(0, MAX_SOURCE_CHARS);
+  // The search result text plus the page text when we read the page. Both count: for LinkedIn, X or Reddit
+  // results the search result is the real content and the page is often a login wall.
+  const textOf = (s: Source) => {
+    const page = pageText.get(normalizeUrl(s.url))?.slice(0, MAX_SOURCE_CHARS);
+    return [s.snippet && `Search result: ${s.snippet}`, page && `Page text: ${page}`].filter(Boolean).join("\n\n");
+  };
 
   const evidence: Evidence[][] = lines.map(() => []);
   let notFound = 0;
@@ -123,12 +131,13 @@ export async function verifyLines(
           for (const e of r.evidence) {
             if (e.verdict === "none" || !cited.has(e.source_id) || evidence[i].some((x) => x.source_id === e.source_id)) continue;
             const s = byId.get(e.source_id);
-            if (!s || !quoteIn(e.quote, textOf(s))) {
+            if (!s || tooShort(e.quote)) continue;
+            if (!quoteIn(e.quote, textOf(s))) {
               notFound++;
               if (process.env.VERIFY_DEBUG) console.log(`[verify] quote not in ${e.source_id} for line ${i + 1}: "${e.quote}"`);
               continue;
             }
-            evidence[i].push({ source_id: e.source_id, quote: trimEnds(e.quote.trim()), verdict: e.verdict });
+            evidence[i].push({ source_id: e.source_id, quote: trimEnds(e.quote.replace(/\s+/g, " ")), verdict: e.verdict });
           }
         }
         if (process.env.VERIFY_DEBUG) console.log(`[verify] batch ${b + 1}/${batches.length} done in ${Date.now() - t0} ms`);

@@ -1,8 +1,10 @@
 // OWNER: Rishith. Live Room: a bit of transcript -> checked claims (AGENTS.md §8).
 import type { ClaimCheck } from "../types";
 import { searchAll } from "../search";
+import { rankSources } from "../learn";
 import { newId, newTrail } from "../store";
 import { askJSON } from "./claude";
+import { quoteIn } from "./verify";
 
 const claimsSchema = {
   type: "object",
@@ -24,11 +26,13 @@ const claimsSchema = {
 const judgeSchema = {
   type: "object",
   additionalProperties: false,
-  required: ["verdict", "note", "source_ids"],
+  required: ["verdict", "note", "source_ids", "quote", "quote_source_id"],
   properties: {
     verdict: { type: "string", enum: ["supported", "contradicted", "unclear"] },
     note: { type: "string" },
     source_ids: { type: "array", items: { type: "string" } },
+    quote: { type: "string" },
+    quote_source_id: { type: "string" },
   },
 };
 
@@ -60,8 +64,14 @@ export async function checkText(text: string): Promise<ClaimCheck[]> {
   return Promise.all(
     fresh.map(async (c) => {
       const trail = newTrail();
-      const sources = (await searchAll(c.queries.slice(0, 3), trail)).slice(0, 10);
-      const judged = await askJSON<{ verdict: ClaimCheck["verdict"]; note: string; source_ids: string[] }>({
+      const sources = rankSources(await searchAll(c.queries.slice(0, 3), trail), trail).slice(0, 10);
+      const judged = await askJSON<{
+        verdict: ClaimCheck["verdict"];
+        note: string;
+        source_ids: string[];
+        quote: string;
+        quote_source_id: string;
+      }>({
         label: `Judge: ${c.claim}`,
         trail,
         effort: "low",
@@ -69,18 +79,24 @@ export async function checkText(text: string): Promise<ClaimCheck[]> {
         system:
           "Judge a spoken claim against the sources only. supported = sources back it; contradicted = sources show it is false " +
           "(e.g. funded competitors exist); unclear = not enough evidence. note: one short line a judge can read on a projector, " +
-          "naming the key evidence (e.g. 'Found 3 funded competitors: A, B, C'). Cite source ids.",
+          "naming the key evidence (e.g. 'Found 3 funded competitors: A, B, C'). Cite source ids. " +
+          "quote: the few words (under 20) from one source's text that best back your verdict, copied exactly; quote_source_id: its id. " +
+          'Use "" for both if no source text does.',
         user: `Claim: ${c.claim}\n\nSources:\n${sources
           .map((s) => `[${s.id}] ${s.title} (${s.url}, via ${s.engine})\n${s.snippet}`)
           .join("\n\n")}`,
         schema: judgeSchema,
       });
       const ids = new Set(judged.source_ids);
+      // Add the quote to the note only if it really is in that source's text.
+      const qs = sources.find((s) => s.id === judged.quote_source_id);
+      const quoted = qs && judged.quote.length <= 200 && quoteIn(judged.quote, qs.snippet);
+      if (quoted) ids.add(qs.id);
       return {
         id: newId("chk"),
         claim: c.claim,
         verdict: judged.verdict,
-        note: judged.note,
+        note: quoted ? `${judged.note.trim().replace(/[.;,]*$/, ".")} Source says: "${judged.quote.replace(/\s+/g, " ").trim()}"` : judged.note,
         sources: sources.filter((s) => ids.has(s.id)),
         trail_id: trail.id,
       } satisfies ClaimCheck;

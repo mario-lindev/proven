@@ -173,7 +173,7 @@ export default function LiveRoom() {
     <div className="space-y-10">
       <header className="flex flex-wrap items-end justify-between gap-6">
         <div>
-          <h1 className="text-5xl font-semibold tracking-tight">Live Room</h1>
+          <h1 className="text-4xl font-semibold tracking-tight sm:text-5xl">Live Room</h1>
           <p className="mt-3 max-w-2xl text-xl text-muted">
             Proven listens to the pitch and checks each factual claim as it is spoken.
           </p>
@@ -244,9 +244,9 @@ export default function LiveRoom() {
         {checks.map((c) => {
           const v = VERDICT[c.verdict] ?? VERDICT.unclear;
           return (
-            <article key={c.id + c.claim} className={`rounded-2xl border-l-8 p-6 ${v.card}`}>
+            <article key={c.id + c.claim} className={`rounded-xl border p-5 sm:p-6 ${v.card}`}>
               <div className={`text-3xl font-bold ${v.text}`}>{v.label}</div>
-              <p className="mt-3 text-2xl font-medium leading-snug">&ldquo;{c.claim}&rdquo;</p>
+              <p className="mt-3 break-words text-xl font-medium leading-snug sm:text-2xl">&ldquo;{c.claim}&rdquo;</p>
               <p className="mt-2 text-lg">{c.note}</p>
               {c.sources.length > 0 && (
                 <ul className="mt-4 space-y-1">

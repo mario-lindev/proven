@@ -157,7 +157,7 @@ export default function Home() {
           </label>
           <input
             id="company"
-            value={company}
+            id="company" value={company}
             onChange={(e) => setCompany(e.target.value)}
             placeholder="Company, vendor or market"
             autoFocus={idle}
@@ -221,7 +221,15 @@ export default function Home() {
             ))}
           </div>
         )}
+        {!memo && !loading && <div className="suggestions"><span>Try a company</span>{["Anthropic", "Stripe", "Notion"].map(name => <button key={name} type="button" onClick={() => setCompany(name)}>{name} <span aria-hidden="true">↗</span></button>)}</div>}
       </form>
+      {!memo && !loading && <section className="workflow-grid" aria-label="How Proven works">
+        {[
+          ["01", "Research the whole picture", "Discover fresh information across the web, with Telem and Tavily."],
+          ["02", "Follow the evidence", "Inspect the sources and searches behind the findings in your memo."],
+          ["03", "Ask sharper questions", "Understand the risks and gaps before your next conversation."],
+        ].map(([number, title, description]) => <div key={number} className="workflow-item"><span className="workflow-number">{number}</span><h2>{title}</h2><p>{description}</p></div>)}
+      </section>}
 
       {idle && (
         <div className="grid gap-12 border-t border-rule pt-10 lg:grid-cols-[minmax(0,1fr)_26rem]">

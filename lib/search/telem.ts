@@ -28,7 +28,7 @@ export type TelemSearchResponse = {
   interaction_id?: string;
   status?: string; // succeeded | partially_succeeded | failed
   // With auto_routing: one entry per query, in batch order; providers best first. Without it: null.
-  routing?: ({ providers?: string[] | null } | null)[] | null;
+  routing?: ({ providers?: string[] | null; topic?: string | null; score?: number | null } | null)[] | null;
   pinned_providers?: string[] | null;
   preprocessor_runs?: TelemRun[];
   created_at?: string;
@@ -79,7 +79,7 @@ function warningCodes(run: TelemRun): string[] {
   return [...new Set(codes)];
 }
 
-export type TelemQuery = { engines: Engine[]; hits: Hit[]; routing?: string[] };
+export type TelemQuery = { engines: Engine[]; hits: Hit[]; routing?: string[]; topic?: string };
 
 // Split one batch search response into per-query engines, routing and hits.
 // Per query, a URL several providers found becomes one hit, ordered the way Telem's docs merge results:
@@ -91,7 +91,11 @@ export function parseTelemSearch(resp: TelemSearchResponse, nQueries: number): {
     const p = resp.routing?.[i]?.providers;
     return Array.isArray(p) ? p.filter((x): x is string => typeof x === "string" && x.length > 0) : undefined;
   };
-  const perQuery = Array.from({ length: nQueries }, (_, i) => ({ engines: [] as Engine[], aggs: new Map<string, Agg>(), routing: routingOf(i) }));
+  const topicOf = (i: number) => {
+    const t = resp.routing?.[i]?.topic;
+    return typeof t === "string" && t ? t : undefined;
+  };
+  const perQuery = Array.from({ length: nQueries }, (_, i) => ({ engines: [] as Engine[], aggs: new Map<string, Agg>(), routing: routingOf(i), topic: topicOf(i) }));
   let order = 0;
   for (const run of resp.preprocessor_runs ?? []) {
     const i = run.batch_index ?? 0;
@@ -138,6 +142,7 @@ export function parseTelemSearch(resp: TelemSearchResponse, nQueries: number): {
         .sort((a, b) => b.providers.size - a.providers.size || a.bestRank - b.bestRank || a.bestRoute - b.bestRoute || a.first - b.first)
         .map((a) => a.hit),
       ...(q.routing && q.routing.length ? { routing: q.routing } : {}),
+      ...(q.topic ? { topic: q.topic } : {}),
     })),
   };
 }

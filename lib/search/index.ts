@@ -38,11 +38,10 @@ export function mergeHits(perQuery: Hit[][], cap = MAX_SOURCES): Source[] {
 export const PLATFORM_PROVIDERS = [
   "apify_linkedin",
   "socialdatax_x",
-  "fetchlayer_tiktok",
+  "fetchlayer_reddit", // fetchlayer_tiktok hung ~45 s then failed in a live test (2026-11-14), stalling the batch
   "socialdatax_youtube",
   "fetchlayer_trustpilot",
   "fetchlayer_producthunt",
-  "apify_quora",
   "socialdatax_wechat",
 ];
 const MAX_PLATFORM_QUERIES = 4;
@@ -159,6 +158,7 @@ export async function searchAll(
     let ms = 0;
     let stepSession: string | undefined;
     let publishedAfter: string | undefined;
+    let topic: string | undefined;
     for (const p of parsed) {
       const j = p.gr.idx.indexOf(i);
       if (j < 0) continue;
@@ -172,6 +172,7 @@ export async function searchAll(
       engines.push(...r.engines);
       if (r.engines.length === 0) engines.push({ name: label, latency_ms: p.ms, n_results: 0, error: "no engine runs returned for this query" });
       for (const name of r.routing ?? []) if (!routing.includes(name)) routing.push(name);
+      if (GENERAL.has(p.gr.name)) topic ??= r.topic;
       lists.push(r.hits);
       stepSession ??= p.session_id;
       if (p.gr.opts.published_after && !p.fallback) publishedAfter = p.gr.opts.published_after;
@@ -197,6 +198,7 @@ export async function searchAll(
       query: q,
       engines,
       ...(routing.length ? { routing } : {}),
+      ...(topic ? { topic } : {}),
       ...(publishedAfter ? { published_after: publishedAfter } : {}),
       urls: [...new Map(hits.map((h) => [normalizeUrl(h.url), h.url])).values()],
       ...(stepSession ? { telem_session_id: stepSession } : {}),

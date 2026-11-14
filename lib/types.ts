@@ -45,6 +45,7 @@ export type TrailStep = {
   query?: string;
   engines?: Engine[];    // which engines answered, how fast
   routing?: string[];    // search steps: the engines Telem's router chose for this query (may be absent)
+  topic?: string;        // search steps: the topic Telem's router classified the query as (e.g. "people_profiles")
   published_after?: string; // search steps: Telem kept only results published on or after this date (recency filter)
   urls?: string[];
   telem_session_id?: string;

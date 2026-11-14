@@ -10,14 +10,21 @@ const POLL_MS = 30_000;
 
 export default function WatchPanel({ company }: { company: string }) {
   const [watch, setWatch] = useState<Watch | null>(null);
+  const [checking, setChecking] = useState(false);
   const [starting, setStarting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [checkedAt, setCheckedAt] = useState<Date | null>(null);
 
   const startRequest = useRef<AbortController>(null);
+  const activeCheck = useRef<AbortController>(null);
+  const polling = useRef(false);
+  const [refreshing, setRefreshing] = useState(false);
   const watchId = watch?.id;
 
-  useEffect(() => () => startRequest.current?.abort(), []);
+  useEffect(() => () => {
+    startRequest.current?.abort();
+    activeCheck.current?.abort();
+  }, []);
 
   useEffect(() => {
     if (!watchId) return;
@@ -26,6 +33,12 @@ export default function WatchPanel({ company }: { company: string }) {
     let timer: ReturnType<typeof setTimeout>;
 
     async function poll() {
+      if (activeCheck.current) {
+        timer = setTimeout(poll, POLL_MS);
+        return;
+      }
+      polling.current = true;
+      setRefreshing(true);
       try {
         const updated = await api<Watch>(path, undefined, controller.signal);
         if (controller.signal.aborted) return;
@@ -35,7 +48,11 @@ export default function WatchPanel({ company }: { company: string }) {
       } catch (error) {
         if (!controller.signal.aborted) setError(errMsg(error));
       } finally {
-        if (!controller.signal.aborted) timer = setTimeout(poll, POLL_MS);
+        polling.current = false;
+        if (!controller.signal.aborted) {
+          setRefreshing(false);
+          timer = setTimeout(poll, POLL_MS);
+        }
       }
     }
 
@@ -62,6 +79,26 @@ export default function WatchPanel({ company }: { company: string }) {
     } finally {
       startRequest.current = null;
       if (!controller.signal.aborted) setStarting(false);
+    }
+  }
+
+  async function checkNow() {
+    if (!watchId || activeCheck.current || polling.current) return;
+    const controller = new AbortController();
+    activeCheck.current = controller;
+    setChecking(true);
+    setError(null);
+    try {
+      const updated = await api<Watch>(`/api/watch/${encodeURIComponent(watchId)}`, {}, controller.signal);
+      if (!controller.signal.aborted) {
+        setWatch((previous) => previous && { ...updated, company: previous.company });
+        setCheckedAt(new Date());
+      }
+    } catch (error) {
+      if (!controller.signal.aborted) setError(errMsg(error));
+    } finally {
+      activeCheck.current = null;
+      if (!controller.signal.aborted) setChecking(false);
     }
   }
 
@@ -93,6 +130,13 @@ export default function WatchPanel({ company }: { company: string }) {
           className="mt-4 w-full rounded-md border-2 border-ink px-4 py-2 font-semibold hover:bg-ink hover:text-white disabled:opacity-60"
         >
           {starting ? "Starting the watch" : "Watch this company"}
+        </button>
+      )}
+
+      {watch && (
+        <button type="button" onClick={checkNow} disabled={checking || refreshing}
+          className="mt-4 rounded-md border border-ink px-3 py-1.5 text-sm font-semibold hover:bg-ink hover:text-white disabled:opacity-60">
+          {checking ? "Requesting check…" : refreshing ? "Refreshing…" : "Check now"}
         </button>
       )}
 

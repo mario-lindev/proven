@@ -9,7 +9,7 @@ The words below are exact. They match `captions.json` character for character. S
 
 | # | Time | Voice | Words to say (exact) | On screen | Shot id | Words |
 |---|------|-------|----------------------|-----------|---------|-------|
-| 1 | 0:00-0:09 | Rishith | Investors hear a pitch and check every claim by hand. The answers arrive days later. | Title card: "Proven" and the line "Checking a pitch takes days." Dark background, no UI. | `title` | 15 |
+| 1 | 0:00-0:09 | Rishith | I'm Mario, I'm 13. I'm Rishith, I'm 14. I'm Aarav, I'm 16. Investors check pitch claims by hand, days late. We built Proven. | Title card: "Proven" and the line "Checking a pitch takes days." Dark background, no UI. | `title` | 15 |
 | 2 | 0:09-0:19 | Aarav | Ask AI search one question and you get one good answer. Diligence is a hundred questions. Proven runs the whole job. | Our own text slide, three columns in words only: Search engine = links you must read. Chatbot = an answer you must trust. Proven = a verdict with the receipt. No screenshots of other products. | `compare` | 22 |
 | 3 | 0:19-0:28 | Mario | This is Proven. Ask about any company. It searches, reads the pages, and writes a memo while you watch. | Proven home (Research). Question box, then the live research feed filling in. | `home` | 19 |
 | 4 | 0:28-0:40 | Rishith | Run everything does it in one click: a pitch audit, a full memo, and a watch that re-checks the company. | /run page, live. One click, three panels start: Pitch Audit, Memo, Watch. | `run` | 20 |
@@ -25,7 +25,7 @@ The words below are exact. They match `captions.json` character for character. S
 
 **Rishith**
 
-- Scene 1 (0:00-0:09, 9 s): Investors hear a pitch and check every claim by hand. The answers arrive days later.
+- Scene 1 (0:00-0:09, 9 s): I'm Mario, I'm 13. I'm Rishith, I'm 14. I'm Aarav, I'm 16. Investors check pitch claims by hand, days late. We built Proven.
 - Scene 4 (0:28-0:40, 12 s): Run everything does it in one click: a pitch audit, a full memo, and a watch that re-checks the company.
 - Scene 7 (1:04-1:15, 11 s): It gave lenders a 2024 sales forecast of about $220M. An audit put sales at about $50M. Hover a line for the quote.
 - Scene 11 (1:49-2:00, 11 s): For investors and buyers. Know what is true before you commit. Built by Rishith, Aarav and Mario. proven-tan.vercel.app

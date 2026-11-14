@@ -4,7 +4,7 @@ Rishith: Investors hear a pitch and check every claim by hand. The answers arriv
 
 2
 00:00:09,000 --> 00:00:19,000
-Aarav: A search engine gives you links to read. A chatbot gives you an answer with no receipt. Proven gives you a verdict.
+Aarav: Ask AI search one question and you get one good answer. Diligence is a hundred questions. Proven runs the whole job.
 
 3
 00:00:19,000 --> 00:00:28,000

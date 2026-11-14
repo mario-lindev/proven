@@ -7,7 +7,9 @@ Read at a calm pace, about 2.4 words a second. Record each line as its own clip,
 
 **Scene 1** (0:00 to 0:09, 9 s). On screen: title. File name: `rishith-scene1.mp4`
 
-> Investors hear a pitch and check every claim by hand. The answers arrive days later.
+> **All three, on camera together, one after another:** "I'm Mario, I'm 13." "I'm Rishith, I'm 14." "I'm Aarav, I'm 16."
+>
+> **Rishith:** Investors check pitch claims by hand, days late. We built Proven.
 
 **Scene 4** (0:28 to 0:40, 12 s). On screen: run. File name: `rishith-scene4.mp4`
 

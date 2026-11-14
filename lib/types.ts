@@ -41,6 +41,7 @@ export type TrailStep = {
   label: string;         // "Search: Acme competitors"
   query?: string;
   engines?: Engine[];    // which engines answered, how fast
+  routing?: string[];    // search steps: the engines Telem's router chose for this query (may be absent)
   urls?: string[];
   telem_session_id?: string;
   at: string;            // ISO time

@@ -12,12 +12,31 @@ export type Source = {
   engine: string;        // "exa", "brave", "tavily"... (Telem preprocessor_name, or "tavily")
   snippet: string;
   published?: string;    // ISO date if known
+  own?: boolean;         // true: the company's own site or a press release it issued; false/absent: independent
 };
 
 // Proof for one memo line: the exact quote in a cited source that backs it (found by the verify pass).
 export type Evidence = { source_id: string; quote: string; verdict: "supported" | "partial" };
 
 export type Line = { text: string; source_ids: string[]; evidence?: Evidence[] };   // every memo line cites sources
+
+// Deep mode researches in rounds until the investor-critical questions are answered (lib/brain/loop.ts).
+export type Round = {
+  round: number;         // 1 = the planned searches, 2+ = follow-up searches aimed at the open questions
+  queries: string[];     // searched in this round
+  new_sources: number;   // sources this round added
+  coverage: number;      // 0..1, how much of what an investor must know is answered with a source after this round
+  open: string[];        // key questions still unanswered after this round
+};
+
+// Claims vs. reality: something the company says that independent sources contradict or do not support.
+export type Contradiction = {
+  claim: string;
+  claim_source_ids: string[];
+  reality: string;
+  reality_source_ids: string[];   // at least one independent source
+  severity: "high" | "medium" | "low";
+};
 
 export type Memo = {
   id: string;
@@ -33,6 +52,8 @@ export type Memo = {
   created_at: string;
   // Verify pass: every fact and risk re-checked against its sources' text; unsupported lines are dropped.
   verification?: { checked: number; kept: number; dropped: number; ms: number };
+  rounds?: Round[];                  // deep mode only
+  contradictions?: Contradiction[];  // 0 to 5; kept only when the cited ids exist
 };
 
 export type ClaimCheck = {

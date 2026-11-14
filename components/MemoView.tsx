@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useState } from "react";
 import type { Line, Memo } from "@/lib/types";
 import SourceChip from "./SourceChip";
@@ -98,6 +99,9 @@ export default function MemoView({ memo }: { memo: Memo }) {
         <h2 className="text-4xl font-semibold tracking-tight">{memo.company}</h2>
         <p className="max-w-3xl text-xl leading-relaxed">{memo.summary}</p>
         <div className="flex flex-wrap items-center gap-6">
+          <Link href={`/memo/${encodeURIComponent(memo.id)}`} className="font-medium text-accent hover:underline">
+            Memo link
+          </Link>
           <button
             type="button"
             onClick={() => setFocus([])}

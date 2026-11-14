@@ -1,6 +1,7 @@
 // A real model on Proven's own outcomes: which search results end up backing a verified memo line.
 // One row per (memo, URL a search returned). Label 1 = the URL became a source whose quote verified a kept line.
 // Plain logistic regression, gradient descent, no dependencies. Not wired into the memo pipeline.
+import "@/lib/seed";
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import type { Memo, Trail } from "./types";

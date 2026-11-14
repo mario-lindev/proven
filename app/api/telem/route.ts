@@ -1,4 +1,5 @@
 // What Telem did for Proven, counted from the real research trails saved on this server.
+import "@/lib/seed";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { NextResponse } from "next/server";

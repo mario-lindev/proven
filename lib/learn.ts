@@ -1,6 +1,7 @@
 // OWNER: learner. What Proven learned: which engines' results end up as verified evidence (AGENTS.md PHASE 2).
 // An engine earns credit only when one of its results is the source of a verified quote behind a kept memo line.
 // Board persists to .data/engines.json (/tmp/proven on Vercel), and is also kept in memory.
+import "@/lib/seed";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { EngineBoard, EngineStat, Memo, MemoYield, QueryWin, Source, TrailRecorder, TrailStep } from "./types";

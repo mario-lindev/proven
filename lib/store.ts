@@ -1,5 +1,6 @@
 // Store for memos, trails and watches: in memory, with memos and trails also saved as JSON files
 // so shared memo links and history survive a server restart (.data/ locally, /tmp on Vercel).
+import "@/lib/seed";
 import { mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { Memo, Trail, TrailRecorder, TrailStep, Watch } from "./types";

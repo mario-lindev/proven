@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import type { Watch } from "@/lib/types";
 import ErrorBox from "./ErrorBox";
-import { api, errMsg, fmtTime } from "./http";
+import { api, domain, errMsg, timeAgo } from "./http";
 
 const POLL_MS = 30_000;
 
@@ -42,58 +42,60 @@ export default function WatchPanel({ company }: { company: string }) {
   }
 
   return (
-    <section className="rounded-2xl border border-line p-6">
-      <div className="flex flex-wrap items-center justify-between gap-4">
+    <section className="border border-rule bg-surface p-5">
+      <div className="flex items-start justify-between gap-3">
         <div>
-          <h3 className="text-xl font-semibold">Watch</h3>
-          <p className="text-muted">
+          <h3 className="flex items-center gap-2 font-semibold">
+            {watch && <span className="pulse-dot h-2 w-2 rounded-full bg-pursue" aria-hidden />}
+            {watch ? `Watching ${watch.company}` : "Watch this company"}
+          </h3>
+          <p className="mt-1 text-sm text-graphite">
             {watch
-              ? `Tracking ${watch.company}. Checks every 30 seconds${checkedAt ? `, last at ${checkedAt.toLocaleTimeString()}` : ""}.`
-              : "Keep tracking this company and report what changes."}
+              ? `A Telem monitor reports new coverage. Checked ${checkedAt ? checkedAt.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }) : "now"}, again every 30 s.`
+              : "A Telem monitor keeps searching and reports what changes."}
           </p>
         </div>
-        {!watch && (
-          <button
-            type="button"
-            onClick={start}
-            disabled={starting}
-            className="rounded-xl border-2 border-accent px-5 py-2.5 font-semibold text-accent hover:bg-accent-soft disabled:opacity-60"
-          >
-            {starting ? "Starting..." : "Watch this company"}
-          </button>
-        )}
       </div>
+
+      {!watch && (
+        <button
+          type="button"
+          onClick={start}
+          disabled={starting}
+          className="mt-4 w-full rounded-md border-2 border-ink px-4 py-2 font-semibold hover:bg-ink hover:text-white disabled:opacity-60"
+        >
+          {starting ? "Starting the watch" : "Watch this company"}
+        </button>
+      )}
 
       {error && (
         <div className="mt-4">
-          <ErrorBox message={error} />
+          <ErrorBox message={error} onRetry={watch ? undefined : start} />
         </div>
       )}
 
       {watch && (
-        <div className="mt-5">
+        <div className="mt-4">
           {watch.updates.length === 0 ? (
-            <p className="text-muted">No updates yet. New results will appear here.</p>
+            <p className="border-t border-rule-soft pt-3 text-sm text-graphite">No changes yet. New coverage will show up here.</p>
           ) : (
-            <ul className="divide-y divide-line">
+            <ul className="divide-y divide-rule-soft border-t border-rule-soft">
               {[...watch.updates].reverse().map((u, i) => (
-                <li key={`${u.url}-${i}`} className="py-3">
-                  <div className="flex items-baseline justify-between gap-4">
-                    <a
-                      href={u.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="font-semibold hover:underline"
-                    >
-                      {u.title}
-                    </a>
-                    <span className="shrink-0 text-sm text-muted">{fmtTime(u.at)}</span>
-                  </div>
-                  <p className="mt-1 text-muted">{u.summary}</p>
+                <li key={`${u.url}-${i}`} className="row-in py-3">
+                  <a href={u.url} target="_blank" rel="noopener noreferrer" className="font-medium leading-snug hover:underline">
+                    {u.title}
+                  </a>
+                  <p className="mt-0.5 text-sm text-graphite">
+                    {domain(u.url)}, {timeAgo(u.at)}
+                  </p>
+                  {u.summary && <p className="mt-1 text-sm">{u.summary}</p>}
                 </li>
               ))}
             </ul>
           )}
+          <p className="mt-2 text-xs text-faint">
+            Monitor <span className="font-mono">{watch.monitor_id}</span>
+          </p>
         </div>
       )}
     </section>

@@ -1,33 +1,22 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import type { Trail, TrailStep } from "@/lib/types";
+import { useEffect, useRef, useState } from "react";
+import type { Source, Trail, TrailStep } from "@/lib/types";
 import ErrorBox from "./ErrorBox";
+import { EngineBar, EngineDot, engineLabel, splitEngines } from "./engines";
 import { api, domain, errMsg, fmtMs } from "./http";
+import { feedStats } from "./ResearchFeed";
 
-const KIND: Record<TrailStep["kind"], { label: string; short: string; tone: string }> = {
-  search: { label: "Search", short: "S", tone: "bg-accent text-white" },
-  fetch: { label: "Fetch", short: "F", tone: "bg-sky-700 text-white" },
-  extract: { label: "Extract", short: "E", tone: "bg-indigo-700 text-white" },
-  llm: { label: "AI", short: "AI", tone: "bg-neutral-800 text-white" },
-};
-
-export default function TrailDrawer({
-  trailId,
-  focusUrls = [],
-  onClose,
-}: {
-  trailId: string | null;
-  focusUrls?: string[];
-  onClose: () => void;
-}) {
-  const [trail, setTrail] = useState<Trail | null>(null);
+export function useTrail(trailId: string | null, preloaded?: Trail | null) {
+  const [trail, setTrail] = useState<Trail | null>(preloaded ?? null);
   const [error, setError] = useState<string | null>(null);
-
   useEffect(() => {
     if (!trailId) return;
+    if (preloaded && preloaded.id === trailId) {
+      setTrail(preloaded);
+      return;
+    }
     let live = true;
-    setTrail(null);
     setError(null);
     api<Trail>(`/api/trail/${encodeURIComponent(trailId)}`)
       .then((t) => live && setTrail(t))
@@ -35,117 +24,200 @@ export default function TrailDrawer({
     return () => {
       live = false;
     };
-  }, [trailId]);
+  }, [trailId, preloaded]);
+  return { trail, error };
+}
+
+const KIND: Record<TrailStep["kind"], string> = {
+  search: "Search",
+  fetch: "Fetch",
+  extract: "Read pages",
+  llm: "Claude",
+};
+
+export default function TrailDrawer({
+  trailId,
+  focusUrls = [],
+  focusSource,
+  trail: preloaded,
+  onClose,
+}: {
+  trailId: string | null;
+  focusUrls?: string[];
+  focusSource?: Source | null;
+  trail?: Trail | null;
+  onClose: () => void;
+}) {
+  const { trail, error } = useTrail(trailId, preloaded);
+  const closeRef = useRef<HTMLButtonElement>(null);
+  const bodyRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!trailId) return;
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
     window.addEventListener("keydown", onKey);
+    closeRef.current?.focus();
     return () => window.removeEventListener("keydown", onKey);
   }, [trailId, onClose]);
 
+  // Scroll the first step that found a cited source into view.
+  useEffect(() => {
+    if (!trail || focusUrls.length === 0) return;
+    const el = bodyRef.current?.querySelector("[data-hit='true']");
+    el?.scrollIntoView({ block: "center" });
+  }, [trail, focusUrls]);
+
   if (!trailId) return null;
 
-  const total = trail?.steps.reduce((a, s) => a + s.ms, 0) ?? 0;
+  const steps = trail?.steps ?? [];
+  const total = steps.reduce((a, s) => a + s.ms, 0);
+  const stats = feedStats(steps);
+  const scale = Math.max(1500, ...steps.flatMap((s) => (s.engines ?? []).map((e) => e.latency_ms)));
 
   return (
-    <div className="fixed inset-0 z-40">
-      <div className="absolute inset-0 bg-black/30" onClick={onClose} />
-      <aside className="absolute right-0 top-0 flex h-full w-full max-w-xl flex-col bg-white shadow-2xl">
-        <div className="flex items-start justify-between border-b border-line px-7 py-6">
-          <div>
-            <h2 className="text-2xl font-semibold tracking-tight">How Proven reached this</h2>
-            {trail && (
-              <p className="mt-1 text-muted">
-                {trail.steps.length} steps, {fmtMs(total)}
-              </p>
-            )}
+    <div className="no-print fixed inset-0 z-40" role="dialog" aria-modal="true" aria-labelledby="trail-title">
+      <div className="absolute inset-0 bg-ink/35" onClick={onClose} />
+      <aside className="drawer-in absolute right-0 top-0 flex h-full w-full max-w-[44rem] flex-col bg-surface shadow-2xl">
+        <div className="border-b border-rule px-7 pb-5 pt-6">
+          <div className="flex items-start justify-between gap-4">
+            <h2 id="trail-title" className="serif text-3xl font-semibold tracking-tight">
+              How Proven reached this
+            </h2>
+            <button
+              ref={closeRef}
+              type="button"
+              onClick={onClose}
+              className="rounded-md border border-rule px-3 py-1.5 text-graphite hover:border-ink hover:text-ink"
+            >
+              Close
+            </button>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-lg px-3 py-1.5 text-muted hover:bg-soft hover:text-foreground"
-            aria-label="Close"
-          >
-            Close
-          </button>
+          {trail && (
+            <dl className="tnum mt-4 grid grid-cols-4 gap-4">
+              {[
+                ["steps", steps.length],
+                ["queries", stats.queries],
+                ["engines", stats.engines.size],
+                ["total time", fmtMs(total)],
+              ].map(([k, v]) => (
+                <div key={k} className="flex flex-col-reverse">
+                  <dt className="text-sm text-graphite">{k}</dt>
+                  <dd className="text-2xl font-medium">{v}</dd>
+                </div>
+              ))}
+            </dl>
+          )}
+          {focusSource && (
+            <div className="mt-4 border-l-2 border-cobalt bg-cobalt-soft px-4 py-3">
+              <p className="text-sm text-graphite">Tracing the cited source</p>
+              <p className="mt-0.5 font-medium">{focusSource.title}</p>
+              <p className="mt-0.5 flex items-center gap-1.5 text-sm text-graphite">
+                <EngineDot name={focusSource.engine} />
+                {engineLabel(focusSource.engine)}, {domain(focusSource.url)}
+              </p>
+            </div>
+          )}
         </div>
 
-        <div className="flex-1 overflow-y-auto px-7 py-6">
+        <div ref={bodyRef} className="flex-1 overflow-y-auto px-7 py-6">
           {error && <ErrorBox message={error} />}
-          {!error && !trail && <p className="text-muted">Loading the trail...</p>}
-          {trail && trail.steps.length === 0 && <p className="text-muted">No steps were recorded.</p>}
+          {!error && !trail && <p className="text-graphite">Loading the trail.</p>}
+          {trail && steps.length === 0 && <p className="text-graphite">No steps were recorded for this one.</p>}
           {trail && (
-            <ol className="relative">
-              {trail.steps.map((s, i) => {
-                const k = KIND[s.kind] ?? KIND.llm;
+            <ol>
+              {steps.map((s, i) => {
                 const hit = focusUrls.length > 0 && (s.urls ?? []).some((u) => focusUrls.includes(u));
+                const { telem, tavily } = splitEngines(s.engines);
                 return (
-                  <li key={i} className="relative flex gap-4 pb-7 last:pb-0">
-                    {i < trail.steps.length - 1 && (
-                      <span className="absolute left-[17px] top-9 h-[calc(100%-2.25rem)] w-px bg-line" />
-                    )}
+                  <li
+                    key={i}
+                    data-hit={hit}
+                    className={`relative grid grid-cols-[2.25rem_minmax(0,1fr)] gap-3 pb-6 last:pb-0 ${
+                      hit ? "-mx-3 bg-cobalt-soft px-3 pt-3 ring-1 ring-cobalt/30" : ""
+                    }`}
+                  >
                     <span
-                      className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-bold ${k.tone}`}
+                      className={`tnum flex h-7 w-7 items-center justify-center rounded-full text-xs font-semibold ${
+                        s.kind === "llm" ? "bg-ink text-white" : s.kind === "search" ? "border-2 border-cobalt text-cobalt" : "border-2 border-ink text-ink"
+                      }`}
                     >
-                      {k.short}
+                      {i + 1}
                     </span>
-                    <div
-                      className={`min-w-0 flex-1 rounded-xl ${hit ? "-m-2 bg-accent-soft p-2 ring-1 ring-accent/40" : ""}`}
-                    >
+                    <div className="min-w-0">
                       <div className="flex items-baseline justify-between gap-3">
-                        <div className="min-w-0">
-                          <span className="mr-2 text-xs font-semibold uppercase tracking-wide text-muted">
-                            {k.label}
-                          </span>
-                          <span className="font-medium">{s.label}</span>
-                        </div>
-                        <span className="shrink-0 font-mono text-sm text-muted">{fmtMs(s.ms)}</span>
+                        <p className="min-w-0">
+                          <span className="mr-2 text-sm text-graphite">{KIND[s.kind] ?? s.kind}</span>
+                          {s.kind === "search" ? (
+                            <span className="break-words font-mono text-[0.9rem]">{s.query ?? s.label}</span>
+                          ) : (
+                            <span className="font-medium">{s.label}</span>
+                          )}
+                        </p>
+                        <span className="tnum shrink-0 text-sm text-graphite">{fmtMs(s.ms)}</span>
                       </div>
-                      {hit && <p className="mt-1 text-sm font-medium text-accent">This step found the cited source</p>}
+                      {hit && <p className="mt-1 text-sm font-medium text-cobalt">This search found the cited source</p>}
+                      {s.routing && s.routing.length > 0 && (
+                        <p className="mt-1 text-sm text-cobalt">
+                          Telem&rsquo;s router chose {s.routing.map(engineLabel).join(", ")}
+                        </p>
+                      )}
 
                       {s.engines && s.engines.length > 0 && (
-                        <div className="mt-3 flex flex-wrap gap-2">
-                          {s.engines.map((en, j) => (
-                            <span
-                              key={j}
-                              title={en.error}
-                              className={`rounded-full border px-3 py-1 text-sm ${
-                                en.error
-                                  ? "border-red-300 bg-red-50 text-red-800"
-                                  : "border-line bg-soft text-foreground"
-                              }`}
-                            >
-                              <span className="font-semibold">{en.name}</span>
-                              <span className="ml-2 font-mono text-xs text-muted">{fmtMs(en.latency_ms)}</span>
-                              <span className="ml-2 text-xs text-muted">
-                                {en.error ? `error: ${en.error}` : `${en.n_results} results`}
-                              </span>
-                            </span>
-                          ))}
+                        <div className="mt-3 space-y-3">
+                          {telem.length > 0 && (
+                            <div>
+                              <p className="mb-1.5 text-sm text-graphite">
+                                {s.kind === "search" ? "Telem routed to" : "Telem"}
+                              </p>
+                              <div className="grid grid-cols-2 gap-x-6 gap-y-2 sm:grid-cols-3">
+                                {telem.map((e, j) => (
+                                  <EngineBar key={j} e={e} scale={scale} />
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                          {tavily.length > 0 && (
+                            <div className="grid grid-cols-2 gap-x-6 sm:grid-cols-3">
+                              {tavily.map((e, j) => (
+                                <EngineBar key={j} e={e} scale={scale} />
+                              ))}
+                            </div>
+                          )}
+                          {s.engines
+                            .filter((e) => e.error)
+                            .map((e, j) => (
+                              <p key={`err${j}`} className="text-sm text-graphite">
+                                {engineLabel(e.name)} failed: {e.error}
+                              </p>
+                            ))}
                         </div>
                       )}
 
                       {s.urls && s.urls.length > 0 && (
-                        <ul className="mt-3 space-y-1">
-                          {s.urls.map((u) => (
-                            <li key={u} className="truncate text-sm">
-                              <a
-                                href={u}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className={`hover:underline ${focusUrls.includes(u) ? "font-semibold text-accent" : "text-muted"}`}
-                              >
-                                {domain(u)}
-                                <span className="text-muted/70">{u.replace(/^https?:\/\/[^/]+/, "")}</span>
-                              </a>
-                            </li>
-                          ))}
-                        </ul>
+                        <details className="mt-3 text-sm" open={hit}>
+                          <summary className="cursor-pointer text-graphite hover:text-ink">
+                            {s.urls.length} page{s.urls.length === 1 ? "" : "s"}
+                          </summary>
+                          <ul className="mt-2 space-y-1">
+                            {s.urls.map((u) => (
+                              <li key={u} className="truncate">
+                                <a
+                                  href={u}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className={`hover:underline ${focusUrls.includes(u) ? "font-semibold text-cobalt" : "text-ink"}`}
+                                >
+                                  {domain(u)}
+                                  <span className="text-faint">{u.replace(/^https?:\/\/[^/]+/, "")}</span>
+                                </a>
+                              </li>
+                            ))}
+                          </ul>
+                        </details>
                       )}
 
                       {s.telem_session_id && (
-                        <p className="mt-3 text-xs text-muted">
+                        <p className="mt-2 text-sm text-faint">
                           Telem session <span className="font-mono">{s.telem_session_id}</span>
                         </p>
                       )}

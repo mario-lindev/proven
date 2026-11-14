@@ -33,6 +33,8 @@
       <button type="submit" data-depth="quick" class="ghost" title="Faster, fewer searches">Quick</button>
     </form>
     <div id="heard" class="heard" hidden></div>
+    <button id="audit" class="audit" type="button" disabled title="Pitch Audit: check every claim on the page in this tab">Audit this page</button>
+    <div id="auditHint" class="heard"></div>
   </section>
 
   <section>
@@ -66,7 +68,7 @@
     <summary>Settings</summary>
     <label class="field">
       <span>Proven server URL</span>
-      <input id="base" type="url" placeholder="http://localhost:3000">
+      <input id="base" type="url" placeholder="http://localhost:3313">
     </label>
     <div class="row">
       <button id="save" type="button">Save</button>

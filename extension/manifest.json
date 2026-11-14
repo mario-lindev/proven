@@ -3,7 +3,7 @@
   "name": "Proven",
   "version": "0.1.0",
   "description": "Checks a founder's factual claims live during Google Meet and Zoom calls, with sources.",
-  "permissions": ["sidePanel", "storage", "activeTab", "scripting"],
+  "permissions": ["sidePanel", "storage", "activeTab", "tabs", "scripting"],
   "host_permissions": [
     "https://meet.google.com/*",
     "https://*.zoom.us/*",

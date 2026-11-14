@@ -18,7 +18,7 @@ Read this first, every time. This file is for people (Rishith, Aarav, Mario) and
 ### Brief for Aarav's agent (paste this)
 
 > You are working on Proven, a hackathon project. Read AGENTS.md fully first. You own ONLY `lib/search/` and `fixtures/`. Do not edit any other file; if you need a change elsewhere, stop and tell me.
-> Build `lib/search/index.ts` exporting exactly the functions in AGENTS.md §7: `searchAll`, `extract`, `watch`, `pollWatch`, `newTrail`, with the types from `lib/types.ts`.
+> Build `lib/search/index.ts` exporting exactly the functions in AGENTS.md §7: `searchAll`, `extract`, `watch`, `pollWatch` (newTrail is already in lib/store.ts), with the types from `lib/types.ts`.
 > - `lib/search/telem.ts`: `POST https://router.telem.ai/v1/search` with `user_input` as a list of `{query}` (batch), `search: { auto_routing: "accuracy", num_results: 5, tier: "default" }`, Bearer `TELEM_API_KEY`. Results are in `preprocessor_runs[].output_payload.results[]`; the engine name is `preprocessor_runs[].preprocessor_name`; `batch_index` says which query. Also `/v1/fetch` and `/v1/monitors` (+ `/poll`) per §7.
 > - `lib/search/tavily.ts`: `POST https://api.tavily.com/search` and `/extract`, Bearer `TAVILY_API_KEY`. Check docs.tavily.com for exact fields.
 > - `searchAll` runs Telem (one batch call) and Tavily (one call per query) in parallel, merges, dedupes by URL, ids `s1..sN`, max 20 sources, and records one `search` TrailStep per query with each engine's name, latency_ms, result count and error.

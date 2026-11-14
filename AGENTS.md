@@ -19,7 +19,7 @@ Read this first, every time. This file is for people (Rishith, Aarav, Mario) and
 
 > You are working on Proven, a hackathon project. Read AGENTS.md fully first. You own ONLY `lib/search/` and `fixtures/`. Do not edit any other file; if you need a change elsewhere, stop and tell me.
 > Build `lib/search/index.ts` exporting exactly the functions in AGENTS.md §7: `searchAll`, `extract`, `watch`, `pollWatch` (newTrail is already in lib/store.ts), with the types from `lib/types.ts`.
-> - `lib/search/telem.ts`: `POST https://router.telem.ai/v1/search` with `user_input` as a list of `{query}` (batch), `search: { auto_routing: "accuracy", num_results: 5, tier: "default" }`, Bearer `TELEM_API_KEY`. Results are in `preprocessor_runs[].output_payload.results[]`; the engine name is `preprocessor_runs[].preprocessor_name`; `batch_index` says which query. Also `/v1/fetch` and `/v1/monitors` (+ `/poll`) per §7.
+> - `lib/search/telem.ts`: `POST https://hack.telem.ai/api/v1/search` with `user_input` as a list of `{query}` (batch), `search: { auto_routing: "accuracy", num_results: 5, tier: "default" }`, Bearer `TELEM_API_KEY`. Results are in `preprocessor_runs[].output_payload.results[]`; the engine name is `preprocessor_runs[].preprocessor_name`; `batch_index` says which query. Also `/v1/fetch` and `/v1/monitors` (+ `/poll`) per §7.
 > - `lib/search/tavily.ts`: `POST https://api.tavily.com/search` and `/extract`, Bearer `TAVILY_API_KEY`. Check docs.tavily.com for exact fields.
 > - `searchAll` runs Telem (one batch call) and Tavily (one call per query) in parallel, merges, dedupes by URL, ids `s1..sN`, max 20 sources, and records one `search` TrailStep per query with each engine's name, latency_ms, result count and error.
 > - Every failure returns a clear error; never invent results.
@@ -91,7 +91,10 @@ Rules for ownership:
 
 - **Next.js (App Router) + TypeScript**, one repo, one `npm run dev`. API routes in `app/api/*`. Deploy on Vercel.
 - **Claude** through `@anthropic-ai/sdk`, model `claude-opus-5-5`. Structured output (`output_config.format` with a JSON schema) so the brain always returns JSON matching `lib/types.ts`. Live checks use `effort: "low"` for speed; the memo uses default effort.
-- **Telem** REST: `https://router.telem.ai/v1/search`, `/v1/fetch`, `/v1/monitors` (details in §7).
+- **Telem platform:** https://hack.telem.ai/
+- **Telem documentation:** https://hack.telem.ai/doc
+- **Telem REST base URL:** `https://hack.telem.ai/api`. SDK users set `TELEM_BASE_URL=https://hack.telem.ai/api`. See §7 for route details.
+- **Telem MCP server:** https://hack.telem.ai/mcp
 - **Tavily** REST: `https://api.tavily.com/search`, `/extract`.
 - **Live Room speech:** the browser Web Speech API (`webkitSpeechRecognition`) in Chrome. No paid speech service.
 - **Storage:** in memory (a `Map` in `lib/store.ts`) for memos and trails. No database today.
@@ -200,7 +203,7 @@ Verified Telem facts (docs, today):
 - `routing` is one entry per query when auto-routing is on. Show it in the trail if present.
 - `/v1/fetch`: `{ "urls": [...], "options": { "tier": "default" } }`, one document per URL; failed URLs come back as their own rows.
 - Monitors: `POST /v1/monitors` `{ "query": "...", "options": { "frequency": "1h" }, "ttl": "30d" }`. **Fastest run is hourly** and there is no "fire now" for polls, so create the demo watch **early (by 1 PM)** so a real update exists by judging. `POST /v1/monitors/{id}/poll` returns results new since the last poll.
-- Hard-to-reach platforms (LinkedIn, TikTok, WeChat...): list in docs.telem.ai/resources/supported-platforms. Use them for the competitor and hiring queries. That is our "hard to build without Telem" proof.
+- Hard-to-reach platforms (LinkedIn, TikTok, WeChat...): see the [hackathon documentation](https://hack.telem.ai/doc). Use them for the competitor and hiring queries. That is our "hard to build without Telem" proof.
 
 Tavily (check docs.tavily.com if anything fails): `POST https://api.tavily.com/search` `{ query, max_results, topic }`, `POST https://api.tavily.com/extract` `{ urls }`, key as `Authorization: Bearer`.
 
@@ -254,7 +257,7 @@ If a checkpoint slips by more than 15 minutes, cut scope (§12), don't push the 
 |---|---|---|---|
 | Rishith | Scaffold done: types, store, mock API routes, fixtures, lib/brain (memo + live). Next: test brain with real keys once searchAll lands | 11:58 scaffold | Aarav: searchAll |
 | Aarav | | | |
-| Mario | | | |
+| Mario | Memo, research trail, Live Room and Watch UI against mock fixtures | `mario/start` | Live mode depends on the search and brain integrations |
 
 ## 12. Cut list (if behind, cut from the bottom up)
 

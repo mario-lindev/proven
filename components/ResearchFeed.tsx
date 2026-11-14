@@ -126,14 +126,14 @@ export default function ResearchFeed({
   const llms = steps.filter((s) => s.kind === "llm");
 
   return (
-    <section aria-label="Research progress" className="overflow-hidden rounded-2xl border border-rule bg-surface">
-      <header className="flex flex-wrap items-end justify-between gap-4 border-b border-rule px-4 py-5 sm:gap-6 sm:px-6 md:px-8">
+    <section aria-label="Research progress" className="overflow-hidden workspace-panel">
+      <header className="flex flex-wrap items-end justify-between gap-4 border-b border-rule bg-raised px-4 py-5 sm:gap-6 sm:px-6 md:px-8">
         <div className="min-w-0">
           <p className="text-graphite">
             {running ? "Researching" : failed ? "Stopped researching" : "Researched"}{" "}
             <span className="text-ink">{depth === "deep" ? "in depth" : "quickly"}</span>
           </p>
-          <h2 className="serif mt-1 break-words text-4xl font-semibold tracking-tight">{company}</h2>
+          <h2 className="mt-1 break-words text-2xl font-semibold tracking-tight sm:text-3xl">{company}</h2>
         </div>
         <dl className="grid w-full grid-cols-4 gap-x-2 sm:w-auto sm:gap-x-6 sm:text-right">
           <Stat label="queries" value={stats.queries} />
@@ -159,9 +159,9 @@ export default function ResearchFeed({
                 <span
                   className={`tnum flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold ${
                     isDone
-                      ? "bg-ink text-white"
+                      ? "bg-ink text-paper"
                       : isActive
-                        ? "bg-cobalt text-white"
+                        ? "bg-action text-white"
                         : "border border-rule text-faint"
                   }`}
                 >

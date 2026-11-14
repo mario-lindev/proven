@@ -107,7 +107,7 @@ export default function WatchPanel({ company }: { company: string }) {
   ])).values()].sort((first, second) => second.at.localeCompare(first.at));
 
   return (
-    <section className="rounded-xl border border-rule bg-surface p-5">
+    <section className="workspace-panel p-5">
       <div className="flex items-start justify-between gap-3">
         <div>
           <h3 className="flex items-center gap-2 font-semibold">
@@ -135,7 +135,7 @@ export default function WatchPanel({ company }: { company: string }) {
 
       {watch && (
         <button type="button" onClick={checkNow} disabled={checking || refreshing}
-          className="mt-4 rounded-md border border-ink px-3 py-1.5 text-sm font-semibold hover:bg-ink hover:text-white disabled:opacity-60">
+          className="mt-4 rounded-md border border-ink px-3 py-1.5 text-sm font-semibold hover:bg-ink hover:text-paper disabled:opacity-60">
           {checking ? "Requesting check…" : refreshing ? "Refreshing…" : "Check now"}
         </button>
       )}

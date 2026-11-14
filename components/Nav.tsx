@@ -21,14 +21,14 @@ export default function Nav() {
   }, []);
 
   return (
-    <header className="no-print border-b border-rule bg-surface">
+    <header className="no-print border-b border-rule-soft bg-paper">
       <div className="site-frame flex min-h-[3.8rem] flex-wrap items-center justify-between gap-x-3 gap-y-1 py-2">
         <Link href="/" className="inline-flex min-h-10 items-center gap-2.5" aria-label="Proven home">
-          <svg aria-hidden="true" className="size-7 rounded-md bg-cobalt p-1 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+          <svg aria-hidden="true" className="size-7 rounded-md border border-rule bg-raised p-1 text-ink" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
             <path d="M7 4h7l3 3v13H7z" />
             <path d="m9.5 12.5 1.8 1.8 3.4-4" />
           </svg>
-          <span className="serif text-[1.55rem] font-semibold leading-none tracking-[-0.03em]">Proven</span>
+          <span className="text-lg font-semibold leading-none tracking-[-0.03em]">Proven</span>
         </Link>
         <nav className="ml-auto flex items-center gap-1" aria-label="Main">
           {links.map((l) => {
@@ -38,8 +38,8 @@ export default function Nav() {
                 key={l.href}
                 href={l.href}
                 aria-current={active ? "page" : undefined}
-                className={`inline-flex min-h-10 items-center whitespace-nowrap rounded-lg px-2.5 text-sm font-medium transition-colors sm:px-4 ${
-                  active ? "bg-cobalt-soft text-cobalt" : "text-graphite hover:bg-paper hover:text-ink"
+                className={`inline-flex min-h-10 items-center whitespace-nowrap rounded-md px-2.5 text-sm font-medium transition-colors sm:px-4 ${
+                  active ? "bg-raised text-ink" : "text-graphite hover:bg-raised hover:text-ink"
                 }`}
               >
                 {l.label}
@@ -50,7 +50,7 @@ export default function Nav() {
         {mock && (
           <span
             title="The server is running with MOCK=1 and returning sample data."
-            className="order-last basis-full text-xs font-medium text-dig sm:order-none sm:basis-auto"
+            className="order-last basis-full text-xs font-medium text-dig sm:order-none sm:basis-auto sm:rounded-md sm:border sm:border-rule sm:px-2 sm:py-1"
           >
             Demo data
           </span>

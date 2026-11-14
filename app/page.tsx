@@ -141,21 +141,27 @@ export default function Home() {
   const stats = run ? feedStats(run.steps) : null;
 
   return (
-    <div className="space-y-10">
-      <div className={idle ? "grid items-start gap-9 lg:grid-cols-[minmax(0,1fr)_19rem] lg:gap-12" : ""}>
-        <div className="min-w-0">
-          {idle && (
-            <header className="mb-7">
-              <h1 className="serif max-w-[16ch] text-balance text-[clamp(2.4rem,5vw,4.25rem)] font-semibold leading-[1.02] tracking-[-0.035em]">
-                Know what is true before you commit.
-              </h1>
-              <p className="mt-4 max-w-[35rem] text-pretty text-base leading-relaxed text-graphite sm:text-lg">
-                Name a startup, vendor or market. Telem routes each search, Tavily reads the pages, and Claude writes a memo with a source for every line.
-              </p>
-            </header>
-          )}
+    <div className="space-y-8 sm:space-y-10">
+      {idle && (
+        <header className="research-hero">
+          <h1 className="max-w-[19ch] text-balance text-[clamp(2.4rem,5.2vw,4.5rem)] font-medium leading-[1.03] tracking-[-0.04em]">
+            Know what is true before you commit.
+          </h1>
+          <p className="mt-5 max-w-[57ch] text-pretty text-base leading-relaxed text-graphite sm:text-lg">
+            Research a startup, vendor or market. Get a decision memo that shows the evidence behind every finding.
+          </p>
+        </header>
+      )}
 
-          <form onSubmit={submit} className="no-print research-form" aria-label="Research a company">
+      <section className="workspace-panel no-print overflow-hidden" aria-labelledby="workspace-title">
+        <div className="flex min-h-12 items-center gap-2.5 rounded-t-[inherit] border-b border-rule bg-raised px-4 sm:px-5">
+          <svg aria-hidden="true" className="size-4 text-cobalt" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M4 5h16v14H4zM4 9h16m-11 4h6m-6 3h4" />
+          </svg>
+          <h2 id="workspace-title" className="text-sm font-medium">Research workspace</h2>
+        </div>
+        <div className={idle ? "grid lg:grid-cols-[minmax(0,1fr)_minmax(18rem,0.58fr)]" : undefined}>
+          <form onSubmit={submit} className="research-form min-w-0" aria-label="Research a company">
             <label htmlFor="company" className="block text-sm font-semibold">
               Company, vendor or market
             </label>
@@ -170,7 +176,7 @@ export default function Home() {
                 onChange={(e) => setCompany(e.target.value)}
                 placeholder="e.g. Stripe"
                 autoComplete="off"
-                className="w-full min-w-0 rounded-lg border border-rule bg-surface py-3 pr-3 pl-10 text-base placeholder:text-faint focus:border-cobalt"
+                className="w-full min-w-0 rounded-md border border-rule bg-paper py-3 pr-3 pl-10 text-base placeholder:text-faint focus:border-cobalt"
               />
               <button type="submit" disabled={!company.trim() || running} className="action-primary whitespace-nowrap px-4 sm:px-6">
                 {running ? "Researching" : "Research"}
@@ -187,12 +193,12 @@ export default function Home() {
                   value={context}
                   onChange={(e) => setContext(e.target.value)}
                   placeholder="e.g. Vendor contract"
-                  className="w-full rounded-lg border border-rule bg-surface px-3 py-2.5 text-base placeholder:text-faint focus:border-cobalt"
+                  className="w-full rounded-md border border-rule bg-paper px-3 py-2.5 text-base placeholder:text-faint focus:border-cobalt"
                 />
               </div>
               <fieldset className="min-w-0" disabled={running}>
                 <legend className="mb-2 text-sm font-semibold">Research depth</legend>
-                <div className="grid grid-cols-2 gap-1 rounded-lg bg-paper p-1">
+                <div className="grid grid-cols-2 gap-1 rounded-md border border-rule bg-paper p-0.5">
                   {(["quick", "deep"] as Depth[]).map((d) => (
                     <label key={d} className="relative cursor-pointer">
                       <input
@@ -203,9 +209,9 @@ export default function Home() {
                         checked={depth === d}
                         onChange={() => setDepth(d)}
                       />
-                      <span className="flex min-h-10 items-center justify-center gap-2 whitespace-nowrap rounded-md px-2.5 text-sm font-medium text-graphite peer-checked:bg-cobalt-soft peer-checked:text-cobalt peer-focus-visible:outline-2 peer-focus-visible:outline-cobalt peer-disabled:cursor-default">
+                      <span className="flex min-h-9 items-center justify-center gap-2 whitespace-nowrap rounded-md px-2.5 text-sm font-medium text-graphite peer-checked:bg-cobalt-soft peer-checked:text-cobalt peer-focus-visible:outline-2 peer-focus-visible:outline-cobalt peer-disabled:cursor-default">
                         {d === "quick" ? "Quick" : "Deep"}
-                        <span className="hidden font-normal text-graphite xl:inline">{d === "quick" ? "1 round" : "2 rounds"}</span>
+                        <span className="hidden font-normal text-graphite sm:inline">{d === "quick" ? "1 round" : "2 rounds"}</span>
                       </span>
                     </label>
                   ))}
@@ -229,14 +235,14 @@ export default function Home() {
               </div>
             )}
           </form>
-        </div>
 
-        {idle && <RecentMemos refreshKey={historyKey} />}
-      </div>
+          {idle && <RecentMemos refreshKey={historyKey} />}
+        </div>
+      </section>
 
       {idle && (
-        <section aria-labelledby="workflow-title" className="border-t border-rule pt-6">
-          <h2 id="workflow-title" className="serif text-2xl font-semibold tracking-tight">How research works</h2>
+        <section aria-labelledby="workflow-title" className="border-y border-rule py-5">
+          <h2 id="workflow-title" className="text-sm font-semibold">How research works</h2>
           <ol className="mt-4 grid gap-5 sm:grid-cols-3 sm:gap-8">
             {[
               ["Plan", "Claude breaks the question into searches for funding, competitors, hiring, lawsuits and sentiment."],
@@ -244,7 +250,7 @@ export default function Home() {
               ["Prove", "The memo keeps findings with sources. Open the trail to see the searches behind each finding."],
             ].map(([title, description]) => (
               <li key={title} className="border-l border-rule pl-4">
-                <h3 className="font-semibold">{title}</h3>
+                <h3 className="text-sm font-medium">{title}</h3>
                 <p className="mt-1 max-w-[31ch] text-sm leading-relaxed text-graphite">{description}</p>
               </li>
             ))}

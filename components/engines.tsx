@@ -25,11 +25,11 @@ export const isTavily = (name: string) => name.toLowerCase() === "tavily";
 
 export function engineColor(name: string) {
   const n = name.toLowerCase();
-  if (isTavily(n)) return "#14202b";
-  if (HUES[n]) return HUES[n];
+  if (isTavily(n)) return "var(--color-ink)";
+  if (HUES[n]) return `color-mix(in oklab, ${HUES[n]} 72%, var(--color-ink))`;
   let h = 0;
   for (const c of n) h = (h * 31 + c.charCodeAt(0)) >>> 0;
-  return SPARE[h % SPARE.length];
+  return `color-mix(in oklab, ${SPARE[h % SPARE.length]} 72%, var(--color-ink))`;
 }
 
 export const engineLabel = (name: string) => (isTavily(name) ? "Tavily" : name.replace(/_/g, " "));
@@ -67,7 +67,7 @@ export function EngineBar({ e, scale, animate = false }: { e: Engine; scale: num
       <div className="mt-1 h-[3px] w-full bg-rule-soft">
         <div
           className={`h-full ${animate ? "bar-in" : ""}`}
-          style={{ width: `${pct}%`, background: e.error ? "#8c96a0" : color }}
+          style={{ width: `${pct}%`, background: e.error ? "var(--color-faint)" : color }}
         />
       </div>
     </div>

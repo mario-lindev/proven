@@ -84,12 +84,12 @@ export default function TrailDrawer({
       aria-labelledby="trail-title"
       onCancel={(event) => { event.preventDefault(); onClose(); }}
       onClick={(event) => { if (event.target === event.currentTarget) onClose(); }}
-      className="no-print fixed inset-y-0 right-0 left-auto m-0 h-dvh max-h-none w-full max-w-[44rem] overflow-hidden bg-surface text-ink shadow-2xl sm:rounded-l-2xl backdrop:bg-ink/35"
+      className="no-print fixed inset-y-0 right-0 left-auto m-0 h-dvh max-h-none w-full max-w-[44rem] overflow-hidden bg-surface text-ink shadow-2xl sm:rounded-l-2xl backdrop:bg-black/70"
     >
       <aside className="drawer-in flex h-full flex-col">
         <div className="border-b border-rule px-4 pb-4 pt-5 sm:px-7">
           <div className="flex items-start justify-between gap-4">
-            <h2 id="trail-title" className="serif text-3xl font-semibold tracking-tight">
+            <h2 id="trail-title" className="text-3xl font-semibold tracking-tight">
               How Proven reached this
             </h2>
             <button
@@ -146,7 +146,7 @@ export default function TrailDrawer({
                   >
                     <span
                       className={`tnum flex h-7 w-7 items-center justify-center rounded-full text-xs font-semibold ${
-                        s.kind === "llm" ? "bg-ink text-white" : s.kind === "search" ? "border-2 border-cobalt text-cobalt" : "border-2 border-ink text-ink"
+                        s.kind === "llm" ? "bg-ink text-paper" : s.kind === "search" ? "border-2 border-cobalt text-cobalt" : "border-2 border-ink text-ink"
                       }`}
                     >
                       {i + 1}

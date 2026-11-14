@@ -34,7 +34,7 @@ export default function SourceChip({
         onKeyDown={(e) => e.key === "Escape" && setOpen(false)}
         aria-describedby={open ? id : undefined}
         aria-label={`Source ${n}: ${source.title}`}
-        className="tnum relative -top-[0.2em] ml-1 inline-flex h-[1.35rem] min-w-[1.35rem] items-center justify-center rounded-[3px] border border-cobalt/30 bg-cobalt-soft px-1 font-sans text-[0.72rem] font-semibold text-cobalt transition-colors hover:border-cobalt hover:bg-cobalt hover:text-white"
+        className="tnum relative -top-[0.2em] ml-1 inline-flex h-[1.35rem] min-w-[1.35rem] items-center justify-center rounded-[3px] border border-cobalt/30 bg-cobalt-soft px-1 font-sans text-[0.72rem] font-semibold text-cobalt transition-colors hover:border-cobalt hover:bg-action hover:text-white"
       >
         {n}
       </button>
@@ -42,13 +42,13 @@ export default function SourceChip({
         <span
           id={id}
           role="tooltip"
-          className="no-print absolute bottom-full left-1/2 z-30 mb-2 hidden w-[20rem] rounded-xl sm:block -translate-x-1/2 border border-rule bg-surface p-4 text-left font-sans shadow-[0_12px_32px_-12px_rgba(20,32,43,0.35)]"
+          className="no-print absolute bottom-full left-1/2 z-30 mb-2 hidden w-[20rem] rounded-xl sm:block -translate-x-1/2 border border-rule bg-surface p-4 text-left font-sans shadow-lg"
         >
           <span className="flex items-center justify-between gap-3 text-sm text-graphite">
             <span className="truncate">{domain(source.url)}</span>
             {source.published && <span className="tnum shrink-0">{fmtDate(source.published)}</span>}
           </span>
-          <span className="serif mt-1.5 block text-[1.05rem] font-semibold leading-snug text-ink">{source.title}</span>
+          <span className="mt-1.5 block text-[1.05rem] font-semibold leading-snug text-ink">{source.title}</span>
           {source.snippet && (
             <span className="mt-2 line-clamp-3 block text-sm leading-relaxed text-graphite">{source.snippet}</span>
           )}

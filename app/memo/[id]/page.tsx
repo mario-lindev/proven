@@ -51,7 +51,7 @@ export default function MemoPage({ params }: { params: Promise<{ id: string }> }
   if (state.kind === "missing") {
     return (
       <div className="max-w-[40rem] pt-10">
-        <h1 className="serif text-5xl font-semibold tracking-tight">This memo isn&rsquo;t here</h1>
+        <h1 className="text-5xl font-semibold tracking-tight">This memo isn&rsquo;t here</h1>
         <p className="mt-4 text-lg leading-relaxed text-graphite">
           The link may be wrong, or the memo was made on another server. Research the company again to get a fresh memo
           with its sources.

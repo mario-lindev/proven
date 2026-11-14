@@ -215,7 +215,7 @@ export default function LiveRoom() {
     <div className="space-y-8">
       <header className="flex flex-wrap items-end justify-between gap-6">
         <div>
-          <h1 className="serif text-[clamp(2.4rem,5vw,3.6rem)] font-semibold leading-none tracking-[-0.035em]">Live Room</h1>
+          <h1 className="text-4xl font-medium sm:text-5xl leading-none tracking-[-0.035em]">Live Room</h1>
           <p className="mt-3 max-w-[38rem] text-pretty text-base leading-relaxed text-graphite sm:text-lg">
             Proven listens to the pitch and checks each factual claim against the web while the founder is still talking.
           </p>
@@ -236,11 +236,11 @@ export default function LiveRoom() {
               type="button"
               onClick={listening ? stop : start}
               disabled={supported === null}
-              className={`flex min-h-11 items-center gap-2.5 rounded-lg px-4 py-2.5 font-semibold text-white disabled:opacity-50 ${
-                listening ? "bg-pass hover:bg-pass/85" : "bg-cobalt hover:bg-ink"
+              className={`flex min-h-11 items-center gap-2.5 rounded-lg px-4 py-2.5 font-semibold disabled:opacity-50 ${
+                listening ? "border border-pass/30 bg-pass-soft text-pass hover:border-pass" : "bg-action text-white hover:bg-action-hover"
               }`}
             >
-              <span className="size-2 rounded-full bg-white" aria-hidden />
+              <span className="size-2 rounded-full bg-current" aria-hidden />
               {listening ? "Stop listening" : "Start listening"}
             </button>
           )}
@@ -257,8 +257,8 @@ export default function LiveRoom() {
       {error && <ErrorBox message={error} />}
 
       <div className="grid items-start gap-7 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)]">
-        <section aria-labelledby="transcript-title" className="flex min-w-0 flex-col rounded-2xl border border-rule bg-surface">
-          <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-b border-rule px-4 py-3 sm:px-5">
+        <section aria-labelledby="transcript-title" className="flex min-w-0 flex-col workspace-panel">
+          <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 rounded-t-[inherit] border-b border-rule bg-raised px-4 py-3 sm:px-5">
             <h2 id="transcript-title" className="font-semibold">
               Transcript
             </h2>
@@ -266,11 +266,11 @@ export default function LiveRoom() {
           </div>
           <div ref={scrollRef} className="h-[26vh] min-h-40 overflow-y-auto px-4 py-5 sm:h-[40vh] sm:min-h-56 sm:px-5" aria-live="off">
             {log.length === 0 && !interim ? (
-              <p className="serif max-w-[33ch] text-xl leading-relaxed text-graphite">
+              <p className="max-w-[39ch] text-base leading-relaxed text-graphite">
                 {listening ? "Listening. Start the pitch." : "Press Start listening and begin the pitch, or type a claim below."}
               </p>
             ) : (
-              <p className="serif break-words text-xl leading-relaxed sm:text-2xl">
+              <p className="break-words text-xl leading-relaxed sm:text-2xl">
                 {log.slice(-30).map((l, i) => {
                   const c = matchCheck(l.text, checks);
                   const v = c ? VERDICT[c.verdict] ?? VERDICT.unclear : null;
@@ -302,7 +302,7 @@ export default function LiveRoom() {
               value={typed}
               onChange={(e) => setTyped(e.target.value)}
               placeholder="Type a claim to check"
-              className="min-w-0 rounded-lg border border-rule bg-surface px-3 py-2.5 text-base placeholder:text-faint focus:border-cobalt"
+              className="min-w-0 rounded-lg border border-rule bg-paper px-3 py-2.5 text-base placeholder:text-faint focus:border-cobalt"
             />
             <button
               type="submit"
@@ -316,7 +316,7 @@ export default function LiveRoom() {
 
         <section aria-labelledby="claims-title" className="min-w-0">
           <div className="mb-4 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 border-b border-rule pb-3">
-            <h2 id="claims-title" className="serif text-2xl font-semibold tracking-tight">
+            <h2 id="claims-title" className="text-2xl font-semibold tracking-tight">
               Claims checked
             </h2>
             <span className="tnum flex flex-wrap gap-x-3 gap-y-1 text-sm">
@@ -342,9 +342,9 @@ export default function LiveRoom() {
             {checks.map((c) => {
               const v = VERDICT[c.verdict] ?? VERDICT.unclear;
               return (
-                <article key={c.id + c.claim} className={`row-in rounded-xl border border-rule bg-surface px-4 py-4 sm:px-5`}>
+                <article key={c.id + c.claim} className={`row-in workspace-panel px-4 py-4 sm:px-5`}>
                   <p className={`text-sm font-semibold ${v.text}`}>{v.label}</p>
-                  <p className="serif mt-2 break-words text-[1.35rem] font-medium leading-snug">&ldquo;{c.claim}&rdquo;</p>
+                  <p className="mt-2 break-words text-[1.35rem] font-medium leading-snug">&ldquo;{c.claim}&rdquo;</p>
                   <p className="mt-2 text-base leading-relaxed text-graphite">{c.note}</p>
                   {c.sources.length > 0 && (
                     <ul className="mt-4 space-y-1.5 border-t border-rule-soft pt-3">

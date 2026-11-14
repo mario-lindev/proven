@@ -101,7 +101,7 @@ export default function MemoView({ memo, trail: preloaded }: { memo: Memo; trail
                 aria-hidden
                 className={`mt-[0.6em] h-[7px] w-[7px] shrink-0 rounded-full ${kind === "risk" ? "bg-pass" : "bg-ink"}`}
               />
-              <p className="serif min-w-0 break-words text-[1.18rem] leading-[1.55]">
+              <p className="min-w-0 break-words text-base leading-relaxed">
                 <button
                   type="button"
                   onClick={() => openLine(l.source_ids)}
@@ -134,12 +134,12 @@ export default function MemoView({ memo, trail: preloaded }: { memo: Memo; trail
 
       <header className="grid gap-6 border-b border-rule pb-7 lg:grid-cols-[minmax(0,1fr)_20rem]">
         <div className="min-w-0">
-          <h1 className="serif break-words text-[clamp(2.4rem,5vw,3.6rem)] font-semibold leading-[1.02] tracking-[-0.035em]">{memo.company}</h1>
-          <p className="serif mt-4 max-w-[42rem] text-xl leading-relaxed text-ink/90 sm:text-[1.35rem]">{memo.summary}</p>
+          <h1 className="break-words text-4xl font-medium sm:text-5xl leading-[1.02] tracking-[-0.035em]">{memo.company}</h1>
+          <p className="mt-4 max-w-[42rem] text-lg leading-relaxed text-graphite">{memo.summary}</p>
         </div>
-        <div className={`print-plain self-start rounded-2xl ${v.bg} px-5 py-4`}>
+        <div className={`print-plain self-start rounded-xl border border-rule ${v.bg} px-5 py-4`}>
           <p className="text-graphite">Verdict</p>
-          <p className={`serif text-[2.5rem] font-semibold leading-tight ${v.text}`}>{v.label}</p>
+          <p className={`text-3xl font-medium leading-tight ${v.text}`}>{v.label}</p>
           <div className="mt-3 flex items-baseline justify-between text-sm">
             <span className="text-graphite">Confidence</span>
             <span className="tnum text-lg font-semibold">{pct}%</span>
@@ -189,7 +189,7 @@ export default function MemoView({ memo, trail: preloaded }: { memo: Memo; trail
                 {memo.open_questions.map((q, i) => (
                   <li key={i} className="grid grid-cols-[1.75rem_minmax(0,1fr)] gap-2">
                     <span className="tnum pt-[0.2em] text-graphite">{i + 1}.</span>
-                    <p className="serif text-[1.18rem] leading-[1.55]">{q}</p>
+                    <p className="text-base leading-relaxed">{q}</p>
                   </li>
                 ))}
               </ol>
@@ -199,7 +199,7 @@ export default function MemoView({ memo, trail: preloaded }: { memo: Memo; trail
 
         <aside className="min-w-0 space-y-8">
           {trail && stats && (
-            <section className="no-print rounded-xl border border-rule bg-surface p-5">
+            <section className="no-print workspace-panel p-5">
               <h3 className="font-semibold">The research behind it</h3>
               <dl className="tnum mt-3 grid grid-cols-3 gap-3">
                 {[
@@ -286,7 +286,7 @@ export default function MemoView({ memo, trail: preloaded }: { memo: Memo; trail
 
 function SectionTitle({ title, count }: { title: string; count: number }) {
   return (
-    <h2 className="serif mb-2 flex items-baseline gap-2 border-b border-rule pb-2 text-2xl font-semibold tracking-tight">
+    <h2 className="mb-2 flex items-baseline gap-2 border-b border-rule pb-2 text-lg font-semibold tracking-tight">
       {title}
       <span className="tnum text-sm font-normal text-graphite">{count}</span>
     </h2>

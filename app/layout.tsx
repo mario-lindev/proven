@@ -1,18 +1,11 @@
 import type { Metadata } from "next";
-import { IBM_Plex_Mono, IBM_Plex_Sans, Source_Serif_4 } from "next/font/google";
+import { IBM_Plex_Mono, Inter } from "next/font/google";
 import Nav from "@/components/Nav";
 import "./globals.css";
 
-const sans = IBM_Plex_Sans({
-  variable: "--font-plex-sans",
+const sans = Inter({
+  variable: "--font-inter",
   subsets: ["latin"],
-  weight: ["400", "500", "600"],
-});
-
-const serif = Source_Serif_4({
-  variable: "--font-source-serif",
-  subsets: ["latin"],
-  axes: ["opsz"],
 });
 
 const mono = IBM_Plex_Mono({
@@ -33,9 +26,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${sans.variable} ${serif.variable} ${mono.variable} antialiased bg-paper text-ink`}>
+      <body className={`${sans.variable} ${mono.variable} antialiased bg-paper text-ink`}>
         <Nav />
-        <main className="site-frame pb-16 pt-8 sm:pt-12">{children}</main>
+        <main className="site-frame pb-16 pt-8 sm:pt-11">{children}</main>
       </body>
     </html>
   );

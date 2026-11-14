@@ -267,7 +267,7 @@ If a checkpoint slips by more than 15 minutes, cut scope (§12), don't push the 
 |---|---|---|---|
 | Rishith | Integrated main: brain (deep 2-round memo + live), search layer, UI, docs, Chrome extension (Meet/Zoom captions → side panel). PRs #1 and #2 closed in favor of main: **pull main before your next change**. Next: first real-key run | 12:50 extension | keys |
 | Aarav | Search layer first version merged (Telem + Tavily, offline checks pass). Next: run `npx tsx --env-file=.env.local scripts/try-search.ts` with real keys and fix any shape differences | 12:20 | keys |
-| Mario | Refined the Research, memo, evidence trail, and Live Room layouts for desktop and mobile | `mario/refine` | Live microphone and provider verification |
+| Mario | Styled Research, memos, evidence trails, and Live Room with a Linear-inspired dark theme | `mario/refine` | Live microphone and provider verification |
 
 ## 12. Cut list (if behind, cut from the bottom up)
 

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { Watch } from "@/lib/types";
+import SourceLink from "@/components/SourceLink";
 import ErrorBox from "./ErrorBox";
 import { api, errMsg, fmtTime } from "./http";
 
@@ -106,14 +107,11 @@ export default function WatchPanel({ company }: { company: string }) {
               {updates.map((u) => (
                 <li key={`${u.at}|${u.url}|${u.title}`} className="py-3">
                   <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-                    <a
-                      href={u.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
+                    <SourceLink url={u.url}
                       className="font-semibold hover:underline"
                     >
                       {u.title}
-                    </a>
+                    </SourceLink>
                     <span className="shrink-0 text-sm text-muted">{fmtTime(u.at)}</span>
                   </div>
                   <p className="mt-1 text-muted">{u.summary}</p>

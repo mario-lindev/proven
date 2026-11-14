@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { Trail, TrailStep } from "@/lib/types";
+import SourceLink from "@/components/SourceLink";
 import ErrorBox from "./ErrorBox";
 import { api, domain, errMsg, fmtMs } from "./http";
 
@@ -155,15 +156,12 @@ function Drawer({ trailId, focusUrls, onClose }: {
                         <ul className="mt-3 space-y-1">
                           {s.urls.map((u) => (
                             <li key={u} className="truncate text-sm">
-                              <a
-                                href={u}
-                                target="_blank"
-                                rel="noopener noreferrer"
+                              <SourceLink url={u}
                                 className={`hover:underline ${focusUrls.includes(u) ? "font-semibold text-accent" : "text-muted"}`}
                               >
                                 {domain(u)}
                                 <span className="text-muted/70">{u.replace(/^https?:\/\/[^/]+/, "")}</span>
-                              </a>
+                              </SourceLink>
                             </li>
                           ))}
                         </ul>

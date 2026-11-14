@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { ClaimCheck } from "@/lib/types";
+import SourceLink from "@/components/SourceLink";
 import ErrorBox from "@/components/ErrorBox";
 import TrailDrawer from "@/components/TrailDrawer";
 import { api, domain, errMsg } from "@/components/http";
@@ -252,9 +253,9 @@ export default function LiveRoom() {
                   {c.sources.map((s, i) => (
                     <li key={s.id} className="text-base">
                       <span className="mr-2 font-mono text-sm font-semibold text-accent">[{i + 1}]</span>
-                      <a href={s.url} target="_blank" rel="noopener noreferrer" className="hover:underline">
+                      <SourceLink url={s.url} className="hover:underline">
                         {s.title}
-                      </a>
+                      </SourceLink>
                       <span className="ml-2 text-sm text-muted">
                         {domain(s.url)} via {s.engine}
                       </span>

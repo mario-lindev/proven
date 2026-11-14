@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useState } from "react";
 import type { Line, Memo } from "@/lib/types";
+import SourceLink from "./SourceLink";
 import SourceChip from "./SourceChip";
 import TrailDrawer from "./TrailDrawer";
 import WatchPanel from "./WatchPanel";
@@ -134,9 +135,9 @@ export default function MemoView({ memo }: { memo: Memo }) {
             <li key={s.id} className="flex items-baseline gap-4 px-5 py-3">
               <span className="w-8 shrink-0 font-mono text-sm font-semibold text-accent">[{i + 1}]</span>
               <div className="min-w-0 flex-1">
-                <a href={s.url} target="_blank" rel="noopener noreferrer" className="font-medium hover:underline">
+                <SourceLink url={s.url} className="font-medium hover:underline">
                   {s.title}
-                </a>
+                </SourceLink>
                 <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted">
                   <span>{domain(s.url)}</span>
                   <span className="rounded-md bg-soft px-2 py-0.5 text-xs font-semibold uppercase tracking-wide">

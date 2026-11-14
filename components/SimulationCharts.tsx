@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useId, useState } from "react";
 
 type Result = { document: { id: string; title: string }; score: number; features: number[] };
 type Props = { results: Result[]; weights: number[]; enabled: boolean; hasQuery: boolean };
@@ -13,6 +13,8 @@ const signed = (value: number) => (value >= 0 ? "+" : "") + value.toFixed(3);
 
 export default function SimulationCharts({ results, weights, enabled, hasQuery }: Props) {
   const [selected, setSelected] = useState<string | null>(null);
+  const [activeBand, setActiveBand] = useState<number | null>(null);
+  const chartId = useId().replace(/:/g, "");
   const counts = groups.map((_, index) => results.filter(result => groupFor(result.score) === index).length);
   let offset = 0;
   return <section aria-label="Simulation decision charts" className="space-y-6">
@@ -48,24 +50,41 @@ export default function SimulationCharts({ results, weights, enabled, hasQuery }
         <h2 className="text-xl font-semibold">Relevance distribution</h2>
         <p className="mt-2 text-sm text-graphite">Share of synthetic snippets in each score band.</p>
         {!hasQuery ? <p className="py-12 text-center text-graphite">Enter a question to see the chart.</p> : <>
-          <svg viewBox="0 0 220 220" className="mx-auto my-6 w-full max-w-[260px] drop-shadow-lg" role="img" aria-label={groups.map((group, index) => group.label + ": " + counts[index] + " snippets").join("; ")}>
-            <title>Relevance distribution across {results.length} synthetic snippets</title>
-            <circle cx="110" cy="110" r="109" fill="none" stroke="#34323d" strokeWidth="1" />
-            <circle cx="110" cy="110" r="56" fill="#18171f" />
+          <div className="relative my-5 rounded-2xl border border-rule bg-[#111117] px-3 py-6" style={{ backgroundImage: "radial-gradient(ellipse at center, #7464bc18, transparent 70%)" }}>
+          <svg viewBox="0 0 260 260" className="mx-auto w-full max-w-[300px]" role="group" aria-label="Interactive relevance distribution">
+            <title>Relevance bands across {results.length} synthetic snippets</title>
+            <defs>
+              {groups.map((group, index) => <linearGradient key={group.label} id={chartId + "-band-" + index} x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stopColor={group.color} /><stop offset="100%" stopColor={group.color} stopOpacity=".65" /></linearGradient>)}
+              <filter id={chartId + "-glow"} x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="3" result="blur" /><feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge></filter>
+            </defs>
+            <circle cx="130" cy="130" r="119" fill="none" stroke="#36323f" strokeWidth=".7" strokeDasharray="1 6" />
+            <circle cx="130" cy="130" r="94" fill="none" stroke="#22212b" strokeWidth="30" />
+            <circle cx="130" cy="130" r="69" fill="#14131c" stroke="#393345" strokeWidth="1" />
             {groups.map((group, index) => {
               const percentage = results.length ? counts[index] / results.length * 100 : 0;
-              const start = offset;
-              offset += percentage;
-              return percentage > 0 ? <circle key={group.label} cx="110" cy="110" r="85" fill="none" stroke={group.color}
-                className="transition-opacity duration-300 hover:opacity-75" strokeWidth="40" pathLength="100" strokeDasharray={percentage + " " + (100 - percentage)}
-                strokeDashoffset={-start} transform="rotate(-90 110 110)"><title>{group.label}: {counts[index]} snippets</title></circle> : null;
+              const start = offset; offset += percentage;
+              const active = activeBand === index;
+              return percentage > 0 ? <circle key={group.label} cx="130" cy="130" r="94" fill="none"
+                role="button" tabIndex={0} aria-pressed={active} aria-label={group.label + ": " + counts[index] + " snippets. Select to inspect."}
+                onClick={() => setActiveBand(active ? null : index)}
+                onKeyDown={event => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); setActiveBand(active ? null : index); } }}
+                stroke={"url(#" + chartId + "-band-" + index + ")"} strokeWidth={active ? 38 : 30} pathLength="100"
+                strokeDasharray={Math.max(.01, percentage - (percentage < 100 ? 1 : 0)) + " " + (100 - Math.max(.01, percentage - (percentage < 100 ? 1 : 0)))}
+                strokeDashoffset={-start} transform="rotate(-90 130 130)"
+                filter={active ? "url(#" + chartId + "-glow)" : undefined}
+                style={{ cursor: "pointer", opacity: activeBand === null || active ? 1 : .3, transition: "stroke-width .2s, opacity .2s" }}>
+                <title>{group.label}: {counts[index]} snippets</title>
+              </circle> : null;
             })}
-            <text x="110" y="108" textAnchor="middle" fill="currentColor" fontSize="32" fontWeight="600">{results.length}</text>
-            <text x="110" y="132" textAnchor="middle" fill="currentColor" fontSize="12">synthetic snippets</text>
+            <text x="130" y="120" textAnchor="middle" fill="#eeeaf8" fontSize="34" fontWeight="550">{activeBand === null ? results.length : Math.round(counts[activeBand] / Math.max(1, results.length) * 100) + "%"}</text>
+            <text x="130" y="145" textAnchor="middle" fill="#aaa3bb" fontSize="11">{activeBand === null ? "synthetic snippets" : groups[activeBand].label}</text>
+            <text x="130" y="163" textAnchor="middle" fill="#827b95" fontSize="9">{activeBand === null ? "SELECT A SEGMENT" : counts[activeBand] + " of " + results.length + " snippets"}</text>
           </svg>
+          {activeBand !== null && <button type="button" onClick={() => setActiveBand(null)} className="mx-auto mt-3 block rounded-md border border-rule px-3 py-1 text-xs text-graphite">Clear selection</button>}
+          </div>
           <table className="w-full text-sm"><caption className="sr-only">Score bands and counts</caption><thead className="sr-only"><tr><th>Band</th><th>Count</th></tr></thead>
             <tbody>{groups.map((group, index) => <tr key={group.label}><th scope="row" className="py-2 text-left font-normal">
-              <span className="mr-2 inline-block h-2.5 w-2.5 rounded-full" style={{ backgroundColor: group.color }} />{group.label}
+              <button type="button" aria-pressed={activeBand === index} onClick={() => setActiveBand(activeBand === index ? null : index)} className="rounded px-1 py-1 text-left hover:bg-paper"><span className="mr-2 inline-block h-2.5 w-2.5 rounded-full" style={{ backgroundColor: group.color }} />{group.label}</button>
               <span className="block pl-5 text-xs text-graphite">{group.rule}</span>
             </th><td className="text-right font-mono">{counts[index]} · {Math.round(counts[index] / Math.max(1, results.length) * 100)}%</td></tr>)}</tbody>
           </table>
@@ -81,7 +100,7 @@ export default function SimulationCharts({ results, weights, enabled, hasQuery }
               const contributions = result.features.map((value, index) => value * weights[index]);
               const logit = contributions.reduce((sum, value) => sum + value, 0);
               const group = groups[groupFor(result.score)];
-              return <li key={result.document.id}><details key={selected === result.document.id ? "selected" : "collapsed"} open={selected === result.document.id} className="rounded-2xl border border-rule bg-gradient-to-br from-white to-violet-50/40 p-5 shadow-sm">
+              return <li key={result.document.id} style={{ opacity: activeBand === null || groupFor(result.score) === activeBand ? 1 : .35, transition: "opacity .2s" }}><details key={selected === result.document.id ? "selected" : "collapsed"} open={selected === result.document.id} className="rounded-2xl border border-rule bg-gradient-to-br from-white to-violet-50/40 p-5 shadow-sm">
                 <summary className="cursor-pointer font-semibold"><span className="mr-2 font-mono text-sm text-graphite">{enabled ? "Rank" : "Position"} {rank + 1}</span>{result.document.title}
                   <span className="mt-2 block text-sm font-normal" style={{ color: group.color }}>{group.label} · {(result.score * 100).toFixed(1)}/100</span>
                 </summary>

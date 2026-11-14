@@ -6,6 +6,44 @@ Read this first, every time. This file is for people (Rishith, Aarav, Mario) and
 
 ---
 
+## 0. Start here (everyone, first 5 minutes)
+
+1. `git clone https://github.com/mario-lindev/proven && cd proven`
+2. Get keys: Telem at https://hack.telem.ai ($50 free), Tavily with code SEARCHHACK (8,000 credits), Anthropic from Rishith. Put them in `.env.local` (copy `.env.example`). Share keys only by DM, never in the repo.
+3. Rishith pushes the Next.js scaffold by 11:30 (`package.json`, `lib/types.ts`, mock API routes, fixtures). Until then, read this file and do the "before the scaffold" step in your brief below.
+4. After the scaffold: `npm install && npm run dev`, open http://localhost:3000. With `MOCK=1` everything works with no keys.
+5. Make your branch: `git checkout -b <yourname>/start`.
+6. Paste your brief (below) into your coding agent as its first message.
+
+### Brief for Aarav's agent (paste this)
+
+> You are working on Proven, a hackathon project. Read AGENTS.md fully first. You own ONLY `lib/search/` and `fixtures/`. Do not edit any other file; if you need a change elsewhere, stop and tell me.
+> Build `lib/search/index.ts` exporting exactly the functions in AGENTS.md §7: `searchAll`, `extract`, `watch`, `pollWatch`, `newTrail`, with the types from `lib/types.ts`.
+> - `lib/search/telem.ts`: `POST https://router.telem.ai/v1/search` with `user_input` as a list of `{query}` (batch), `search: { auto_routing: "accuracy", num_results: 5, tier: "default" }`, Bearer `TELEM_API_KEY`. Results are in `preprocessor_runs[].output_payload.results[]`; the engine name is `preprocessor_runs[].preprocessor_name`; `batch_index` says which query. Also `/v1/fetch` and `/v1/monitors` (+ `/poll`) per §7.
+> - `lib/search/tavily.ts`: `POST https://api.tavily.com/search` and `/extract`, Bearer `TAVILY_API_KEY`. Check docs.tavily.com for exact fields.
+> - `searchAll` runs Telem (one batch call) and Tavily (one call per query) in parallel, merges, dedupes by URL, ids `s1..sN`, max 20 sources, and records one `search` TrailStep per query with each engine's name, latency_ms, result count and error.
+> - Every failure returns a clear error; never invent results.
+> - Write `scripts/try-search.ts` that runs `searchAll(["Anthropic competitors", "Anthropic funding 2026"])` and prints the sources and trail, so I can test with real keys.
+> Before the scaffold exists: write a plain script with fetch that calls Telem and Tavily once each and prints the raw JSON, to confirm the keys and response shapes.
+
+### Brief for Mario's agent (paste this)
+
+> You are working on Proven, a hackathon project. Read AGENTS.md fully first. You own ONLY `app/` pages (not `app/api/`), `components/`, and styling. Do not edit `lib/` or `app/api/`; if you need a change there, stop and tell me.
+> Build against the API routes in AGENTS.md §6, run with `MOCK=1` so they return fixtures.
+> - `/` (home): one input "Company, vendor or market", a Check button. POST `/api/memo`, show a loading state that lists research steps, then the memo.
+> - Memo view: a big verdict badge (pursue green / dig deeper amber / pass red) with confidence, summary, Facts, Risks, Open questions. Every line shows small numbered source chips; hovering shows title + engine, clicking opens a right-side Trail drawer (GET `/api/trail/[id]`) listing each step: label, engines with latency, URLs.
+> - `/live` (Live Room): a Start listening button using the browser Web Speech API (`webkitSpeechRecognition`, continuous, interim results, Chrome). Show the transcript. Every time a sentence ends, POST the last ~2 sentences to `/api/live`; show each returned ClaimCheck as a card coloured green / red / amber with its note and sources, newest on top. Also a text box to type a claim (backup if the mic fails).
+> - Watch: a button on the memo, POST `/api/watch`, then a panel that polls GET `/api/watch/[id]` every 30 s and lists updates.
+> - Clean, calm, investor-grade look: dark text on white, one accent colour, big readable verdicts (it will be on a projector). Never a blank screen on error; show the error message.
+> Before the scaffold exists: sketch the components with hard-coded data matching the types in AGENTS.md §6.
+> Also own the Devpost page, the slides and the backup video (see §9 and §13).
+
+### Brief for Rishith's agent
+
+> You own `lib/brain/`, `lib/types.ts`, `lib/store.ts`, `app/api/`, `fixtures/` (shared with Aarav) and the scaffold. Build per AGENTS.md §5, §6 and §8.
+
+---
+
 ## 1. What we are building (one paragraph)
 
 Proven tells investors and companies whether a startup, vendor or market is worth pursuing, and shows the evidence behind every conclusion. Type a company name and get a one-page memo (pursue / pass / dig deeper) with fresh facts, risks and open questions, where every line links to its source. Click any line to see the research trail: which searches ran, which engines answered, which page it came from. **Live Room** listens to a pitch and checks claims as they are spoken (green / amber / red). **Watch** keeps tracking a company and reports changes.

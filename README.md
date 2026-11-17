@@ -82,7 +82,11 @@ npm run dev -- -p 3313       # the port the demo uses
 
 Offline, no keys: set `MOCK=1` in `.env.local` (or run `MOCK=1 npm run dev`). API routes then return fixtures from `fixtures/`, and a **Demo data** badge shows next to the logo. Never present mock results as real.
 
-Telem hackathon keys use `https://hack.telem.ai/api`; set `TELEM_BASE_URL` to change it. `TELEM_DILIGENCE=1` turns on extra Telem batches (filings, Reddit, patents); it is off by default and untested against the real API.
+Get your key from the [Telem hackathon platform](https://hack.telem.ai/). See the [hackathon API docs](https://hack.telem.ai/doc) and redeem the SearchHack offer through [Tavily](https://app.tavily.com/redeem/SEARCHHACK).
+
+For live use, copy the public provider settings from `.env.example` into your local or deployment environment. This includes the Telem API and MCP URLs, the Tavily and Anthropic API URLs, and `ANTHROPIC_MODEL`. Store all three API keys in `.env.local` or the deployment’s secret settings.
+
+`TELEM_DILIGENCE=1` turns on extra Telem batches (filings, Reddit, patents); it is off by default and untested against the real API.
 
 Live Room needs real Chrome for the mic. Embedded and IDE browsers can't use it.
 
@@ -94,6 +98,7 @@ Run with `npx tsx`. Scripts that call the real APIs need `--env-file=.env.local`
 |---|---|
 | `npx tsx --env-file=.env.local scripts/try-memo.ts "Company" [quick\|deep]` | One real memo with the verify pass, printed line by line with its quotes. `VERIFY_DEBUG=1` also prints quotes that were not found and the dropped lines. |
 | `npx tsx --env-file=.env.local scripts/try-audit.ts <url \| "pitch text">` | One real Pitch Audit, printed claim by claim as the checks finish. |
+| `npx tsx --env-file=.env.local scripts/check-provider-keys.ts` | Check Telem search and MCP, Tavily account access, and Anthropic model access. Prints status only. Runs one Telem search. |
 | `npx tsx scripts/check-learn.ts` | Offline checks of the learning board and ranking. Synthetic memos, temp directory, no keys. |
 | `npx tsx scripts/check-parse.ts` | Offline tests of the search layer: Telem and Tavily parsing, merge, batches, failures. No keys. |
 | `npx tsx --env-file=.env.local scripts/try-search.ts` | Real-key smoke test of the search layer: Telem batches plus Tavily, one extract, prints sources and the trail. |

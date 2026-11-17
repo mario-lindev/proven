@@ -1,9 +1,9 @@
-// Telem REST: search (batch), fetch, monitors. Docs: https://docs.telem.ai/api/
+// Telem REST: search (batch), fetch, monitors. Docs: https://hack.telem.ai/doc
 import type { Engine, WatchUpdate } from "../types";
+import { providerUrl } from "../provider-config";
 import { clip, errorText, getJSON, needKey, normalizeUrl, postJSON, type Hit } from "./http";
 
-// Hackathon keys work on hack.telem.ai (https://hack.telem.ai/doc). Override with TELEM_BASE_URL.
-const BASE = `${(process.env.TELEM_BASE_URL ?? "https://hack.telem.ai/api").replace(/\/+$/, "")}/v1`;
+const base = () => `${providerUrl("TELEM_BASE_URL")}/v1`;
 
 export type TelemResult = {
   rank?: number;            // per provider, 1-based, in that provider's own order (not a cross-provider score)
@@ -216,11 +216,11 @@ export function telemBasicSearchBody(queries: string[], providers?: string[]) {
 export async function telemSearch(queries: string[], o: TelemSearchOptions = {}): Promise<TelemSearchResponse & { fallback?: string }> {
   const key = needKey("TELEM_API_KEY");
   try {
-    return await postJSON<TelemSearchResponse>("Telem search", `${BASE}/search`, key, telemSearchBody(queries, o));
+    return await postJSON<TelemSearchResponse>("Telem search", `${base()}/search`, key, telemSearchBody(queries, o));
   } catch (err) {
     const status = (err as { status?: number }).status;
     if (status !== 400 && status !== 422) throw err;
-    const resp = await postJSON<TelemSearchResponse>("Telem search", `${BASE}/search`, key, telemBasicSearchBody(queries, o.providers));
+    const resp = await postJSON<TelemSearchResponse>("Telem search", `${base()}/search`, key, telemBasicSearchBody(queries, o.providers));
     return { ...resp, fallback: (err as Error).message };
   }
 }
@@ -235,7 +235,7 @@ export async function telemFetch(
   for (let i = 0; i < urls.length; i += 5) chunks.push(urls.slice(i, i + 5));
   const settled = await Promise.allSettled(
     chunks.map((c) =>
-      postJSON<TelemFetchResponse>("Telem fetch", `${BASE}/fetch`, key, {
+      postJSON<TelemFetchResponse>("Telem fetch", `${base()}/fetch`, key, {
         urls: c,
         options: { tier: "default", content_format: "text" },
         ...(session_id ? { session_id } : {}),
@@ -262,7 +262,7 @@ export async function telemFetch(
 
 export async function telemCreateMonitor(query: string): Promise<TelemMonitor> {
   const key = needKey("TELEM_API_KEY");
-  return postJSON<TelemMonitor>("Telem create monitor", `${BASE}/monitors`, key, {
+  return postJSON<TelemMonitor>("Telem create monitor", `${base()}/monitors`, key, {
     query,
     options: { frequency: "1h" },
     ttl: "30d",
@@ -271,7 +271,7 @@ export async function telemCreateMonitor(query: string): Promise<TelemMonitor> {
 
 export async function telemPollMonitor(monitorId: string): Promise<TelemSearchResponse> {
   const key = needKey("TELEM_API_KEY");
-  return postJSON<TelemSearchResponse>("Telem poll monitor", `${BASE}/monitors/${encodeURIComponent(monitorId)}/poll`, key, {});
+  return postJSON<TelemSearchResponse>("Telem poll monitor", `${base()}/monitors/${encodeURIComponent(monitorId)}/poll`, key, {});
 }
 
 // ---------- monitor agent (docs: Monitors; /poll is the legacy read) ----------
@@ -327,7 +327,7 @@ export function parseTelemChanges(page: TelemChangesPage): { updates: WatchUpdat
 export async function telemTickMonitor(monitorId: string): Promise<{ job_id?: string; already_running?: boolean }> {
   const key = needKey("TELEM_API_KEY");
   try {
-    return await postJSON<{ job_id?: string }>("Telem run monitor", `${BASE}/monitors/${encodeURIComponent(monitorId)}/agent/ticks`, key, {});
+    return await postJSON<{ job_id?: string }>("Telem run monitor", `${base()}/monitors/${encodeURIComponent(monitorId)}/agent/ticks`, key, {});
   } catch (err) {
     if ((err as { status?: number }).status === 409 && /tick_in_progress/.test((err as Error).message)) return { already_running: true };
     throw err;
@@ -337,5 +337,5 @@ export async function telemTickMonitor(monitorId: string): Promise<{ job_id?: st
 export async function telemMonitorChanges(monitorId: string, cursor?: number): Promise<TelemChangesPage> {
   const key = needKey("TELEM_API_KEY");
   const q = typeof cursor === "number" ? `?cursor=${cursor}` : "";
-  return getJSON<TelemChangesPage>("Telem monitor changes", `${BASE}/monitors/${encodeURIComponent(monitorId)}/agent/changes${q}`, key);
+  return getJSON<TelemChangesPage>("Telem monitor changes", `${base()}/monitors/${encodeURIComponent(monitorId)}/agent/changes${q}`, key);
 }

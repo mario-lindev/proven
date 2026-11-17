@@ -1,5 +1,5 @@
 // Offline check of the search-layer parsing: npx tsx scripts/check-parse.ts
-// Feeds hard-coded sample responses (shapes from docs.telem.ai / docs.tavily.com) through the mappers,
+// Feeds hard-coded sample responses (shapes from hack.telem.ai/doc and docs.tavily.com) through the mappers,
 // then runs searchAll / extract / pollWatch against a stubbed fetch. No network, no real keys.
 import assert from "node:assert/strict";
 import { DILIGENCE, PLATFORM_PROVIDERS, extract, mergeHits, normalizeUrl, pollWatch, recentSince, runWatch, searchAll, wantsPlatforms, wantsRecent, watch, watchChanges } from "../lib/search";
@@ -185,6 +185,8 @@ function stub(h: Handler) {
 }
 
 async function e2e() {
+  process.env.TELEM_BASE_URL = "https://telem.example.test/api/";
+  process.env.TAVILY_BASE_URL = "https://tavily.example.test/";
   process.env.TELEM_API_KEY = "test-telem";
   process.env.TAVILY_API_KEY = "test-tavily";
   const queries = ["Anthropic competitors", "Anthropic funding 2026"];
@@ -192,19 +194,19 @@ async function e2e() {
   // both providers up
   stub((url) => {
     if (url.endsWith("/v1/search")) return { status: 200, json: telemSample };
-    if (url.endsWith("api.tavily.com/search")) return { status: 200, json: tavilySample };
+    if (url.endsWith("tavily.example.test/search")) return { status: 200, json: tavilySample };
     throw new Error(`unexpected ${url}`);
   });
   let trail = newTrail();
   let sources = await searchAll(queries, trail);
-  const telemCall = calls.find((c) => c.url === "https://hack.telem.ai/api/v1/search")!;
+  const telemCall = calls.find((c) => c.url === "https://telem.example.test/api/v1/search")!;
   assert.deepEqual(telemCall.body, {
     user_input: [{ query: queries[0] }, { query: queries[1] }],
     search: { auto_routing: "accuracy", num_results: 5, fields: SEARCH_FIELDS },
   });
   assert.equal(calls.filter((c) => c.url.endsWith("/v1/search")).length, 1, "no recent or platform batch for these queries");
   assert.equal(telemCall.auth, "Bearer test-telem");
-  const tav = calls.filter((c) => c.url === "https://api.tavily.com/search");
+  const tav = calls.filter((c) => c.url === "https://tavily.example.test/search");
   assert.equal(tav.length, 2);
   assert.equal(tav[0].auth, "Bearer test-tavily");
   assert.equal((tav[1].body as { topic: string }).topic, "news");
@@ -226,8 +228,8 @@ async function e2e() {
   // same trail again: the call joins the Telem session from the first response; extract's fetch joins it too
   stub((url) => {
     if (url.endsWith("/v1/search")) return { status: 200, json: telemSample };
-    if (url.endsWith("api.tavily.com/search")) return { status: 200, json: tavilySample };
-    if (url.endsWith("api.tavily.com/extract")) return { status: 200, json: { results: [], failed_results: [{ url: "https://z.com", error: "blocked" }] } };
+    if (url.endsWith("tavily.example.test/search")) return { status: 200, json: tavilySample };
+    if (url.endsWith("tavily.example.test/extract")) return { status: 200, json: { results: [], failed_results: [{ url: "https://z.com", error: "blocked" }] } };
     if (url.endsWith("/v1/fetch")) return { status: 200, json: { session_id: "sess-123", preprocessor_runs: [{ batch_index: 0, output_payload: { fetched_results: [{ url: "https://z.com", content: "Z" }] } }] } };
     throw new Error(`unexpected ${url}`);
   });
@@ -247,7 +249,7 @@ async function e2e() {
     output_payload: { results: [{ rank: 1, url, title: name, summary: name, publish_date: "2026-11-01" }], warnings: [] },
   });
   stub((url, body) => {
-    if (url.endsWith("api.tavily.com/search")) return { status: 200, json: { results: [] } };
+    if (url.endsWith("tavily.example.test/search")) return { status: 200, json: { results: [] } };
     const b = body as { user_input: { query: string }[]; search: { published_after?: string; providers?: { include: string[] } } };
     const q = b.user_input.map((u) => u.query);
     if (b.search.providers) {
@@ -281,7 +283,7 @@ async function e2e() {
   // without opts.platforms: no platform batch
   trail = newTrail();
   stub((url, body) => {
-    if (url.endsWith("api.tavily.com/search")) return { status: 200, json: { results: [] } };
+    if (url.endsWith("tavily.example.test/search")) return { status: 200, json: { results: [] } };
     assert.equal((body as { search: { providers?: unknown } }).search.providers, undefined);
     return { status: 200, json: { preprocessor_runs: [] } };
   });
@@ -291,7 +293,7 @@ async function e2e() {
 
   // a 422 on the rich body retries once with the docs' plain body; the step then claims no date filter
   stub((url, body) => {
-    if (url.endsWith("api.tavily.com/search")) return { status: 200, json: { results: [] } };
+    if (url.endsWith("tavily.example.test/search")) return { status: 200, json: { results: [] } };
     const b = body as { search: { fields?: string[]; tier?: string } };
     if (b.search.fields) return { status: 422, json: { detail: [{ loc: ["body", "search", "fields"], msg: "bad" }] } };
     assert.equal(b.search.tier, "default");
@@ -308,7 +310,7 @@ async function e2e() {
 
   // platform batch fails -> its error is on the step, general results still come back
   stub((url, body) => {
-    if (url.endsWith("api.tavily.com/search")) return { status: 200, json: { results: [] } };
+    if (url.endsWith("tavily.example.test/search")) return { status: 200, json: { results: [] } };
     if ((body as { search: { providers?: unknown } }).search.providers) return { status: 402, json: { detail: "out of credit" } };
     return { status: 200, json: { preprocessor_runs: [run("exa", 0, "https://acme.com/careers")] } };
   });
@@ -325,7 +327,7 @@ async function e2e() {
   const pinned = (c: { body: unknown }) => (c.body as { search: { providers?: { include: string[] } } }).search.providers?.include;
   const steerStub = (fail: boolean) =>
     stub((url, body) => {
-      if (url.endsWith("api.tavily.com/search")) return { status: 200, json: { results: [] } };
+      if (url.endsWith("tavily.example.test/search")) return { status: 200, json: { results: [] } };
       const inc = (body as { search: { providers?: { include: string[] } } }).search.providers?.include;
       if (inc && fail) return { status: 402, json: { detail: "out of credit" } };
       if (inc) return { status: 200, json: { preprocessor_runs: [run("you", 0, "https://you.com/acme")] } };
@@ -359,7 +361,7 @@ async function e2e() {
   const dq = ["Acme funding and investors", "Acme customer reviews on Reddit", "Acme patents", "Acme pricing"];
   const dStub = (failReddit: boolean) =>
     stub((url, body) => {
-      if (url.endsWith("api.tavily.com/search")) return { status: 200, json: { results: [] } };
+      if (url.endsWith("tavily.example.test/search")) return { status: 200, json: { results: [] } };
       const b = body as { session_id?: string; user_input: { query: string }[]; search: { providers?: { include: string[] } } };
       const inc = b.search.providers?.include.join(",") ?? "";
       const q = b.user_input.map((u) => u.query);
@@ -436,17 +438,17 @@ async function e2e() {
   trail = newTrail();
   sources = await searchAll(queries, trail);
   assert.ok(sources.every((s) => s.engine !== "tavily"));
-  assert.match(store.trails.get(trail.id)!.steps[0].engines!.at(-1)!.error!, /TAVILY_API_KEY is not set/);
+  assert.match(store.trails.get(trail.id)!.steps[0].engines!.at(-1)!.error!, /Set TAVILY_API_KEY/);
   process.env.TAVILY_API_KEY = "test-tavily";
   ok("searchAll: missing key named in error");
 
   // extract: Tavily gets a, fails b; Telem fetch gets b
   stub((url, body) => {
-    if (url === "https://api.tavily.com/extract") {
+    if (url === "https://tavily.example.test/extract") {
       assert.deepEqual((body as { urls: string[] }).urls, ["https://a.com/", "https://b.com"]);
       return { status: 200, json: { results: [{ url: "https://a.com", raw_content: "A".repeat(9000) }], failed_results: [{ url: "https://b.com", error: "blocked" }] } };
     }
-    if (url === "https://hack.telem.ai/api/v1/fetch") {
+    if (url === "https://telem.example.test/api/v1/fetch") {
       assert.deepEqual(body, { urls: ["https://b.com"], options: { tier: "default", content_format: "text" } });
       return { status: 200, json: { session_id: "f1", preprocessor_runs: [{ batch_index: 0, preprocessor_name: "web_fetch", output_payload: { fetched_results: [{ url: "https://b.com", error: null, content: "B text" }] } }] } };
     }
@@ -463,11 +465,11 @@ async function e2e() {
 
   // monitors
   stub((url, body) => {
-    if (url === "https://hack.telem.ai/api/v1/monitors") {
+    if (url === "https://telem.example.test/api/v1/monitors") {
       assert.deepEqual(body, { query: "News, funding, layoffs, lawsuits or new competitors for Acme", options: { frequency: "1h" }, ttl: "30d" });
       return { status: 201, json: { id: "mon-1", status: "active", session_id: "s" } };
     }
-    if (url === "https://hack.telem.ai/api/v1/monitors/mon-1/poll") return { status: 200, json: { completed_at: "2026-11-14T14:00:00Z", preprocessor_runs: telemSample.preprocessor_runs } };
+    if (url === "https://telem.example.test/api/v1/monitors/mon-1/poll") return { status: 200, json: { completed_at: "2026-11-14T14:00:00Z", preprocessor_runs: telemSample.preprocessor_runs } };
     throw new Error(`unexpected ${url}`);
   });
   assert.deepEqual(await watch("Acme"), { monitor_id: "mon-1" });
@@ -478,11 +480,11 @@ async function e2e() {
   // monitor agent: run now (409 tick_in_progress is fine) + changes since cursor
   let ticks = 0;
   stub((url) => {
-    if (url === "https://hack.telem.ai/api/v1/monitors/mon-1/agent/ticks") {
+    if (url === "https://telem.example.test/api/v1/monitors/mon-1/agent/ticks") {
       ticks++;
       return ticks === 1 ? { status: 202, json: { job_id: "j1" } } : { status: 409, json: { error: { code: "tick_in_progress", message: "already running" } } };
     }
-    if (url === "https://hack.telem.ai/api/v1/monitors/mon-1/agent/changes?cursor=3") {
+    if (url === "https://telem.example.test/api/v1/monitors/mon-1/agent/changes?cursor=3") {
       return {
         status: 200,
         json: {
